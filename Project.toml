@@ -3,6 +3,12 @@ uuid = "92146e7c-85be-4b32-b127-a84d188ef73a"
 authors = ["Giorgio Scorzelli"]
 version = "1.0.0-DEV"
 
+[deps]
+GLFW = "f7f18e0c-5ee9-5ccd-a5bf-e8befd85ed98"
+ModernGL = "66fc600b-dfda-50eb-8b99-91cfa97b1301"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [compat]
 julia = "1"
 

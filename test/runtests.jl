@@ -2,5 +2,6 @@ using Plasm
 using Test
 
 @testset "Plasm.jl" begin
-    # Write your tests here.
+    @test greet_your_package_name() == "Hello"
+    @test greet_your_package_name() != "Hi"
 end
