@@ -1,6 +1,9 @@
 module Plasm
 
 export greet_your_package_name
-include("functions.jl")
+
+function greet_your_package_name()
+	return "Hello"
+end
 
 end
