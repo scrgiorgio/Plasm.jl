@@ -3,26 +3,23 @@
 [![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 Links:
-- https://github.com/scrgiorgio/Plasm.jl
-- https://julialang.org/contribute/developing_package/
-
-Translators:
-- https://github.com/GunnarFarneback/CrudePythonTranslator.jl  (NOT GOOD)
-- https://www.codeconvert.ai/python-to-julia-converter
+- https://www.codeconvert.ai/python-to-julia-converter (good to create the first skeleton, but problems with 0-1 indices and list concatenation)
 
 
-# Setup
+# Clone and enable dev
 
-```
-set PATH=%PATH%;c:/Julia-1.9.3\bin
+```bash
+git clone git@github.com:scrgiorgio/Plasm.jl.git
+cd Plasm.jl
+
 julia
-
-# enable dev of current directory
 using Pkg
 Pkg.develop(PackageSpec(path = pwd()))
-exit()
+```
 
-# run tests
+# Run tests
+
+```bash
 julia test/viewer.jl
 julia test/hpc.jl
 julia test/fenvs.jl
