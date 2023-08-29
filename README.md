@@ -13,21 +13,19 @@ Translators:
 
 # Setup
 
-```set PATH=%PATH%;c:/Julia-1.9.3\bin
+```
+set PATH=%PATH%;c:/Julia-1.9.3\bin
 julia
+
+# enable dev of current directory
 using Pkg
-Pkg.add("LinearAlgebra")
-Pkg.add("Combinatorics")
-Pkg.add("ModernGL")
-Pkg.add("GLFW")
-Pkg.add("StaticArrays")
-Pkg.add("PyCall")
 Pkg.develop(PackageSpec(path = pwd()))
 exit()
 
-julia tests/viewer.jl
-julia tests/hpc.jl
-julia tests/fenvs.jl
-julia tests/temple.jl
+# run tests
+julia test/viewer.jl
+julia test/hpc.jl
+julia test/fenvs.jl
+julia test/temple.jl
 ```
 
