@@ -13,25 +13,21 @@ Translators:
 
 # Setup
 
-```bash
-set PATH=%PATH%;c:\Julia-1.9.2\bin
+```set PATH=%PATH%;c:/Julia-1.9.3\bin
 julia
-
 using Pkg
-Pkg.add("Combinatorics)
+Pkg.add("LinearAlgebra")
+Pkg.add("Combinatorics")
 Pkg.add("ModernGL")
 Pkg.add("GLFW")
 Pkg.add("StaticArrays")
 Pkg.add("PyCall")
+Pkg.develop(PackageSpec(path = pwd()))
 exit()
 
+julia tests/viewer.jl
+julia tests/hpc.jl
+julia tests/fenvs.jl
+julia tests/temple.jl
+```
 
-Tests:
-
-```bash
-julia src/viewer.jl
-julia src/hpc.jl
-julia src/fenvs.jl
-julia src/temple.jl
-- 
-- 

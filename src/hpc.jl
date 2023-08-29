@@ -1,15 +1,15 @@
-using LinearAlgebra
-using Test
+using Test,LinearAlgebra,PyCall
+
+export ComputeTriangleNormal,GoodTetOrientation,
+	BoxNd,MatrixNd,Hpc,BuildMkPol,
+	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,ToSimplicialForm,
+	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,GetBatches,MapFn,
+	ToBoundaryForm,View
 
 import Base.:(==)
 import Base.:*
 import Base.size
 import Base.transpose
-
-using PyCall
-spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
-
-include("viewer.jl")
 
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
@@ -279,9 +279,10 @@ mutable struct BuildMkPol
 				  addHull(self, Vector{Vector{Float64}}([box.p1, box.p2]))
 			 else
 				  hull_points = [points[idx] for idx in hull]
-
+				  __spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
+				  ConvexHull = __spatial.ConvexHull
 				  try
-						h = spatial.ConvexHull([points[idx] for idx in hull])
+						h = ConvexHull([points[idx] for idx in hull])
 						hull_points = [Vector{Float64}(h.points[idx+1,:]) for idx in h.vertices]
 				  catch
 				  end
@@ -341,8 +342,12 @@ function ToSimplicialForm(self::BuildMkPol)
 		  if length(hull) <= pdim + 1
 				addHull(ret, [self.points[idx] for idx in hull])
 		  else
+				
+				__spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
+				ConvexHull = __spatial.ConvexHull
+				Delaunay   = __spatial.Delaunay			
 				try
-					 d = spatial.Delaunay([self.points[idx] for idx in hull])
+					 d = Delaunay([self.points[idx] for idx in hull])
 					 for simplex in [ d.simplices[R,:] for R in 1:size(d.simplices,1)]
 							simplex_points = [Vector{Float64}(d.points[idx+1,:]) for idx in simplex]
 						  addHull(ret, simplex_points)
@@ -774,232 +779,4 @@ function ToBoundaryForm(self::Hpc)
  
 	FACES=[face for face in FACES if num_occurrence[sort(face)] == 1]
 	return MkPol(POINTS,FACES)
-end
-
-# //////////////////////////////////////////////////////////////////////////////////////////
-function TestComputeNormal()
-	 @test ComputeTriangleNormal([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]) == [0.0, 0.0, 1.0]
-	 @test ComputeTriangleNormal([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]) == [1.0, 0.0, 0.0]
-	 @test ComputeTriangleNormal([0.0, 0.0, 0.0], [1.0, 0.0, 1.0], [1.0, 0.0, 0.0]) == [0.0, 1.0, 0.0]
-end
-
-function TestGoodTet()
-	 @test GoodTetOrientation([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]) == true
-	 @test GoodTetOrientation([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]) == false
-end
-
-function TestBox()
-	 x1, y1, z1 = 1.0, 2.0, 3.0
-	 x2, y2, z2 = 4.0, 5.0, 6.0
-	 b = BoxNd([1.0, x1, y1, z1], [1.0, x2, y2, z2])
-	 @test dim(b) == 4
-	 @test b.p1 == [1.0, x1, y1, z1]
-	 @test b.p2 == [1.0, x2, y2, z2]
-	 @test valid(b) == true
-	 @test b == BoxNd(toList(b)...)
-	 @test size(b) == [0.0, x2 - x1, y2 - y1, z2 - z1]
-	 @test center(b) == [1.0, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2]
-	 x1, y1, z1 = -1, -2, -3
-	 x2, y2, z2 = 10, 20, 30
-	 addPoint(b, [1.0, x1, y1, z1])
-	 addPoint(b, [1.0, x2, y2, z2])
-	 @test b == BoxNd([1.0, x1, y1, z1], [1.0, x2, y2, z2])
-end
-
-function TestMat()
-	T = MatrixNd(4)
-	v = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
-	T[1, 1] += 0.0
-	@test T == MatrixNd(v)
-	@test dim(T) == 4
-	@test T[1, 1] == 1.0
-	@test isIdentity(T) == true
-	@test toList(T) == v
-	@test transpose(T) == T
-	@test invert(T) == T
-	@test embed(T, 5) == MatrixNd(5)
-	@test T * T == T
-	
-	# transform point does not want homo coordinate
-	p = [2.0, 3.0, 4.0]
-	@test transformPoint(T, p) == p
-	@test translate([10.0, 20.0, 30.0]) == MatrixNd([[1.0, 0.0, 0.0, 0.0], [10.0,  1.0, 0.0, 0.0], [20.0, 0.0,  1.0, 0.0], [30.0, 0.0, 0.0,  1.0]])
-	@test scale([10.0, 20.0, 30.0])     == MatrixNd([[1.0, 0.0, 0.0, 0.0], [ 0.0, 10.0, 0.0, 0.0], [ 0.0, 0.0, 20.0, 0.0], [ 0.0, 0.0, 0.0, 30.0]])
-	angle = π / 2
-	@test rotate(1, 2, angle) == MatrixNd([[1.0, 0.0, 0.0], [0.0, cos(angle), -sin(angle)], [0.0, sin(angle), cos(angle)]])
-end
-
-function TestMkPol()
-
-	# 1D
-	points=[[0.0],[1.0],[2.0],   [8.0],[9.0],[10.0]]
-	hulls=[[1,2,3],[4,5,6]]
-	obj=BuildMkPol(points,hulls)
-	@test dim(obj)==1
-	@test box(obj)==BoxNd([0.0],[10.0])
-	obj=ToSimplicialForm(obj)
-	@test length(obj.points)==4
-	@test length(obj.hulls)==2
-	@test box(obj)==BoxNd([0.0],[10.0])
-
-	# 2D
-	points = [[0.0, 0.0], [0.2, 0.2], [1.0, 0.0], [0.3, 0.3], [1.0, 1.0], [0.4, 0.4], [0.0, 1.0], [0.5, 0.5], [0.2, 0.8]]
-	hulls = [collect(1:length(points))]
-	obj = BuildMkPol(points, hulls)
-	@test dim(obj) == 2
-	@test box(obj) == BoxNd([0.0,0.0], [1.0,1.0])
-	obj = ToSimplicialForm(obj)
-	@test length(obj.points) == 4
-	@test length(obj.hulls) == 2
-	@test box(obj) == BoxNd([0.0,0.0], [1.0,1.0])
-
-	# 3D
-	points = [
-		[0.0, 0.0, 0.0],
-		[1.0, 0.0, 0.0],
-		[1.0, 1.0, 0.0],
-		[0.0, 1.0, 0.0],
-		[0.0, 0.0, 1.0],
-		[1.0, 0.0, 1.0],
-		[1.0, 1.0, 1.0],
-		[0.0, 1.0, 1.0],
-		[0.1, 0.1, 0.1],
-		[0.2, 0.2, 0.2],
-		[0.3, 0.3, 0.3]
-	]
-	hulls = [collect(1:length(points))]
-	obj = BuildMkPol(points, hulls)
-	@test dim(obj) == 3
-	@test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-	obj = ToSimplicialForm(obj)
-	@test dim(obj) == 3
-	@test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-	@test length(obj.points) == 8
-	@test length(obj.hulls) == 6
-end
-
-function TestHpc()
-
-	points = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.2, 0.2], [0.3, 0.3], [0.4, 0.4], [0.5, 0.5], [0.2, 0.8]]
-	hulls = [collect(1:length(points))]
-	obj = MkPol(points, hulls)
-	@test dim(obj) == 2
-	@test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-
-	# struct
-	obj = Struct([obj])
-	@test dim(obj) == 2
-	@test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-	
-	# cube
-	obj = Cube(3, 0.0, 1.0)
-	@test dim(obj) == 3
-	@test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-	@test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-	v = toList(obj)
-	@test length(v) == 1
-	(T, properties, obj) = v[1]
-	obj = ToSimplicialForm(obj)
-	@test dim(obj) == 3
-	@test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-	@test length(obj.points) == 8
-	@test length(obj.hulls) == 6
-	
-	# simplex
-	obj = Simplex(3)
-	@test dim(obj) == 3
-	@test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-	v = toList(obj)
-	@test length(v) == 1
-	(T, properties, obj) = v[1]
-	obj = ToSimplicialForm(obj)
-	@test dim(obj) == 3
-	@test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-	@test length(obj.points) == 4
-	@test length(obj.hulls) == 1
-	
-	# quote
-	obj = Quote([1.0, -2.0, 1.0])
-	@test box(obj) == BoxNd([0.0], [4.0])
-	(T, properties, obj) = toList(obj)[1]
-	@test length(obj.points) == 4
-	@test obj.hulls == [[1, 2], [3, 4]]
-	
-	# join
-	obj = Join([Cube(2, 0.0, 1.0), Cube(2, 0.0, 1.0)])
-	(T, properties, obj) = toList(obj)[1]
-	obj = ToSimplicialForm(obj)
-	@test length(obj.points) == 4
-	@test length(obj.hulls) == 2
-	
-	# Transform
-	obj = Transform(Cube(2, 0.0, 1.0),MatrixNd(3))
-	(T, properties, obj) = toList(obj)[1]
-	@test dim(T) == 3
-	@test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-
-	# power
-	obj = Power(Cube(2, 0.0, 1.0), Cube(1, 10.0, 20.0))
-	l = toList(obj)
-	@test length(l) == 1
-	(T, properties, obj) = l[1]
-	@test length(obj.points) == 8
-	@test box(obj) == BoxNd([0.0, 0.0, 10.0], [1.0, 1.0, 20.0])
-
-	# Scale
-	obj = Scale(Cube(2, 0.0, 1.0),[1.0, 1.0])
-	@test dim(obj) == 2
-	@test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-
-	# Rotate
-	obj = Rotate(Cube(2, 0.0, 1.0), 1,2, 0.0)
-	@test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-
-	# Translate
-	obj = Translate(Cube(2, 0.0, 1.0),[0.0, 0.0])
-	@test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-
-	# MapFn
-	function fn(p)
-		return [p[I]+0.0 for I in 1:length(p)]
-	end
-	obj=MapFn(Cube(2, 0.0, 1.0),fn)
-	@test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-
-	# UkPol
-	points,hulls=UkPol(Cube(2, 0.0, 1.0))
-	@test length(points)==4
-	@test length(hulls)==1 && length(hulls[1])==4
-
-
-	obj=Struct([
-		Translate(Simplex(1)  , [0.0, 0.0, 0.0]),
-		Translate(Simplex(2)  , [1.0, 0.0, 0.0]),
-		Translate(Simplex(3)  , [2.0, 0.0, 0.0]),
-		Translate(Cube(1)     , [0.0, 1.0, 0.0]),
-		Translate(Cube(2)     , [1.0, 1.0, 0.0]),
-		Translate(Cube(3)     , [2.0, 1.0, 0.0]),
-	])
-	View(obj,"Example")
-
-	# ToBoundaryForm
-	obj=ToBoundaryForm(Struct([
-		Translate(Cube(2),[0.0,0.0]),
-		Translate(Cube(2),[1.0,0.0])
-	]))
-	(T, properties, obj) = toList(obj)[1]
-	@assert length(obj.hulls)==6
-	@assert length(obj.points)==6
-
-end
-
-# ////////////////////////////////////////////////
-if abspath(PROGRAM_FILE) == @__FILE__
-	TestComputeNormal()
-	TestGoodTet()
-	TestBox()
-	TestMat()
-	TestMkPol()
-	TestHpc()
-	println("all test ok")
 end

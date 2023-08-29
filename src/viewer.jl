@@ -3,6 +3,12 @@ using ModernGL
 using GLFW
 using StaticArrays
 
+export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
+	norm,normalized,invalidBox,addPoint,getPoints,center,flatten,translateMatrix,scaleMatrix,lookAtMatrix,perspectiveMatrix,orthoMatrix,getLookAt,GetBoundingBox,
+	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,
+	POINTS,LINES,TRIANGLES,
+	GLCuboid,GLAxis,GLView
+
 import Base:*
 import Base.:-
 import Base.:+
@@ -14,7 +20,6 @@ Point3d() = Point3d(0.0,0.0,0.0)
 function norm(p::Point3d)
 	return sqrt(p[1]*p[1] + p[2]*p[2] + p[3]*p[3])
 end
-
 
 function normalized(p::Point3d)
 	len=norm(p)
@@ -32,8 +37,6 @@ end
 function *(a::Point3d, vs::Float64)
 	return Point3d(a[1]*vs,a[2]*vs,a[3]*vs)
 end
-
-
 
 # //////////////////////////////////////////////////////////////////////////////
 const Point4d=MVector{4,Float64}
@@ -925,7 +928,7 @@ function runViewer(viewer::Viewer,title::String="Plasm")
 	viewer.exitNow=false
 	GLFW.MakeContextCurrent(win)
 
-	println("Running viewer",title)
+	#println("Running viewer",title)
 	#println("GL_SHADING_LANGUAGE_VERSION ",unsafe_string(glGetString(GL_SHADING_LANGUAGE_VERSION)))
 	#println("GL_VERSION                  ",unsafe_string(glGetString(GL_VERSION)))
 	#println("GL_VENDOR                   ",unsafe_string(glGetString(GL_VENDOR)))
@@ -1310,12 +1313,3 @@ function handleKeyPressEvent(viewer,key, scancode, action, mods)
 	
 end	
 
-
-
-if abspath(PROGRAM_FILE) == @__FILE__
-
-	GLView([
-		GLCuboid(Box3d(Point3d(0,0,0),Point3d(1,1,1)))
-		GLAxis(Point3d(0,0,0),Point3d(+1.1,+1.1,+1.1))
-		])	
-end
