@@ -15,6 +15,7 @@ cd Plasm.jl
 julia
 using Pkg
 Pkg.develop(PackageSpec(path = pwd()))
+exit()
 ```
 
 # Run tests
