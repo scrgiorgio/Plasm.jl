@@ -26,3 +26,17 @@ julia test/fenvs.jl
 julia test/temple.jl
 ```
 
+# Jupyter
+
+```
+julia
+using Pkg
+add IJulia
+add MeshCat
+add CoordinateTransformations 
+add Rotations 
+add GeometryBasics
+add Colors
+using IJulia
+IJulia.notebook()
+``````
