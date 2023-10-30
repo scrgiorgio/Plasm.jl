@@ -25,6 +25,7 @@ julia test/viewer.jl
 julia test/hpc.jl
 julia test/fenvs.jl
 julia test/temple.jl
+julia test/manhattan2d.jl
 ```
 
 # Jupyter
