@@ -103,6 +103,8 @@ function TestHpcMkPol()
   @test length(obj.hulls) == 6
 end
 
+
+
 function TestHpcInternal()
 
   points = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.2, 0.2], [0.3, 0.3], [0.4, 0.4], [0.5, 0.5], [0.2, 0.8]]
@@ -207,6 +209,35 @@ function TestHpcInternal()
 
 end
 
+# ///////////////////////////////////////////////////////
+function TestToLARForm()
+
+	# test2D
+  h = LARConvexHull([
+    [0.5,0.5],
+    [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
+    [0.6,0.6],
+    [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
+    [0.9,0.2]
+  ])
+  @assert len(h.points)==5 
+  @assert len(h.hulls)==1
+  @assert len(h.facets)==1
+
+	# test3D
+  h = LARConvexHull([
+    [0.5,0.5,0.5],
+    [0.0,0.0,0.0],[1.0,0.0,0.0],[1.0,1.0,0.0], [0.5,2.0,0.0], [0.0,1.0,0.0],
+    [0.6,0.6,0.6],
+    [0.0,0.0,1.0],[1.0,0.0,1.0],[1.0,1.0,1.0], [0.5,2.0,1.0], [0.0,1.0,1.0],
+    [0.9,0.2,0.3]
+  ])
+  @assert len(h.points)==10 
+  @assert len(h.hulls)==1
+  @assert len(h.facets)==7
+
+end
+
 function MyMain()
   TestComputeNormal()
   TestGoodTet()
@@ -214,6 +245,7 @@ function MyMain()
   TestHpcMat()
   TestHpcMkPol()
   TestHpcInternal()
+  TestToLARForm()
   println("TestHpc ok")
 end
 

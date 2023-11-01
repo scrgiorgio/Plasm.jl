@@ -2,9 +2,10 @@ using Test,LinearAlgebra,PyCall
 
 export ComputeTriangleNormal,GoodTetOrientation,
 	BoxNd,MatrixNd,Hpc,BuildMkPol,
-	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,ToSimplicialForm,
+	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,GetBatches,MapFn,
-	ToBoundaryForm,View
+	ToSimplicialForm,ToBoundaryForm,ToLARForm,
+	View
 
 import Base.:(==)
 import Base.:*
@@ -232,13 +233,27 @@ end
 
 # /////////////////////////////////////////////////////////////
 mutable struct BuildMkPol
+
 	 db::Dict{Vector{Float64}, Int}
 	 points::Vector{Vector{Float64}}
 	 hulls::Vector{Vector{Int}}
+	 facets::Vector{Vector{Int}}
 
 	# constructor
 	function BuildMkPol()
-		self=new(Dict{Vector{Float64}, Int}(),Vector{Vector{Float64}}(),Vector{Vector{Int}}())
+		self=new(
+			# db
+			Dict{Vector{Float64}, Int}(),
+
+			# points
+			Vector{Vector{Float64}}(),
+
+			# hulls
+			Vector{Vector{Int}}(),
+
+			# facets (for LAR)
+			Vector{Vector{Int}}(),
+		)
 		return self
 	end
 
@@ -297,7 +312,7 @@ mutable struct BuildMkPol
 end
 
 
-function addPoint(self::BuildMkPol, p::Vector{Float64})
+function addPoint(self::BuildMkPol, p::Vector{Float64})::Int
 	 idx = get(self.db, p, 0)
 	 if idx>=1
 		  return idx
@@ -307,6 +322,15 @@ function addPoint(self::BuildMkPol, p::Vector{Float64})
 		  push!(self.points, p)
 		  return idx
 	 end
+end
+
+
+function addPoints(self::BuildMkPol, points::Vector{Vector{Float64}})::Dict{Int,Int}
+	ret = Dict{Int,Int}()
+	for P in 1:length(points)
+		ret[P]=addPoint(self,points[P])
+	end
+	return ret
 end
 
 function addHull(self::BuildMkPol, points::Vector{Vector{Float64}})
@@ -359,6 +383,9 @@ function ToSimplicialForm(self::BuildMkPol)
 	 FixOrientation!(ret)
 	 return ret
 end
+
+
+
 
 # ////////////////////////////////////////////////////////////////////////////////
 function FixOrientation!(self::BuildMkPol)
@@ -531,6 +558,8 @@ function MkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vecto
 	obj=BuildMkPol(points, hulls)
 	return Hpc(MatrixNd(), [obj])
 end
+
+
 
 function MkPol0()
 
@@ -779,4 +808,198 @@ function ToBoundaryForm(self::Hpc)
  
 	FACES=[face for face in FACES if num_occurrence[sort(face)] == 1]
 	return MkPol(POINTS,FACES)
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////////
+# https://github.com/scipy/scipy/blob/main/scipy/spatial/_qhull.pyx
+# ConvexHull class triangulate the resutls (see required_optioins) 
+# so I am creating a new class to override the problem
+
+
+# //////////////////////////////////////////////////////////////////////////////////////////
+function ToLARForm(self::Hpc)
+
+	py"""
+
+	import numpy as np
+	import math
+	from scipy.spatial._qhull import _Qhull,_QhullUser
+	
+	# //////////////////////////////////////////////////////////////////////////////////
+	class MyConvexHull(_QhullUser):
+	
+		# constructor
+		def __init__(self, user_points, verbose=False):
+			user_points = np.ascontiguousarray(user_points, dtype=np.double)
+			qhull_options = "i Qs Pp".encode('latin1')
+			qhull = _Qhull(b"i", user_points, qhull_options, required_options=None, incremental=True) # this is the line I need to change
+			_QhullUser.__init__(self, qhull, incremental=True)
+	
+			self.pdim=len(user_points[0])
+	
+			self.points=self._points
+			self.facets,self.normals=qhull.get_hull_facets()
+			self.close()
+	
+			# in 2d the normal is pointing up (i.e Z>=0)
+			if self.pdim==2:
+				self.normals=[[0.0,0.0,1.0]]
+		
+			self.removeUnusedPoints()
+			self.findEdges()
+			self.findFacetLoops()
+			self.correctOrientation()
+	
+			if verbose:
+				print("Points", len(self.points))
+				for P, point in enumerate(self.points): 
+					print(P,point)
+	
+				print("Facets", len(self.facets))
+				for F,facet in enumerate(self.facets): 
+					print(facet, self.normals[F])
+	
+		# GetPlane
+		@staticmethod
+		def GetPlane(p1,p2,p3): 
+			x1,y1,z1=p1
+			x2,y2,z2=p2
+			x3,y3,z3=p3
+			a1 = x2 - x1
+			b1 = y2 - y1
+			c1 = z2 - z1
+			a2 = x3 - x1
+			b2 = y3 - y1
+			c2 = z3 - z1
+			a = b1 * c2 - b2 * c1
+			b = a2 * c1 - a1 * c2
+			c = a1 * b2 - b1 * a2
+			d = (- a * x1 - b * y1 - c * z1)
+			m=math.sqrt(a*a+b*b+c*c)
+			if not m: m=1.0
+			return [a/m,b/m,c/m,d/m]
+	
+		#  removeUnusedPoints
+		def removeUnusedPoints(self):
+			reindex,new_points={},[]
+			for F,facet in enumerate(self.facets):
+				for idx in facet:
+					if not idx in reindex:
+						new_index=len(reindex)
+						reindex[idx]=new_index
+						new_points.append(self.points[idx])
+				self.facets[F]=[reindex[idx] for idx in facet]
+			self.points=new_points
+	
+		# findEdges
+		def findEdges(self):
+			if self.pdim==2:
+	
+				# only one face
+				self.edges={0: self.facets} 
+	
+			elif self.pdim==3:
+	
+				# find edges as the intersection of faces
+				if True:
+					nfaces=len(self.facets)
+					self.edges={I:[] for I in range(nfaces)}
+					for A in range(nfaces):
+						for B in range(A+1,nfaces):
+							edge=list(set.intersection(set(self.facets[A]),set(self.facets[B])))
+							if edge:
+								self.edges[A].append(edge)
+								self.edges[B].append(edge)
+	
+		# findFacetLoops
+		def findFacetLoops(self):
+			new_facets=[]
+			for F in self.edges:
+				faces=self.facets[F]
+				todo=self.edges[F]
+				loop=[]
+				(A,B),todo=todo[0],todo[1:]
+				loop.append(A)
+				while todo:
+					found=False
+					for I,(a,b) in enumerate(todo):
+						if a==B or b==B:
+							loop.append(B)
+							B=b if a==B else a
+							found=True
+							del todo[I]
+							break
+					assert(found)
+				new_facets.append(loop)
+			self.facets=new_facets
+	
+		# DotProduct
+		@staticmethod
+		def DotProduct(a,b):
+			return (a[0]*b[0] + a[1]*b[1] + a[2]*b[2])
+	
+		# correctOrientation
+		def correctOrientation(self):
+			for F,face in enumerate(self.facets):
+				p1,p2,p3=[self.points[idx] for idx in self.facets[F][0:3]]
+				if self.pdim==2:
+					p1,p2,p3=list(p1)+[0.0],list(p2)+[0.0],list(p3)+[0.0]
+				plane=MyConvexHull.GetPlane(p1,p2,p3)
+				if MyConvexHull.DotProduct(plane,self.normals[F])<0:
+					self.facets[F].reverse()
+	
+	def GetLARConvexHull(user_points, verbose=False):
+		lar=MyConvexHull(user_points,verbose=False)
+		return [
+			lar.points, 
+			[[int(it+1) for it in facet] for facet in lar.facets] # 0->1 index
+		]
+	
+	"""
+
+	ret=BuildMkPol()
+	for (T, properties, obj) in toList(self)
+
+		@assert obj isa BuildMkPol
+
+		# automatic filter useless obj
+		if isempty(obj.points) || isempty(obj.hulls) || dim(obj) <= 1
+			continue
+		end
+
+		# for each hull create a LAR hull (i.e. polygonal faces)
+		for hull in obj.hulls
+			points=[obj.points[idx] for idx in hull]
+			points, facets = py"GetLARConvexHull"(points)
+
+			#println(typeof(points),points)
+			#println(typeof(facets),facets)
+
+			if facets isa Matrix{Int64}
+				nrows,ncols=size(facets)
+				converted=Vector{Vector{Int64}}()
+				for R in 1:nrows
+					push!(converted, facets[R,:])
+				end
+				facets=converted
+			end
+
+			@assert points isa Vector{Vector{Float64}}
+			@assert facets isa Vector{Vector{Int64}}
+			
+			# add the transformed points
+			points = [transformPoint(T,p) for p in points]
+			mapped = addPoints(ret, points)
+
+			# add the hull
+			push!(ret.hulls, [mapped[it] for it in 1:length(points)])
+
+			# add the facets
+			for facet in facets
+				push!(ret.facets, [mapped[it] for it in facet])
+			end
+		end
+	end
+	return Hpc(MatrixNd(), [ret])
 end
