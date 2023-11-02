@@ -4,7 +4,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	BoxNd,MatrixNd,Hpc,BuildMkPol,
 	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,GetBatches,MapFn,
-	ToSimplicialForm,ToBoundaryForm,ToLARForm,
+	ToSimplicialForm,ToBoundaryForm,ToLAR,
 	View
 
 import Base.:(==)
@@ -266,6 +266,7 @@ mutable struct BuildMkPol
 			 return self
 		end
 		
+		# take all points
 		if isempty(hulls)
 			 hulls = [collect(1:length(points))]
 		end
@@ -810,15 +811,17 @@ function ToBoundaryForm(self::Hpc)
 	return MkPol(POINTS,FACES)
 end
 
-
-# //////////////////////////////////////////////////////////////////////////////////
-# https://github.com/scipy/scipy/blob/main/scipy/spatial/_qhull.pyx
-# ConvexHull class triangulate the resutls (see required_optioins) 
-# so I am creating a new class to override the problem
+using PyCall
+export InitToLAR
 
 
-# //////////////////////////////////////////////////////////////////////////////////////////
-function ToLARForm(self::Hpc)
+# ////////////////////////////////////////////////////////////
+function InitToLAR()
+
+	# ALL PYTHON CODE HERE
+	# resolving a problem of scipy spatial which always triangulate the output
+	# https://github.com/scipy/scipy/blob/main/scipy/spatial/_qhull.pyx
+	# so I am creating a new class to override the problem
 
 	py"""
 
@@ -957,8 +960,14 @@ function ToLARForm(self::Hpc)
 		]
 	
 	"""
+end
 
+# ///////////////////////////////////////////////////////////////////
+function ToLAR(self::Hpc)
+
+	# returning always an unique cell
 	ret=BuildMkPol()
+
 	for (T, properties, obj) in toList(self)
 
 		@assert obj isa BuildMkPol
@@ -1001,5 +1010,7 @@ function ToLARForm(self::Hpc)
 			end
 		end
 	end
+	
 	return Hpc(MatrixNd(), [ret])
 end
+

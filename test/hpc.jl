@@ -210,31 +210,65 @@ function TestHpcInternal()
 end
 
 # ///////////////////////////////////////////////////////
-function TestToLARForm()
+function TestToLAR()
 
 	# test2D
-  h = LARConvexHull([
-    [0.5,0.5],
-    [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
-    [0.6,0.6],
-    [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
-    [0.9,0.2]
-  ])
-  @assert len(h.points)==5 
-  @assert len(h.hulls)==1
-  @assert len(h.facets)==1
+  if true
+    points=[
+      [0.5,0.5],
+      [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
+      [0.6,0.6],
+      [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
+      [0.9,0.2]
+    ]
+    hpc=Hpc(MatrixNd(), [BuildMkPol(points)])
+    lar = ToLAR(hpc)
+    @assert length(lar.childs)==1
+    obj=lar.childs[1]
+    @assert length(obj.points)==5 
+    @assert length(obj.hulls)==1
+    @assert length(obj.facets)==1
+  end
 
 	# test3D
-  h = LARConvexHull([
-    [0.5,0.5,0.5],
-    [0.0,0.0,0.0],[1.0,0.0,0.0],[1.0,1.0,0.0], [0.5,2.0,0.0], [0.0,1.0,0.0],
-    [0.6,0.6,0.6],
-    [0.0,0.0,1.0],[1.0,0.0,1.0],[1.0,1.0,1.0], [0.5,2.0,1.0], [0.0,1.0,1.0],
-    [0.9,0.2,0.3]
-  ])
-  @assert len(h.points)==10 
-  @assert len(h.hulls)==1
-  @assert len(h.facets)==7
+  if true
+    points=[
+      [0.5,0.5,0.5],
+      [0.0,0.0,0.0],[1.0,0.0,0.0],[1.0,1.0,0.0], [0.5,2.0,0.0], [0.0,1.0,0.0],
+      [0.6,0.6,0.6],
+      [0.0,0.0,1.0],[1.0,0.0,1.0],[1.0,1.0,1.0], [0.5,2.0,1.0], [0.0,1.0,1.0],
+      [0.9,0.2,0.3]
+    ]
+    hpc=Hpc(MatrixNd(), [BuildMkPol(points)])
+    lar = ToLAR(hpc)
+    @assert length(lar.childs)==1
+    obj=lar.childs[1]
+    #println("points ",obj.points)
+    #println("hulls  ",obj.hulls)
+    #println("facets ",obj.facets)
+    @assert length(obj.points)==10 
+    @assert length(obj.hulls)==1
+    @assert length(obj.facets)==7
+  end
+
+  # test two 3d cubes
+  if true
+    hpc=STRUCT([
+      CUBOID([1,1,1]),
+      T([1])([3]),
+      CUBOID([1,1,1])
+    ])
+
+    lar = ToLAR(hpc)
+    @assert length(lar.childs)==1
+    obj=lar.childs[1]
+    #println("points ",obj.points)
+    #println("hulls  ",obj.hulls)
+    #println("facets ",obj.facets)
+    @assert(length(obj.points)==8*2)    # each cube is 8 vertices
+    @assert(length(obj.hulls )==2)       # each cube is 1 hull
+    @assert(length(obj.facets)==6*2)    # each cube has 6 boundary faces
+  end
 
 end
 
@@ -245,7 +279,7 @@ function MyMain()
   TestHpcMat()
   TestHpcMkPol()
   TestHpcInternal()
-  TestToLARForm()
+  TestToLAR()
   println("TestHpc ok")
 end
 
