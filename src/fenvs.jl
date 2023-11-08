@@ -792,8 +792,8 @@ end
 
 
 # /////////////////////////////////////////////////////////////////
-function VIEW(obj,title::String="Plasm.jl")
-	View(obj, title)
+function VIEW(obj,title::String="Plasm.jl", show_axis::Bool=true)
+	View(obj, title, show_axis)
 end
 
 # /////////////////////////////////////////////////////////////////

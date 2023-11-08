@@ -304,7 +304,7 @@ function addPoint(self::BuildMkPol, p::Vector{Float64})
 	 else
 		  idx = length(self.db) + 1
 		  self.db[p] = idx
-		  push!(self.points, p)
+		  push!(self.points, copy(p))
 		  return idx
 	 end
 end
@@ -403,39 +403,65 @@ function FixOrientation!(self::BuildMkPol)
 	 return self
 end
 
+# //////////////////////////////////////////////////////////////
+function ToVector3(value)
+
+	N=length(value)
+
+	if N==1
+		return Vector{Float64}([value[1],0.0, 0.0])
+	elseif N==2
+		return Vector{Float64}([value[1],value[2], 0.0])
+	elseif N==3
+		return Vector{Float64}([value[1],value[2],value[3]])
+	else
+		throw("Cannot handle geometry with dim > 3")
+	end
+
+end
 
 # ////////////////////////////////////////////////////////////////////////////////
 function GetBatches(self::BuildMkPol)
 
 	sf = ToSimplicialForm(self)
 
-	points = GLBatch(POINTS)
-	lines   = GLBatch(LINES)
+	points    = GLBatch(POINTS)
+	lines     = GLBatch(LINES)
 	triangles = GLBatch(TRIANGLES)
-	
+
 	for hull in sf.hulls
 		hull_dim = length(hull)
+
+		# points
 		if hull_dim == 1
-			p0 = sf.points[hull[1]];resize!(p0,3)
+			p0 = ToVector3(sf.points[hull[1]])
 			push!(points.vertices, p0)
+
+		# lines
 		elseif hull_dim == 2
-			p0 = sf.points[hull[1]];resize!(p0,3)
-			p1 = sf.points[hull[2]];resize!(p1,3)
+			p0 = ToVector3(sf.points[hull[1]])
+			p1 = ToVector3(sf.points[hull[2]])
 			push!(lines.vertices.vector, p0...)
 			push!(lines.vertices.vector, p1...)
+			push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
+			push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
+
+		# triangles
 		elseif hull_dim == 3
-			p0 = sf.points[hull[1]];resize!(p0,3)
-			p1 = sf.points[hull[2]];resize!(p1,3)
-			p2 = sf.points[hull[3]];resize!(p2,3)
+			p0 = ToVector3(sf.points[hull[1]])
+			p1 = ToVector3(sf.points[hull[2]])
+			p2 = ToVector3(sf.points[hull[3]])
 			n = ComputeTriangleNormal(p0, p1, p2)
 			push!(triangles.vertices.vector, p0...);push!(triangles.normals.vector, n...)
 			push!(triangles.vertices.vector, p1...);push!(triangles.normals.vector, n...)
 			push!(triangles.vertices.vector, p2...);push!(triangles.normals.vector, n...)
+
+		# tetrahedral
 		elseif hull_dim == 4
 			for T in [[1, 2, 4], [1, 4, 3], [1, 3, 2], [2, 3, 4]]
-					p0 = sf.points[hull[T[1]]];resize!(p0,3)
-					p1 = sf.points[hull[T[2]]];resize!(p1,3)
-					p2 = sf.points[hull[T[3]]];resize!(p2,3)
+					p0 = ToVector3(sf.points[hull[T[1]]])
+					p1 = ToVector3(sf.points[hull[T[2]]])
+					p2 = ToVector3(sf.points[hull[T[3]]])
 					n = ComputeTriangleNormal(p0, p1, p2)
 					push!(triangles.vertices.vector, p0...);push!(triangles.normals.vector, n...)
 					push!(triangles.vertices.vector, p1...);push!(triangles.normals.vector, n...)
@@ -456,6 +482,7 @@ function GetBatches(self::BuildMkPol)
 	if !isempty(triangles.vertices.vector)
 		push!(ret, triangles)
 	end
+
 	return ret
 end
 
@@ -705,8 +732,12 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function View(self::Hpc, title::String="Plasm.jl")
-	batches=[GLAxis(Point3d(0,0,0),Point3d(+2,2,2));GetBatches(self)]
+function View(self::Hpc, title::String="Plasm.jl", show_axis::Bool=true)
+	batches=Vector{GLBatch}()
+	if show_axis
+		push!(batches,GLAxis(Point3d(0,0,0),Point3d(2,2,2)))
+	end
+	append!(batches,GetBatches(self))
 	GLView(batches, title)
 end
 

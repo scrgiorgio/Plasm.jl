@@ -381,14 +381,14 @@ mutable struct GLVertexBuffer
 	
 	# constructor
 	function GLVertexBuffer()
-		ret=new(-1,[])
+		ret=new(-1,Vector{Float32}())
 		finalizer(releaseGpuResources, ret)
 		return ret
 	end
 	
 	# constructor
 	function GLVertexBuffer(vector::Vector{Float32})
-		ret=new(-1,vector)
+		ret=new(-1,copy(vector))
 		finalizer(releaseGpuResources, ret)
 		return ret
 	end	
@@ -483,7 +483,7 @@ mutable struct GLBatch
 	vertices::GLVertexBuffer
 	normals::GLVertexBuffer
 	colors::GLVertexBuffer
-	
+
 	# constructor
 	function GLBatch(prim::UInt32=GL_POINTS)
 		ret=new(prim,Matrix4d(),GLVertexArray(),GLVertexBuffer(),GLVertexBuffer(),GLVertexBuffer())
@@ -491,15 +491,7 @@ mutable struct GLBatch
 		return ret
 	end
 	
-	# constructor
-	function v(primitive)
-		ret=new(primitive,Matrix4d(),GLVertexArray(),GLVertexBuffer(),GLVertexBuffer(),GLVertexBuffer())
-		finalizer(releaseGpuResources, ret)
-		return ret
-	end
-	
 end
-
 
 function prependTransformation(self::GLBatch,T::Matrix4d)
 	self.T=T * self.T
