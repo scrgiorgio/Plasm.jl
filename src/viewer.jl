@@ -1110,7 +1110,7 @@ function glRender(viewer::Viewer)
 			
 			u_color = glGetUniformLocation(shader.program_id, "u_color")
 			if u_color>=0
-				color=polygon_mode==GL_LINE ? Point4d(0.0,0.0,0.0,1.0) : Point4d(0.5,0.5,0.5,1.0)
+				color=polygon_mode==GL_LINE ? Point4d(1.0,1.0,1.0,1.0) : Point4d(0.5,0.5,0.5,1.0)
 				glUniform4f(u_color,color[1],color[2],color[3],color[4])	
 			end
 			

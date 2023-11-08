@@ -2,7 +2,7 @@ using LinearAlgebra, Combinatorics
 
 export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	CAT,ISMAT,INV,EVERY,ID,K,DISTL,DISTR, COMP,AA,EQ,NEQ,LT,LE,GT,GE,
-	ISGT,ISLT,ISGE,ISLE,BIGGER,SMALLER,FILTER,APPLY,INSR,INSL,
+	ISGT,ISLT,ISGE,ISLE,BIGGER,SMALLER,FILTER,APPLY,INSR,INSL,BIGGEST,SMALLEST,CHARSEQ,STRING,
 	CONS,IF,LIFT,RAISE,ISNUM,ISFUN,ISREAL,ISSEQ, ISSEQOF,VECTSUM,VECTDIFF, SUM,
 	DIFF,PROD,SQR,DIV,REVERSE,TRANS,
 	FIRST,LAST,TAIL,RTAIL,AR,AL,LIST,NOT,PROGRESSIVESUM,
@@ -217,10 +217,15 @@ function BIGGER(args)
 	return A >= B ? A : B
 end
 
+
+
 function SMALLER(args)
 	A , B = args
 	return A <= B ? A : B
 end
+
+
+
 
 # /////////////////////////////////////////////////////////////////
 function FILTER(predicate)
@@ -255,6 +260,8 @@ function INSR(f)
 	return INSR0
 end
 
+SMALLEST = INSR(SMALLER)
+
 # /////////////////////////////////////////////////////////////////
 function INSL(f)
 	function INSL0(seq)
@@ -267,6 +274,8 @@ function INSL(f)
 	end
 	return INSL0
 end
+
+BIGGEST = INSL(BIGGER)
 
 # /////////////////////////////////////////////////////////////////
 function CONS(Funs)
@@ -305,6 +314,8 @@ ISNUM(x) =  isa(x, Int) || isa(x, Float64) || isa(x, Complex)
 ISFUN(x) = isa(x, Function)
 ISREAL(x) = isa(x, Float64)
 ISSEQ(x) = isa(x, Array)
+ISINT(x) = isa(x, Int)
+ISINTPOS(x) = ISINT(x) && x>0
 
 # /////////////////////////////////////////////////////////////////
 function ISSEQOF(type_checker)
@@ -498,6 +509,10 @@ function DIESIS(n)
 	end
 end
 
+# scrgiorgio: very dangerous to use D as a function name
+#             there is a risk of confusion between the function and the argument D
+# D = DIESIS
+
 # /////////////////////////////////////////////////////////////////
 function NN(n)
 	return function(v)
@@ -511,6 +526,8 @@ function DOUBLE_DIESIS(n)
 		return repeat(v,n)
 	end
 end
+
+DD = DOUBLE_DIESIS
 
 # /////////////////////////////////////////////////////////////////
 function AS(fun)
@@ -527,11 +544,11 @@ function AC(fun)
 end
 
 # /////////////////////////////////////////////////////////////////
-function CHARSEQ(String)
-	return [String[i] for i in 1:length(String)]
+function CHARSEQ(string)
+   return collect(string)
 end
 
-STRING(Charseq) = join(Charseq)
+STRING(charseq) = join(charseq)
 
 # /////////////////////////////////////////////////////////////////
 function RANGE(Pair)
@@ -691,13 +708,7 @@ end
 
 
 # /////////////////////////////////////////////////////////////////
-function FACT(N)
-	if N>0
-		return PROD(INTSTO(N)) 
-	else 
-		return 1
-	end
-end
+FACT(n) = n>0 ? *(1:big(n)...) : 1
 
 ISREALVECT = ISSEQOF(ISREAL)
 ISFUNVECT = ISSEQOF(ISFUN)

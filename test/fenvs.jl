@@ -334,8 +334,8 @@ function MyMain()
 		@assert DOUBLE_DIESIS(3)([10])==[10, 10, 10]
 		@assert AS(SEL)([1,2,3])([10,11,12])==[10, 11, 12]
 		@assert AC(SEL)([1,2,3])([10,11,[12,[13]]])==13
-		#@assert CHARSEQ('hello')==['h', 'e', 'l', 'l', 'o']
-		#@assert STRING(CHARSEQ('hello'))=='hello'
+		@assert CHARSEQ("hello") == ['h', 'e', 'l', 'l', 'o']
+		@assert STRING(CHARSEQ("hello")) == "hello"
 		@assert RANGE([1,3])==[1, 2, 3]
 		@assert RANGE([3,1])==[3, 2, 1]
 		@assert SIGN(10)==1

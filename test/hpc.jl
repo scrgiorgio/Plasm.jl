@@ -103,6 +103,8 @@ function TestHpcMkPol()
   @test length(obj.hulls) == 6
 end
 
+
+
 function TestHpcInternal()
 
   points = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.2, 0.2], [0.3, 0.3], [0.4, 0.4], [0.5, 0.5], [0.2, 0.8]]
@@ -207,6 +209,69 @@ function TestHpcInternal()
 
 end
 
+# ///////////////////////////////////////////////////////
+function TestToLAR()
+
+	# test2D
+  if true
+    points=[
+      [0.5,0.5],
+      [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
+      [0.6,0.6],
+      [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
+      [0.9,0.2]
+    ]
+    hpc=Hpc(MatrixNd(), [BuildMkPol(points)])
+    lar = ToLAR(hpc)
+    @assert length(lar.childs)==1
+    obj=lar.childs[1]
+    @assert length(obj.points)==5 
+    @assert length(obj.hulls)==1
+    @assert length(obj.facets)==1
+  end
+
+	# test3D
+  if true
+    points=[
+      [0.5,0.5,0.5],
+      [0.0,0.0,0.0],[1.0,0.0,0.0],[1.0,1.0,0.0], [0.5,2.0,0.0], [0.0,1.0,0.0],
+      [0.6,0.6,0.6],
+      [0.0,0.0,1.0],[1.0,0.0,1.0],[1.0,1.0,1.0], [0.5,2.0,1.0], [0.0,1.0,1.0],
+      [0.9,0.2,0.3]
+    ]
+    hpc=Hpc(MatrixNd(), [BuildMkPol(points)])
+    lar = ToLAR(hpc)
+    @assert length(lar.childs)==1
+    obj=lar.childs[1]
+    #println("points ",obj.points)
+    #println("hulls  ",obj.hulls)
+    #println("facets ",obj.facets)
+    @assert length(obj.points)==10 
+    @assert length(obj.hulls)==1
+    @assert length(obj.facets)==7
+  end
+
+  # test two 3d cubes
+  if true
+    hpc=STRUCT([
+      CUBOID([1,1,1]),
+      T([1])([3]),
+      CUBOID([1,1,1])
+    ])
+
+    lar = ToLAR(hpc)
+    @assert length(lar.childs)==1
+    obj=lar.childs[1]
+    #println("points ",obj.points)
+    #println("hulls  ",obj.hulls)
+    #println("facets ",obj.facets)
+    @assert(length(obj.points)==8*2)    # each cube is 8 vertices
+    @assert(length(obj.hulls )==2)       # each cube is 1 hull
+    @assert(length(obj.facets)==6*2)    # each cube has 6 boundary faces
+  end
+
+end
+
 function MyMain()
   TestComputeNormal()
   TestGoodTet()
@@ -214,6 +279,7 @@ function MyMain()
   TestHpcMat()
   TestHpcMkPol()
   TestHpcInternal()
+  TestToLAR()
   println("TestHpc ok")
 end
 

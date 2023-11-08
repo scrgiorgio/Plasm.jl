@@ -25,5 +25,21 @@ julia test/viewer.jl
 julia test/hpc.jl
 julia test/fenvs.jl
 julia test/temple.jl
+julia test/manhattan2d.jl
+julia test/lar.jl
 ```
 
+# Jupyter
+
+```
+julia
+using Pkg
+add IJulia
+add MeshCat
+add CoordinateTransformations 
+add Rotations 
+add GeometryBasics
+add Colors
+using IJulia
+IJulia.notebook()
+``````
