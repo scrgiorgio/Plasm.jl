@@ -326,9 +326,10 @@ function addPoint(self::BuildMkPol, p::Vector{Float64})::Int
 end
 
 
-function addPoints(self::BuildMkPol, points::Vector{Vector{Float64}})::Dict{Int,Int}
-	ret = Dict{Int,Int}()
-	for P in 1:length(points)
+function addPoints(self::BuildMkPol, points::Vector{Vector{Float64}})::Vector{Int64}
+	N=length(points)
+	ret = Vector{Int64}(undef,N)
+	for P in 1:N
 		ret[P]=addPoint(self,points[P])
 	end
 	return ret
@@ -348,7 +349,7 @@ function box(self::BuildMkPol)
 	 return ret
 end
 
-Base.show(io::IO, self::BuildMkPol) = print(io, "BuildMkPol(points=", repr(self.points), ", hulls=", repr(self.hulls), ")")
+Base.show(io::IO, self::BuildMkPol) = print(io, "BuildMkPol(points=", repr(self.points), ", hulls=", repr(self.hulls), ", facets=",repr(self.facets),")")
 
 # /////////////////////////////////////////////////////////////////////////////////
 function ToSimplicialForm(self::BuildMkPol)
@@ -1011,6 +1012,22 @@ function ToLAR(self::Hpc)
 		# for each hull create a LAR hull (i.e. polygonal faces)
 		for hull in obj.hulls
 			points=[obj.points[idx] for idx in hull]
+			pdim=length(points[1])
+
+			# special case for boundary rep (e.g. 2 points in 2dim)
+			if pdim>=length(hull)
+				points = [transformPoint(T,p) for p in points]
+				mapped = addPoints(ret, points)
+				facet=mapped
+				#println("hull",hull)
+				#println("points",points)
+				#println("mapped",mapped)
+				#println("POINTS",ret.points)
+				#println("facet",facet)
+				push!(ret.facets, facet)
+				continue
+			end
+			
 			points, facets = py"GetLARConvexHull"(points)
 
 			#println(typeof(points),points)
@@ -1033,11 +1050,11 @@ function ToLAR(self::Hpc)
 			mapped = addPoints(ret, points)
 
 			# add the hull
-			push!(ret.hulls, [mapped[it] for it in 1:length(points)])
+			push!(ret.hulls, [mapped[P] for P in 1:length(points)])
 
 			# add the facets
 			for facet in facets
-				push!(ret.facets, [mapped[it] for it in facet])
+				push!(ret.facets, [mapped[P] for P in facet])
 			end
 		end
 	end

@@ -270,6 +270,19 @@ function TestToLAR()
     @assert(length(obj.facets)==6*2)    # each cube has 6 boundary faces
   end
 
+  # 2D b-rep
+  obj=ToLAR(CIRCUMFERENCE(1.0)(8))
+  @assert(length(obj.childs[1].hulls)==0)
+  @assert(length(obj.childs[1].facets)==8)
+  @assert(length(obj.childs[1].points[1])==2)
+
+  # 3D brep
+  obj=SPHERE(1.0)([16,16])
+  obj=ToLAR(obj)
+  @assert(length(obj.childs[1].hulls)==0)
+  @assert(length(obj.childs[1].facets)>0)
+  @assert(length(obj.childs[1].points[1])==3)
+
 end
 
 # ///////////////////////////////////////////////////////
