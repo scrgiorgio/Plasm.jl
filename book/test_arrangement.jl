@@ -2,6 +2,7 @@
 
 using Plasm
 include("./arrangement.jl")
+include("./exploder.jl")
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -18,9 +19,6 @@ Plasm.VIEW(MkPol( W, EV ));
 V,CVs,FVs,EVs = testarrangement(V,FV,EV); 
 # CVs (e FVs) è lista di liste di triangoli; EVs è una lista di poligoni di faccia 
 
-W = [V[:,col] for col=1:size(V,2)]
-Plasm.VIEW(MkPol( W, AA(union∘CAT)(CVs) )) # guscio convesso insieme degli atomi
-Plasm.VIEW(MkPol( W, AA(union∘CAT)(FVs) )) # hulls delle facce degli atomi
-Plasm.VIEW(MkPol( W, AA(union∘CAT)(EVs) )) # hulls poligoni di degli atomi
-
-# penso che i dati mancanti dipendano dagli orientamenti. devo capire
+VIEW(EXPLODER(V,CVs, 5,5,5))
+VIEW(EXPLODER(V,FVs, 5,5,5))
+VIEW(EXPLODER(V,EVs, 5,5,5))

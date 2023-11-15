@@ -1519,7 +1519,7 @@ function TUBE(args::Vector{Float64})
 end
 
 # ///////////////////////////////////////////////////////////
-function CIRCLE(R::Float64)
+function CIRCLE(R::Number)
 	function CIRCLE0(subs)
 		N, M = subs
 		domain = POWER([INTERVALS(2*pi)(N), INTERVALS(R)(M)])
