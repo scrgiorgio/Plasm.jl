@@ -1,5 +1,5 @@
 using Plasm
-include("./book/arrangement.jl")
+include("./arrangement.jl")
 
 """ Remove possible duplicates from ToLAR facets """
 mutable struct Lar
@@ -57,13 +57,24 @@ function Lar(obj::Hpc)::Lar
     facets = ToLAR(obj).childs[1].facets
     FV = removedups(obj)
     FF = lar2cop(FV) * lar2cop(FV)'
-    edges = filter(x->x[1]<x[2], collect(zip(findnz(FF-Diagonal(FF))[1:2]...)))
-    EV = map(collect, edges)
+    edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
+    EV = sort!(collect(Set([intersect(FV[i],FV[j]) for (i,j) in edges])))
     out = Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
 end
+
+
+function update(obj::Lar, (a,b))::Lar
+   obj.C[a] = b
+   return obj
+end
+
 
 esa = CUBE(1)
 Lar(esa::Hpc)::Lar
 twocubes = STRUCT([esa,T(3)(1),esa])
-Lar(twocubes::Hpc)::Lar
+doublecube = Lar(twocubes::Hpc)::Lar
+KEV = lar2cop(doublecube.C[:EV])
 
+update(doublecube::Lar, (:KEV, KEV))
+doublecube.C
+doublecube.V
