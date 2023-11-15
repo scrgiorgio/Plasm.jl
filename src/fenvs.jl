@@ -417,18 +417,7 @@ function TRANS(List)
 		return List'
 	elseif isa(List, Tuple) || isa(List, Array)
 		ret = zip(List...)
-		cast_to_float = true
-		for it in ret
-			for jt in it
-					if !(isa(jt, Int) || isa(jt, Float64))
-						cast_to_float = false
-					end
-			end
-		end
-		if cast_to_float
-			return [[Float64(jt) for jt in it] for it in ret]
-		end
-		return ret
+		return [[jt for jt in it] for it in ret]
 	else
 		error("invalid argument")
 	end
