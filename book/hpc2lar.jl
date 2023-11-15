@@ -59,7 +59,7 @@ function Lar(obj::Hpc)::Lar
     FF = lar2cop(FV) * lar2cop(FV)'
     edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
     EV = sort!(collect(Set([intersect(FV[i],FV[j]) for (i,j) in edges])))
-    out = Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
+    out = Lar(hcat(V...), Dict(:CV=>CV, :FV=>FV, :EV=>EV))
 end
 
 
