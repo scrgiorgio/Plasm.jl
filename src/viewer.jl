@@ -882,10 +882,11 @@ mutable struct Viewer
 	shaders::Dict
 	use_ortho:: Bool 
 	exitNow:: Bool
-	
+	show_lines:: Bool
+
 	# constructor
 	function Viewer(batches) 
-		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false)
+		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true)
 	end
 	
 end
@@ -1067,81 +1068,98 @@ function glRender(viewer::Viewer)
 	
 	PROJECTION = getProjection(viewer)
 	MODELVIEW  = getModelview(viewer)
+
+	batch_show_lines=Dict(
+		GL_POINTS=>false, 
+		GL_LINE_STRIP=>false, 
+		GL_LINE_LOOP=>false, 
+		GL_LINES=>false, 
+		
+		GL_TRIANGLE_STRIP=>true, 
+		GL_TRIANGLE_FAN=>true, 
+		GL_TRIANGLES=>true)
+
 	lightpos=MODELVIEW * Point4d(viewer.pos[1],viewer.pos[2],viewer.pos[3],1.0)
 
 	for batch in viewer.batches
 	
-		pdim=Dict(
-			GL_POINTS=>0, 
-			GL_LINE_STRIP=>1, 
-			GL_LINE_LOOP=>1, 
-			GL_LINES=>1, 
-			GL_TRIANGLE_STRIP=>2, 
-			GL_TRIANGLE_FAN=>2, 
-			GL_TRIANGLES=>2)[batch.primitive]
-	
-		for polygon_mode in (pdim>=2 ? [GL_FILL,GL_LINE] : [GL_FILL])
-		
-			glPolygonMode(GL_FRONT_AND_BACK,polygon_mode)
+		show_lines=viewer.show_lines && batch_show_lines[batch.primitive]
 
-			if pdim>=2
-				glEnable(GL_POLYGON_OFFSET_LINE)
-			end			
-		
-			lighting_enabled        =polygon_mode!=GL_LINE && length(batch.normals.vector)>0 
-			color_attribute_enabled =polygon_mode!=GL_LINE && length(batch.colors.vector )>0
-			
-			shader=getShader(viewer,lighting_enabled,color_attribute_enabled)
-
-			enableProgram(shader)
-			
-			projection=PROJECTION
-			modelview=MODELVIEW * batch.T
-			normal_matrix=dropW(transpose(inv(modelview)))
-			
-			glUniformMatrix4fv(glGetUniformLocation(shader.program_id, "u_modelview_matrix" ) ,1, GL_TRUE, flatten(modelview))
-			glUniformMatrix4fv(glGetUniformLocation(shader.program_id, "u_projection_matrix") ,1, GL_TRUE, flatten(projection))
-			glUniformMatrix3fv(glGetUniformLocation(shader.program_id, "u_normal_matrix")	    ,1, GL_TRUE, flatten(normal_matrix))
-
-			u_light_position = glGetUniformLocation(shader.program_id, "u_light_position")
-			if u_light_position>=0
-				glUniform3f(u_light_position,lightpos[1]/lightpos[4],lightpos[2]/lightpos[4],lightpos[3]/lightpos[4])				
-			end
-			
-			u_color = glGetUniformLocation(shader.program_id, "u_color")
-			if u_color>=0
-				color=polygon_mode==GL_LINE ? Point4d(1.0,1.0,1.0,1.0) : Point4d(0.5,0.5,0.5,1.0)
-				glUniform4f(u_color,color[1],color[2],color[3],color[4])	
-			end
-			
-			enableVertexArray(batch.vertex_array)	
-			
-			a_position          = glGetAttribLocation(shader.program_id, "a_position")
-			a_normal            = glGetAttribLocation(shader.program_id, "a_normal")
-			a_color             = glGetAttribLocation(shader.program_id, "a_color")			
-			
-			enableAttribute(a_position,batch.vertices,3)
-			enableAttribute(a_normal  ,batch.normals ,3)
-			enableAttribute(a_color   ,batch.colors ,4)
-
-			@assert length(batch.vertices.vector) % 3 == 0
-			glDrawArrays(batch.primitive, 0, Int64(length(batch.vertices.vector)/3))
-
-			disableAttribute(a_position,batch.vertices)
-			disableAttribute(a_normal  ,batch.normals)
-			disableAttribute(a_color   ,batch.colors)
-			disableVertexArray(batch.vertex_array)
-			disableProgram(shader)
-			
-			glDepthMask(true)
+		if show_lines
+			# https://www.glprogramming.com/red/chapter06.html
+			glEnable(GL_POLYGON_OFFSET_FILL)
 			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
-			glDisable(GL_POLYGON_OFFSET_LINE)
-			
+			glPolygonOffset(1.0, 1.0)
+			glRenderBatch(viewer,batch, GL_FILL, PROJECTION, MODELVIEW, lightpos)
+			glDisable(GL_POLYGON_OFFSET_FILL)	
+
+			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
+			glRenderBatch(viewer,batch, GL_LINE, PROJECTION, MODELVIEW, lightpos)	
+			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+
+		else
+			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+			glRenderBatch(viewer,batch, GL_FILL, PROJECTION, MODELVIEW, lightpos)
 		end
+
 	end
 
 	glCheckError()
 			
+end
+
+
+function glRenderBatch(viewer::Viewer,batch::GLBatch, polygon_mode,PROJECTION, MODELVIEW, lightpos)
+
+	lighting_enabled        =polygon_mode!=GL_LINE && length(batch.normals.vector)>0 
+	color_attribute_enabled =polygon_mode!=GL_LINE && length(batch.colors.vector )>0
+	
+	shader=getShader(viewer,lighting_enabled,color_attribute_enabled)
+
+	enableProgram(shader)
+	
+	projection=PROJECTION
+	modelview=MODELVIEW * batch.T
+	normal_matrix=dropW(transpose(inv(modelview)))
+	
+	glUniformMatrix4fv(glGetUniformLocation(shader.program_id, "u_modelview_matrix" ) ,1, GL_TRUE, flatten(modelview))
+	glUniformMatrix4fv(glGetUniformLocation(shader.program_id, "u_projection_matrix") ,1, GL_TRUE, flatten(projection))
+	glUniformMatrix3fv(glGetUniformLocation(shader.program_id, "u_normal_matrix")	    ,1, GL_TRUE, flatten(normal_matrix))
+
+	u_light_position = glGetUniformLocation(shader.program_id, "u_light_position")
+	if u_light_position>=0
+		glUniform3f(u_light_position,lightpos[1]/lightpos[4],lightpos[2]/lightpos[4],lightpos[3]/lightpos[4])				
+	end
+	
+	u_color = glGetUniformLocation(shader.program_id, "u_color")
+	if u_color>=0
+		color=polygon_mode==GL_LINE ? Point4d(1.0,1.0,1.0,1.0) : Point4d(0.5,0.5,0.5,1.0)
+		glUniform4f(u_color,color[1],color[2],color[3],color[4])	
+	end
+	
+	enableVertexArray(batch.vertex_array)	
+	
+	a_position          = glGetAttribLocation(shader.program_id, "a_position")
+	a_normal            = glGetAttribLocation(shader.program_id, "a_normal")
+	a_color             = glGetAttribLocation(shader.program_id, "a_color")			
+	
+	enableAttribute(a_position,batch.vertices,3)
+	enableAttribute(a_normal  ,batch.normals ,3)
+	enableAttribute(a_color   ,batch.colors ,4)
+
+	@assert length(batch.vertices.vector) % 3 == 0
+	glDrawArrays(batch.primitive, 0, Int64(length(batch.vertices.vector)/3))
+
+	disableAttribute(a_position,batch.vertices)
+	disableAttribute(a_normal  ,batch.normals)
+	disableAttribute(a_color   ,batch.colors)
+	disableVertexArray(batch.vertex_array)
+	disableProgram(shader)
+	
+	glDepthMask(true)
+	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+	glDisable(GL_POLYGON_OFFSET_LINE)
+
 end
 
 # ///////////////////////////////////////////////////////////////////////
@@ -1302,6 +1320,15 @@ function handleKeyPressEvent(viewer,key, scancode, action, mods)
 		redisplay(viewer)		
 		return	
 	end	
+
+
+
+	if (key==GLFW.KEY_L)
+		viewer.show_lines=!viewer.show_lines
+		redisplay(viewer)		
+		return	
+	end	
+
 	
 end	
 
