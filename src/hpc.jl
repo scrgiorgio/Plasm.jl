@@ -588,7 +588,9 @@ function MkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vecto
 	return Hpc(MatrixNd(), [obj])
 end
 
-
+function MkPol(points::Vector{Vector{Int64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+	return MkPol(Vector{Vector{Float64}}(points), hulls)
+end
 
 function MkPol0()
 
@@ -710,6 +712,15 @@ function Power(a::Hpc, b::Hpc)
 	end
 	return Hpc(MatrixNd(), childs)
 end
+
+
+# //////////////////////////////////////////////////////////////////////////////////////////
+function Power(v::Vector{Hpc})
+	@assert(length(v)==2)
+	return Power(v[1],v[2])
+end
+
+
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function UkPol(self::Hpc)

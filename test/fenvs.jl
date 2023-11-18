@@ -444,6 +444,59 @@ function MyMain()
 
 	end
 
+	# some new tests
+	if true
+
+
+		# OK
+		TRANS([[10,20,30],[1,2,3]]) 
+
+		# OK
+		hpc1 = Q(1.0)
+		INSL(Power)([hpc1, hpc1, hpc1]) 
+
+		# OK
+		INSR(Power)([hpc1, hpc1, hpc1])
+
+		# OK
+		a=DISTR([[1,2,3],40.])
+		@assert(a==[[1, 40.0], [2, 40.0], [3, 40.0]])
+
+		# OK
+		a=DISTL([40.,[1,2,3]])
+		@assert(a==[[40.0, 1], [40.0, 2], [40.0, 3]])
+
+		# OK
+		Q(1)
+
+		# OK
+		Q(1.)
+
+		# OK
+		QUOTE([1,2,-1,3.]) 
+
+		# OK
+		QUOTE([1,2,-1,3.])
+
+		# K is different from ID (see definitions from fenvs)
+		#   ID returns the argument
+		#   K(arg1)(arg2) returns always arg1
+		@assert(ID(Q(1.)) isa Plasm.Hpc)
+		@assert(K(Q(1.))("whatever") isa Plasm.Hpc)
+
+		# OK
+		hpc1 = Q(1.0)
+		hpc2 = Power(hpc1,hpc1)
+		@assert(dim(hpc2)==2)
+
+		# OK
+		hpc3=Power(hpc2,hpc1)
+		@assert(dim(hpc3)==3)
+		# VIEW(hpc3) 
+
+	end
+
+
 	# ok
 	if true
 

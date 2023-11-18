@@ -130,13 +130,20 @@ TT = K(true)
 # /////////////////////////////////////////////////////////////////
 function DISTL(args)
 	Element, List = args
-	return [[Element, e] for e in List]
+
+	# see https://discourse.julialang.org/t/is-there-a-way-to-block-type-conversion/106302/6
+	Cast = Union{typeof(Element), eltype(List)}
+	return [Cast[Element, e] for e in List]
 end
 
 # /////////////////////////////////////////////////////////////////
 function DISTR(args)
 	List, Element = args
-	return [[e,Element] for e in List]
+
+	# see https://discourse.julialang.org/t/is-there-a-way-to-block-type-conversion/106302/6
+	Cast = Union{eltype(List), typeof(Element)}
+
+	return [Cast[e,Element] for e in List]
 end
 
 # /////////////////////////////////////////////////////////////////
