@@ -10,7 +10,7 @@ function TestTorus()
 end
 
 function TestBezier()
-	VIEW(MAP(BEZIER(S1)([[-0,0],[1,0],[1,1],[2,1],[3,1]]))(INTERVALS(1.0)(32)), "TestBezier-1")
+	VIEW(MAP( (S1)([[-0,0],[1,0],[1,1],[2,1],[3,1]]))(INTERVALS(1.0)(32)), "TestBezier-1")
 	C0 = BEZIER(S1)([[0,0,0],[10,0,0]])
 	C1 = BEZIER(S1)([[0,2,0],[8,3,0],[9,2,0]])
 	C2 = BEZIER(S1)([[0,4,1],[7,5,-1],[8,5,1],[12,4,0]])
@@ -218,6 +218,18 @@ function TestThinsolid()
 	Domain3D = Power(Power(INTERVALS(1.0)(5),INTERVALS(1.0)(5)),INTERVALS(0.5)(5))
 	VIEW(MAP(solidMapping)(Domain3D), "TestThinsolid-2")
 end
+
+function TestSOLIDHELICOID(; nturns=3, R=1., r=0.0, shape=[36*nturns, 8], pitch=2, thickness=0.1)
+   totalangle = nturns*2*pi
+   grid2D = Power(INTERVALS(36*nturns)(36*nturns), INTERVALS(4)(8));
+   Domain2D = T([2])([r])(S([1,2])([totalangle/shape[1],R-r])(grid2D));
+   surface = p->let(u, v)=p;[v*cos(u); v*sin(u); u*(pitch/(2*pi))] end
+   VIEW(MAP(surface)(Domain2D))
+   solidMapping = THINSOLID(surface)
+   Domain3D = Power(Domain2D, INTERVALS(thickness)(1));
+   VIEW(MAP(solidMapping)(Domain3D))
+end;
+
 
 
 

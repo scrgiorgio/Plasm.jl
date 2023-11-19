@@ -31,6 +31,11 @@ function EXPLODER(V,FVs,sx=1.5,sy=1.5,sz=1.5)
 	return STRUCT(pols)
 end
 
+function EXPLODER(pols::Vector{Hpc},sx=1.5,sy=1.5,sz=1.5)
+   n = LEN(pols)
+   vect = [(-1 .+(rand(3)*5)) for k=1:n]
+   newpols = [T([1,2,3])(vect[k])(cubes[k]) for k=1:n]
+end
 # //////////////////////////////////////////////////////////////////////////////
 # Functio to color exploded assemblies ///////////// TODO //////////////////////
 
