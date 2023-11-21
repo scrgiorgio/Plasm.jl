@@ -14,7 +14,7 @@ V = [0.9101581999999999 0.6379716999999999 0.749600036433509 0.6592826999999999 
 # //////////////////////////////////////////////////////////////////////////////
 
 # Remove the TWO (!!) identical boundary shells (the longest ones)
-if CVs[2] == CVs[12] deleteat!(CVs, [2,12]) end
+if CVs[2] == CVs[12] deleteat!(CVs,2); deleteat!(CVs,11) end
 
 atoms = EXPLODER(V,CVs, 1,1,1)
 VIEW(atoms)
