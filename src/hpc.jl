@@ -236,8 +236,9 @@ mutable struct BuildMkPol
 
 	 db::Dict{Vector{Float64}, Int}
 	 points::Vector{Vector{Float64}}
-	 hulls::Vector{Vector{Int}}
+	 edges::Vector{Vector{Int}}
 	 facets::Vector{Vector{Int}}
+	 hulls::Vector{Vector{Int}}
 
 	# constructor
 	function BuildMkPol()
@@ -248,11 +249,15 @@ mutable struct BuildMkPol
 			# points
 			Vector{Vector{Float64}}(),
 
-			# hulls
+			# edges
 			Vector{Vector{Int}}(),
 
 			# facets (for LAR)
 			Vector{Vector{Int}}(),
+
+			# hulls
+			Vector{Vector{Int}}(),
+
 		)
 		return self
 	end
@@ -349,7 +354,7 @@ function box(self::BuildMkPol)
 	 return ret
 end
 
-Base.show(io::IO, self::BuildMkPol) = print(io, "BuildMkPol(points=", repr(self.points), ", hulls=", repr(self.hulls), ", facets=",repr(self.facets),")")
+Base.show(io::IO, self::BuildMkPol) = print(io, "BuildMkPol(points=", repr(self.points), ", edges=",repr(self.edges),")", ", facets=",repr(self.facets),")", ", hulls=", repr(self.hulls))
 
 # /////////////////////////////////////////////////////////////////////////////////
 function ToSimplicialForm(self::BuildMkPol)
@@ -1036,40 +1041,56 @@ function ToLAR(self::Hpc)
 				#println("POINTS",ret.points)
 				#println("facet",facet)
 				push!(ret.facets, facet)
-				continue
-			end
+			else
 			
-			points, facets = py"GetLARConvexHull"(points)
+				points, facets = py"GetLARConvexHull"(points)
 
-			#println(typeof(points),points)
-			#println(typeof(facets),facets)
+				#println(typeof(points),points)
+				#println(typeof(facets),facets)
 
-			if facets isa Matrix{Int64}
-				nrows,ncols=size(facets)
-				converted=Vector{Vector{Int64}}()
-				for R in 1:nrows
-					push!(converted, facets[R,:])
+				if facets isa Matrix{Int64}
+					nrows,ncols=size(facets)
+					converted=Vector{Vector{Int64}}()
+					for R in 1:nrows
+						push!(converted, facets[R,:])
+					end
+					facets=converted
 				end
-				facets=converted
-			end
 
-			@assert points isa Vector{Vector{Float64}}
-			@assert facets isa Vector{Vector{Int64}}
-			
-			# add the transformed points
-			points = [transformPoint(T,p) for p in points]
-			mapped = addPoints(ret, points)
+				@assert points isa Vector{Vector{Float64}}
+				@assert facets isa Vector{Vector{Int64}}
+				
+				# add the transformed points
+				points = [transformPoint(T,p) for p in points]
+				mapped = addPoints(ret, points)
 
-			# add the hull
-			push!(ret.hulls, [mapped[P] for P in 1:length(points)])
+				# add the hull
+				push!(ret.hulls, [mapped[P] for P in 1:length(points)])
 
-			# add the facets
-			for facet in facets
-				push!(ret.facets, [mapped[P] for P in facet])
+				# add the facets
+				for facet in facets
+					push!(ret.facets, [mapped[P] for P in facet])
+				end
 			end
 		end
 	end
 	
+	# compute edges
+	edges_set=Set()
+	for facet in ret.facets
+		N=length(facet)
+		for I in 1:N
+			a = facet[I             ]
+			b = facet[I==N ? 1 : I+1]
+			a,b=min(a,b),max(a,b)
+			edge=Vector{Int}([a,b])
+			if !(edge in edges_set)
+				push!(edges_set, edge)
+				push!(ret.edges,edge)
+			end
+		end
+	end
+
 	return Hpc(MatrixNd(), [ret])
 end
 
