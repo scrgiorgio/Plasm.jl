@@ -3,30 +3,30 @@ using LinearAlgebra
 
 using DataStructures
 
-mutable struct HPC
+mutable struct Lar
           d::Int # intrinsic dimension
           m::Int # embedding dimension (rows of V)
           n::Int # number of vertices  (columns of V)
           V::Matrix{Float64} # object geometry
           C::Dict{Symbol, AbstractArray} # object topology (C for cells)
           # inner constructors
-          HPC() = new( NaN, NaN, NaN, Matrix{Float64}, Dict{Symbol, AbstractArray} )
-          HPC(m,n) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray} )
-          HPC(d,m,n) = begin V = Matrix(undef,m,n), C = Dict{Symbol,AbstractArray}(); 
+          Lar() = new( NaN, NaN, NaN, Matrix{Float64}, Dict{Symbol, AbstractArray} )
+          Lar(m,n) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray} )
+          Lar(d,m,n) = begin V = Matrix(undef,m,n), C = Dict{Symbol,AbstractArray}(); 
                     new( d,m,n, V, C ) end
-          HPC(V) = begin C = Dict{Symbol,AbstractArray}(); m, n = size(V); 
+          Lar(V) = begin C = Dict{Symbol,AbstractArray}(); m, n = size(V); 
              new( m,m,n, V, C ) end
-          HPC(V,C) = begin m,n = size(V); new( m,m,n, V, C )  end
-          HPC(d,V,C) = begin m,n = size(V); new( d,m,n, V, C )  end
-          HPC(d,m,n, V,C) = new( d,m,n, V,C )
-          HPC() = new( -1,0,0, Matrix(undef,0,0),Dict() )
+          Lar(V,C) = begin m,n = size(V); new( m,m,n, V, C )  end
+          Lar(d,V,C) = begin m,n = size(V); new( d,m,n, V, C )  end
+          Lar(d,m,n, V,C) = new( d,m,n, V,C )
+          Lar() = new( -1,0,0, Matrix(undef,0,0),Dict() )
        end
 
 function simplex(n; complex=false)
         V = [zeros(n,1) I]
         CV = [collect(1:n+1)]
         C = Dict(Symbol("c$(n)v") => CV)
-        if complex == false return HPC(V,C)
+        if complex == false return Lar(V,C)
         else
            cells = CV
            for k=n:-1:1
@@ -34,7 +34,7 @@ function simplex(n; complex=false)
                 key = Symbol("c$(k-1)v")
                 push!(C, (key => cells) )
            end
-           return HPC(V,C)
+           return Lar(V,C)
         end
        end
 
@@ -47,7 +47,7 @@ function hpcprod( hpc1, hpc2 )
           thecells = cellprod(cells1, cells2, V, W)
           cells = [[vertices[v] for v in cell] for cell in thecells]
           verts = hcat(keys(vertices)...); d = size(verts, 1)
-          return HPC(verts, Dict(Symbol("c$(d)v") => cells))
+          return Lar(verts, Dict(Symbol("c$(d)v") => cells))
        end
 
 function vertprod(V, W)
@@ -85,7 +85,7 @@ square = hpcprod(line, line)
 
 cube = hpcprod(square, line)
 
-doubleline = HPC([0 1 2], Dict(:c1v => [[1,2],[2,3]]))
+doubleline = Lar([0 1 2], Dict(:c1v => [[1,2],[2,3]]))
 
 doublesquare = hpcprod(doubleline,line)
 

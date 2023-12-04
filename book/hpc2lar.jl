@@ -1,7 +1,17 @@
 using Plasm
-include("./arrangement.jl")
+include("./book/arrangement.jl")
+using SparseArrays
 
-""" Remove possible duplicates from ToLAR facets """
+function CSC( CV ) # CV => Cells defined by their Vertices
+   I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)                
+   # vcat maps arrayofarrays to single array
+   J = vcat( CV...)         
+   # splat transforms the CV array elements to vcat arguments
+   X = Int8[1 for k=1:length(I)]         
+   # Type Int8 defines the memory map of array elements
+   return SparseArrays.sparse(I,J,X)        
+end
+
 mutable struct Lar
   d::Int # intrinsic dimension
   m::Int # embedding dimension (rows of V)
@@ -25,29 +35,29 @@ function removedups(obj::Hpc)::Cells
    hulls = ToLAR(obj).childs[1].facets
    dict = ToLAR(obj).childs[1].db
    inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
-   for (k, v) in dict
-      push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k)
-   end
-   # convert arrays of indices to arrays of points
-   DB = []
+   [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) in dict]  
+   DB = []  # convert arrays of indices to arrays of points
    for hull in hulls
       points = []
-      for k in hull
-          append!(points, inverted_dict[k])
-      end
+      [ append!(points, inverted_dict[k]) for k in hull ]
       push!(DB, Set(points))
-   end
-   # eliminate duplicates
-   DB = Set(DB)
-   # inverse conversion from arrays of points to arrays of indices
-   faces = []
-   for set in DB
-      face = Int[]
-      for point in set
-         push!(face, dict[point])
-      end
-      push!(faces, face)
-   end   
+   end 
+   DB = Set(DB) # eliminate duplicates
+   faces = [[dict[point] for point in set] for set in DB]
+   faces = sort!(AA(sort!)(faces))
+end
+
+""" Alternate implementation: Remove possible duplicates """
+function removedups(obj::Hpc)::Cells
+   # initializations
+   hulls = ToLAR(obj).childs[1].facets
+   dict = ToLAR(obj).childs[1].db
+   inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
+   [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) ∈ dict]  
+   # convert arrays of indices to arrays of points
+   DB = [Set([inverted_dict[k] for k ∈ hull]) for hull ∈ hulls]
+   DB = Set(DB) # eliminate duplicates
+   faces = [[dict[point...] for point in set] for set ∈ DB]
    faces = sort!(AA(sort!)(faces))
 end
 
@@ -56,9 +66,9 @@ function Lar(obj::Hpc)::Lar
     CV = ToLAR(obj).childs[1].hulls
     facets = ToLAR(obj).childs[1].facets
     FV = removedups(obj)
-    FF = lar2cop(FV) * lar2cop(FV)'
+    FF = CSC(FV) * CSC(FV)'
     edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
-    EV = sort!(collect(Set([intersect(FV[i],FV[j]) for (i,j) in edges])))
+    EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
     out = Lar(hcat(V...), Dict(:CV=>CV, :FV=>FV, :EV=>EV))
 end
 

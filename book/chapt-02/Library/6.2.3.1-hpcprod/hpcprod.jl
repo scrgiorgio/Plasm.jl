@@ -7,5 +7,5 @@ function hpcprod( hpc1, hpc2 )
    thecells = cellprod(cells1, cells2, V, W)
    cells = [[vertices[v] for v in cell] for cell in thecells]
    verts = hcat(keys(vertices)...); d = size(verts, 1)
-   return HPC(verts, Dict(Symbol("c$(d)v") => cells))
+   return Lar(verts, Dict(Symbol("c$(d)v") => cells))
 end
