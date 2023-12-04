@@ -10,7 +10,7 @@ function TestTorus()
 end
 
 function TestBezier()
-	VIEW(MAP( (S1)([[-0,0],[1,0],[1,1],[2,1],[3,1]]))(INTERVALS(1.0)(32)), "TestBezier-1")
+	VIEW(MAP(BEZIER(S1)([[-0,0],[1,0],[1,1],[2,1],[3,1]]))(INTERVALS(1.0)(32)), "TestBezier-1")
 	C0 = BEZIER(S1)([[0,0,0],[10,0,0]])
 	C1 = BEZIER(S1)([[0,2,0],[8,3,0],[9,2,0]])
 	C2 = BEZIER(S1)([[0,4,1],[7,5,-1],[8,5,1],[12,4,0]])

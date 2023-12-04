@@ -25,7 +25,7 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	JOINTS,BERNSTEINBASIS,TENSORPRODSURFACE,BILINEARSURFACE,BIQUADRATICSURFACE,HERMITESURFACE,BEZIERSURFACE,
 	TENSORPRODSOLID,BEZIERMANIFOLD,LOCATE,RIF,FRACTALSIMPLEX,MESH,NU_GRID,SEGMENT,SOLIDIFY,EXTRUSION,
 	EX,LEX,SEX,UKPOLF,POLAR,SWEEP,MINKOWSKI,OFFSET,THINSOLID,PLANE,RATIONALBEZIER,ELLIPSE,CURVE_NORMAL,DERBEZIER,
-	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE
+	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO
 
 PI = pi
 COS = cos
@@ -147,7 +147,7 @@ function DISTR(args)
 end
 
 # /////////////////////////////////////////////////////////////////
-function COMP(Funs)
+function COMP(Funs::Vector)
 	function compose(f,g)
 		function h(x)
 			return f(g(x))
@@ -156,6 +156,14 @@ function COMP(Funs)
 	end
 	return reduce(compose,Funs)
 end
+
+
+function COMP(a,b...)
+	b=collect(b)
+	v=Vector([a;b])
+	return COMP(v)
+end
+
 
 # /////////////////////////////////////////////////////////////////
 function AA(f)
@@ -968,6 +976,19 @@ function MAT(matrix)
 end
 
 # /////////////////////////////////////////////////////////////////
+# add homo coordinate
+function HOMO(T)
+	N=size(T,1)
+	ret = MatrixNd(N + 1)
+	for I in 1:N
+		for J in 1:N
+		 	ret[I+1, J+1] = T[I,J]
+		end
+	end
+	return ret
+end
+
+# /////////////////////////////////////////////////////////////////
 function EMBED(up_dim)
 	function EMBED1(pol)
 		return Hpc(MatrixNd(dim(pol) + up_dim+1), [pol])
@@ -976,13 +997,12 @@ function EMBED(up_dim)
 end
 
 # /////////////////////////////////////////////////////////////////
-function STRUCT(seq, nrec=0)
-	if !isa(seq, Vector)
-		error("STRUCT must be applied to a list")
-	end
+function STRUCT(seq::Vector,nrec::Int=0)
+
 	if isempty(seq)
 		error("STRUCT must be applied to a not empty list")
 	end
+
 	if nrec == 0
 		seq = copy(seq)
 	end
@@ -1008,7 +1028,7 @@ function STRUCT(seq, nrec=0)
 	# recursive on the right, apply transformations
 	if !isempty(seq)
 		@assert(ISPOL(seq[1]))
-		child = STRUCT(seq, nrec+1)
+		child = STRUCT(seq,nrec+1)
 		@assert(ISPOL(child))
 		if !isempty(transformations)
 			child = COMP(transformations)(child)
@@ -1020,6 +1040,13 @@ function STRUCT(seq, nrec=0)
 		error("Cannot find geometry in STRUCT, found only transformations")
 	end
 	return Struct(pols)
+end
+
+# struct with a sequence
+function STRUCT(a,b...)
+	b=collect(b)
+	v=Vector([a;b])
+	return STRUCT(v)
 end
 
 # /////////////////////////////////////////////////////////////////////////////
