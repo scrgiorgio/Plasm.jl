@@ -12,6 +12,9 @@ import Base.:*
 import Base.size
 import Base.transpose
 
+DEFAULT_LINE_COLOR=[1.0,1.0,1.0]
+DEFAULT_FACE_COLOR=[0.8,0.8,0.8]
+
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
 	 p0 = vcat(p0, zeros(3 - length(p0)))
@@ -506,18 +509,18 @@ function GetBatches(self::BuildMkPol)
 		end
 	end
 	
-	ret = []
+	batches = []
 	if !isempty(points.vertices.vector)
-		push!(ret, points)
+		push!(batches, points)
 	end
 	if !isempty(lines.vertices.vector)
-		push!(ret, lines)
+		push!(batches, lines)
 	end
 	if !isempty(triangles.vertices.vector)
-		push!(ret, triangles)
+		push!(batches, triangles)
 	end
 
-	return ret
+	return batches
 end
 
 
@@ -760,6 +763,7 @@ end
 function GetBatches(self::Hpc)
 	batches = Vector{GLBatch}()
 	for (T, properties, obj) in toList(self)
+
 		T = embed(T, 4)
 		T4d=Matrix4d(
 			T[2,2], T[2,3], T[2,4],   T[2,1],  # homo should be last
@@ -769,24 +773,43 @@ function GetBatches(self::Hpc)
 			T[1,2], T[1,3], T[1,4],   T[1,1]
 		)
 		for batch in GetBatches(obj)
-				prependTransformation(batch, T4d)
-				# writeProperties(batch, properties) TODO: loosing properties
-				push!(batches, batch)
+
+			batch.line_color=get(properties,"line_color",DEFAULT_LINE_COLOR)
+			batch.line_width=get(properties,"line_width",1)
+			batch.face_color=get(properties,"face_color",DEFAULT_FACE_COLOR)
+
+			prependTransformation(batch, T4d)
+
+			push!(batches, batch)
 		end
 	end
 	return batches
 end
 
 
+
 # //////////////////////////////////////////////////////////////////////////////////////////
-function View(self::Hpc, title::String="Plasm.jl", show_axis::Bool=true)
+function View(hpc::Hpc; title::String="Plasm.jl", show_axis::Bool=true, background_color=nothing)
+
 	batches=Vector{GLBatch}()
+
 	if show_axis
 		push!(batches,GLAxis(Point3d(0,0,0),Point3d(2,2,2)))
 	end
-	append!(batches,GetBatches(self))
-	GLView(batches, title)
+
+	for batch in GetBatches(hpc)
+		push!(batches,batch)
+	end
+
+	GLView(batches, title=title, background_color=background_color)
+
 end
+
+
+function View(hpc, title)
+	return View(hpc, title=title)
+end
+
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function MapFn(self::Hpc, fn)

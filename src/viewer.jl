@@ -484,9 +484,13 @@ mutable struct GLBatch
 	normals::GLVertexBuffer
 	colors::GLVertexBuffer
 
+	line_width::Int
+	line_color::Vector{Float64}
+	face_color::Vector{Float64}
+
 	# constructor
 	function GLBatch(prim::UInt32=GL_POINTS)
-		ret=new(prim,Matrix4d(),GLVertexArray(),GLVertexBuffer(),GLVertexBuffer(),GLVertexBuffer())
+		ret=new(prim,Matrix4d(),GLVertexArray(),GLVertexBuffer(),GLVertexBuffer(),GLVertexBuffer(),1,[1.0,1.0,1.0],[0.5,0.5,0.5])
 		finalizer(releaseGpuResources, ret)
 		return ret
 	end
@@ -759,8 +763,8 @@ void main()
 	vec3 E = normalize(v_eye_vec  );
 
 	vec4  u_material_ambient  = vec4(0.2,0.2,0.2,1.0);
-	vec4  u_material_diffuse  = vec4(0.8,0.8,0.8,1.0);
-	vec4  u_material_specular = vec4(0.1,0.1,0.1,1.0);
+	vec4  u_material_diffuse  = vec4(0.8,0.8,0.8,1.0) * u_color;
+	vec4  u_material_specular = vec4(0.1,0.1,0.1,1.0) * u_color;
 	float u_material_shininess=100.0;	
 	
 	if(gl_FrontFacing)
@@ -883,10 +887,11 @@ mutable struct Viewer
 	use_ortho:: Bool 
 	exitNow:: Bool
 	show_lines:: Bool
+	background_color::Vector{Float64}
 
 	# constructor
 	function Viewer(batches) 
-		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true)
+		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true,[0.3,0.4,0.5])
 	end
 	
 end
@@ -952,13 +957,16 @@ function runViewer(viewer::Viewer,title::String="Plasm")
 	GLFW.Terminate()	
 end
 
+
 # ///////////////////////////////////////////////////////////////////////
-function GLView(batches::Vector{GLBatch},title::String="Plasm.jl")
+function GLView(batches::Vector{GLBatch};title::String="Plasm.jl", background_color=nothing)
 	
 	global viewer
 	viewer=Viewer(batches)
-	viewer
-	
+	if !isnothing(background_color)
+		viewer.background_color=background_color
+	end
+
 	# calculate bounding box -> (-1,+1) ^3
 	BOX=invalidBox()
 	for batch in viewer.batches
@@ -1060,7 +1068,7 @@ function glRender(viewer::Viewer)
 	glDepthFunc(GL_LEQUAL)
 	glDisable(GL_CULL_FACE)
 	glClearDepth(1.0)
-	glClearColor(0.3,0.4,0.5, 0.00)
+	glClearColor(viewer.background_color[1],viewer.background_color[2],viewer.background_color[3], 0.00)
 	glPolygonOffset(-1.0,-1.0)
 
 	glViewport(0,0,viewer.W,viewer.H)
@@ -1082,6 +1090,10 @@ function glRender(viewer::Viewer)
 	lightpos=MODELVIEW * Point4d(viewer.pos[1],viewer.pos[2],viewer.pos[3],1.0)
 
 	for batch in viewer.batches
+
+		if batch.line_width!=1
+			glLineWidth(batch.line_width)
+		end
 	
 		show_lines=viewer.show_lines && batch_show_lines[batch.primitive]
 
@@ -1133,7 +1145,7 @@ function glRenderBatch(viewer::Viewer,batch::GLBatch, polygon_mode,PROJECTION, M
 	
 	u_color = glGetUniformLocation(shader.program_id, "u_color")
 	if u_color>=0
-		color=polygon_mode==GL_LINE ? Point4d(1.0,1.0,1.0,1.0) : Point4d(0.5,0.5,0.5,1.0)
+		color=polygon_mode==GL_LINE ? Point4d(batch.line_color[1],batch.line_color[2],batch.line_color[3],1.0) : Point4d(batch.face_color[1],batch.face_color[2],batch.face_color[3],1.0)
 		glUniform4f(u_color,color[1],color[2],color[3],color[4])	
 	end
 	
@@ -1141,7 +1153,7 @@ function glRenderBatch(viewer::Viewer,batch::GLBatch, polygon_mode,PROJECTION, M
 	
 	a_position          = glGetAttribLocation(shader.program_id, "a_position")
 	a_normal            = glGetAttribLocation(shader.program_id, "a_normal")
-	a_color             = glGetAttribLocation(shader.program_id, "a_color")			
+	a_color             = glGetAttribLocation(shader.program_id, "a_color")
 	
 	enableAttribute(a_position,batch.vertices,3)
 	enableAttribute(a_normal  ,batch.normals ,3)

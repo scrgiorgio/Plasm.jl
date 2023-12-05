@@ -25,6 +25,7 @@ julia test/viewer.jl
 julia test/hpc.jl
 julia test/temple.jl
 julia test/manhattan.jl
+julia test/properties.jl
 julia test/fenvs.jl
 ```
 

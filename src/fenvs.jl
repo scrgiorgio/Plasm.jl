@@ -25,7 +25,7 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	JOINTS,BERNSTEINBASIS,TENSORPRODSURFACE,BILINEARSURFACE,BIQUADRATICSURFACE,HERMITESURFACE,BEZIERSURFACE,
 	TENSORPRODSOLID,BEZIERMANIFOLD,LOCATE,RIF,FRACTALSIMPLEX,MESH,NU_GRID,SEGMENT,SOLIDIFY,EXTRUSION,
 	EX,LEX,SEX,UKPOLF,POLAR,SWEEP,MINKOWSKI,OFFSET,THINSOLID,PLANE,RATIONALBEZIER,ELLIPSE,CURVE_NORMAL,DERBEZIER,
-	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO
+	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO,PROPERTIES
 
 PI = pi
 COS = cos
@@ -807,9 +807,8 @@ end
 
 
 # /////////////////////////////////////////////////////////////////
-function VIEW(obj,title::String="Plasm.jl", show_axis::Bool=true)
-	View(obj, title, show_axis)
-end
+VIEW=View
+
 
 # /////////////////////////////////////////////////////////////////
 function GRID(sequence)
@@ -2713,4 +2712,14 @@ function DISPLAYNURBSPLINE(args, marker_size=0.1)
 		,POLYLINE(points)
 		,POLYMARKER(1, marker_size)(points)
 	])
+end
+
+# //////////////////////////////////////////////////////////////
+function PROPERTIES(hpc::Hpc, properties::Dict)
+	ret=STRUCT([hpc])
+	ret.properties=copy(hpc.properties)
+	for (key, value) in properties
+		ret.properties[key]=value
+	end 
+	return ret
 end

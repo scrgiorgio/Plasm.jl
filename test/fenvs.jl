@@ -535,7 +535,7 @@ function MyMain()
 			Translate(Cube(2)     , [1.0, 1.0, 0.0]),
 			Translate(Cube(3)     , [2.0, 1.0, 0.0]),
 		])
-		View(obj,"Example")
+		View(obj,title="Example")
 
 		TestArguments()
 		TestCube()
