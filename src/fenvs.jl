@@ -908,51 +908,97 @@ UK = COMP([COMP([S1, S1]), UKPOL])
 OPTIMIZE(pol) = pol
 
 # /////////////////////////////////////////////////////////////////
+function TRANSLATE(axis,values, pol)
+	axis = ISNUM(axis) ? [axis] : axis
+	values = ISNUM(values) ? [values] : values
+	vt = [0.0 for I in 1:max(axis...)]
+	for (a, t) in zip(axis, values)
+			vt[a] = t
+	end
+	return Translate(pol,vt)
+end
+
 function TRANSLATE(axis)
 	function TRANSLATE1(values)
 		function TRANSLATE2(pol)
-			axis = ISNUM(axis) ? [axis] : axis
-			values = ISNUM(values) ? [values] : values
-			vt = [0.0 for I in 1:max(axis...)]
-			for (a, t) in zip(axis, values)
-					vt[a] = t
-			end
-			return Translate(pol,vt)
+			return TRANSLATE(axis,values,pol)
 		end
 		return TRANSLATE2
 	end
 	return TRANSLATE1
 end
+
+function TRANSLATE(axis...)
+	function TRANSLATE1(values...)
+		function TRANSLATE2(pol)
+			return TRANSLATE(axis,values,pol)
+		end
+		return TRANSLATE2
+	end
+	return TRANSLATE1
+end
+
 T = TRANSLATE
 
 # /////////////////////////////////////////////////////////////////
+function SCALE(axis,values,pol)
+	axis = ISNUM(axis) ? [axis] : axis
+	values = ISNUM(values) ? [values] : values
+	vs = [1.0 for I in 1:max(axis...)] 
+	for (a, t) in zip(axis, values)
+		vs[a] = t
+	end
+	return Scale(pol,vs)
+end
+
 function SCALE(axis)
 	function SCALE1(values)
 		function SCALE2(pol)
-			axis = ISNUM(axis) ? [axis] : axis
-			values = ISNUM(values) ? [values] : values
-			vs = [1.0 for I in 1:max(axis...)] 
-			for (a, t) in zip(axis, values)
-				vs[a] = t
-			end
-			return Scale(pol,vs)
+			return SCALE(axis,values,pol)
 		end
 		return SCALE2
 	end
 	return SCALE1
 end
+
+function SCALE(axis...)
+	function SCALE1(values...)
+		function SCALE2(pol)
+			return SCALE(axis,values,pol)
+		end
+		return SCALE2
+	end
+	return SCALE1
+end
+
 S = SCALE
 
 # /////////////////////////////////////////////////////////////////
+function ROTATE(plane_indexes,angle,pol)
+	return Rotate(pol, plane_indexes[1], plane_indexes[2], angle)
+end
+
 function ROTATE(plane_indexes)
 	function ROTATE1(angle)
 		function ROTATE2(pol)
-			return Rotate(pol, plane_indexes[1], plane_indexes[2], angle)
+			return ROTATE(plane_indexes, angle, pol)
 		end
 		return ROTATE2
 	end
 	return ROTATE1
 end
+
+function ROTATE(plane_indexes...)
+	function ROTATE1(angle)
+		function ROTATE2(pol)
+			return ROTATE(plane_indexes, angle, pol)
+		end
+		return ROTATE2
+	end
+	return ROTATE1
+end
+
+
 R = ROTATE
 
 # /////////////////////////////////////////////////////////////////

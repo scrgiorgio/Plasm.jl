@@ -280,6 +280,21 @@ function TestFenvsMkPol()
 	VIEW(out,"TestFenvsMkPol")
 end
 
+function TestArguments()
+
+	STRUCT([CUBE(1),CUBE(1)])
+	STRUCT(CUBE(1),CUBE(1))
+
+	T(1,2)(0.0,0.0)
+	T([1,2])([0.0,0.0])
+	
+	S(1,2)(1.0,1.0)
+	S([1,2])([1.0,1.0])
+	
+	R([1,2])(3.14)
+	R(1,2)(3.14)
+end
+
 # ////////////////////////////////////////////////////////
 function MyMain()
 
@@ -522,6 +537,7 @@ function MyMain()
 		])
 		View(obj,"Example")
 
+		TestArguments()
 		TestCube()
 		TestFenvsMkPol()
 		TestSphere()
