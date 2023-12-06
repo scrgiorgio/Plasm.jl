@@ -3,9 +3,10 @@ using Test,LinearAlgebra,PyCall
 export ComputeTriangleNormal,GoodTetOrientation,
 	BoxNd,MatrixNd,Hpc,BuildMkPol,
 	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
-	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,GetBatches,MapFn,
+	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
-	View
+	View,
+	GetBatchesForHpc,GetBatchesForMkPol, GetBatchesForText
 
 import Base.:(==)
 import Base.:*
@@ -458,9 +459,10 @@ function ToVector3(value)
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
-function GetBatches(self::BuildMkPol)
+export GetBatchesForMkPol 
+function GetBatchesForMkPol(obj::BuildMkPol)
 
-	sf = ToSimplicialForm(self)
+	sf = ToSimplicialForm(obj)
 
 	points    = GLBatch(POINTS)
 	lines     = GLBatch(LINES)
@@ -509,7 +511,7 @@ function GetBatches(self::BuildMkPol)
 		end
 	end
 	
-	batches = []
+	batches = Vector{GLBatch}()
 	if !isempty(points.vertices.vector)
 		push!(batches, points)
 	end
@@ -522,6 +524,8 @@ function GetBatches(self::BuildMkPol)
 
 	return batches
 end
+
+
 
 
 # /////////////////////////////////////////////////////////////
@@ -756,55 +760,50 @@ function UkPol(self::Hpc)
 	push!(ret,hulls)
 	return ret
 
-
 end
 
+
+
 # //////////////////////////////////////////////////////////////////////////////////////////
-function GetBatches(self::Hpc)
+function GetBatchesForHpc(hpc::Hpc)
+
 	batches = Vector{GLBatch}()
-	for (T, properties, obj) in toList(self)
+
+	for (T, properties, obj) in toList(hpc)
 
 		T = embed(T, 4)
 		T4d=Matrix4d(
 			T[2,2], T[2,3], T[2,4],   T[2,1],  # homo should be last
 			T[3,2], T[3,3], T[3,4],   T[3,1],
 			T[4,2], T[4,3], T[4,4],   T[4,1],
-
 			T[1,2], T[1,3], T[1,4],   T[1,1]
 		)
-		for batch in GetBatches(obj)
-
+		for batch in GetBatchesForMkPol(obj)
 			batch.line_color=get(properties,"line_color",DEFAULT_LINE_COLOR)
 			batch.line_width=get(properties,"line_width",1)
 			batch.face_color=get(properties,"face_color",DEFAULT_FACE_COLOR)
-
 			prependTransformation(batch, T4d)
-
 			push!(batches, batch)
 		end
+
 	end
 	return batches
 end
 
-
-
 # //////////////////////////////////////////////////////////////////////////////////////////
-function View(hpc::Hpc; title::String="Plasm.jl", show_axis::Bool=true, background_color=nothing)
-
-	batches=Vector{GLBatch}()
+function View(batches::Vector{GLBatch}; title::String="Plasm.jl", show_axis::Bool=true, background_color=nothing)
 
 	if show_axis
 		push!(batches,GLAxis(Point3d(0,0,0),Point3d(2,2,2)))
 	end
 
-	for batch in GetBatches(hpc)
-		push!(batches,batch)
-	end
-
+	append!(batches,)
 	GLView(batches, title=title, background_color=background_color)
-
 end
 
+function View(hpc::Hpc; title::String="Plasm.jl", show_axis::Bool=true, background_color=nothing)
+	return View(GetBatchesForHpc(hpc),title=title,show_axis=show_axis,background_color=background_color)
+end
 
 function View(hpc, title)
 	return View(hpc, title=title)
@@ -1117,3 +1116,36 @@ function ToLAR(self::Hpc)
 	return Hpc(MatrixNd(), [ret])
 end
 
+
+# ///////////////////////////////////////////////////////////////////
+function ComputeCentroid(points)
+	ret=Point3d(0,0,0)
+	s=1.0/length(points)
+	for p in points
+		while length(p)!=3 push!(p,0.0) end
+		ret=ret+p*s
+	end
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////
+function GetBatchesForText(obj::BuildMkPol; single_w=0.05, color_vertices=Point4d(1,1,1,1),color_edges=Point4d(1,0,0,1),color_facets=Point4d(0,1,0,1))
+
+	# assuming ToLar converasion here
+	batches=Vector{GLBatch}()
+
+	for V in 1:length(obj.points)
+		push!(batches,GLText(string(V),center=ComputeCentroid([obj.points[it] for it in [V]]), single_w=single_w, color=color_vertices))
+	end
+
+	for E in 1:length(obj.edges)
+		push!(batches,GLText(string(E),center=ComputeCentroid([obj.points[it] for it in obj.edges[E]]), single_w=single_w, color=color_edges))
+	end
+
+	for F in 1:length(obj.facets)
+		push!(batches,GLText(string(F),center=ComputeCentroid([obj.points[it] for it in obj.facets[F]]), single_w=single_w, color=color_facets))
+	end
+
+	return batches
+
+end

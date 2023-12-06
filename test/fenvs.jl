@@ -295,6 +295,24 @@ function TestArguments()
 	R(1,2)(3.14)
 end
 
+function TestViewText()
+	if true
+		obj=ToLAR(CUBOID([1.0, 1.0])).childs[1]
+		batches=Vector{GLBatch}()
+		append!(batches,GetBatchesForMkPol(obj))
+		append!(batches,GetBatchesForText(obj))
+		View(batches)
+	end
+	
+	if true
+		obj=ToLAR(CUBOID([1.0, 1.0, 1.0])).childs[1]
+		batches=Vector{GLBatch}()
+		append!(batches,GetBatchesForMkPol(obj))
+		append!(batches,GetBatchesForText(obj))
+		View(batches)
+	end
+end
+
 # ////////////////////////////////////////////////////////
 function MyMain()
 
@@ -565,6 +583,7 @@ function MyMain()
 		TestBezierStripe()
 		TestDisplayNubSpline()
 		TestDisplayNurbsSpline()
+		TestViewText()
 
 	end
 

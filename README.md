@@ -40,6 +40,7 @@ add CoordinateTransformations
 add Rotations 
 add GeometryBasics
 add Colors
+add DataStructures
 using IJulia
 IJulia.notebook()
 ``````
