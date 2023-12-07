@@ -848,6 +848,8 @@ function CUBE(size)
 	return CUBOID([Float64(size), Float64(size), Float64(size)])
 end
 
+SQUARE(d) = CUBOID([d,d])
+
 
 # /////////////////////////////////////////////////////////////////
 function HEXAHEDRON()
@@ -1001,15 +1003,46 @@ end
 R = ROTATE
 
 # /////////////////////////////////////////////////////////////////
-function SHEARING(i)
-	function SHEARING1(shearing_vector_list)
+# /////////////////////////////////////////////////////////////////
+function SHEARING(column)
+	function SHEARING1(shear_list...)
 		function SHEARING2(pol)
-			error("shearing not implemented!")
+			return SHEAR(column,shear_list, pol)
 		end
 		return SHEARING2
 	end
 	return SHEARING1
 end
+H = SHEARING
+
+function SHEAR(column,shear_list, pol)
+@show column
+	values = ISNUM(shear_list) ? [shear_list] : shear_list
+	vh = [0.0 for I in 1:length(values)+2]
+	for a in 2:length(vh)-1
+		vh[column+1] = 1
+		if a<column+1
+			vh[a] = values[a-1]
+		elseif a>=column+1
+			vh[a+1] = values[a-1]
+		end
+	end;  
+	return Shear(pol,column,vh)
+end
+
+function Shear(column, vh)
+	T = MatrixNd(length(vh))
+	for I in 1:dim(T)
+		 T[I,column+1] = vh[I]
+	end
+	return T
+end
+
+
+function Shear(self::Hpc, column,vh::Vector{Float64})
+	return Hpc(Shear(column,vh), [self])
+end
+
 H = SHEARING
 
 # /////////////////////////////////////////////////////////////////

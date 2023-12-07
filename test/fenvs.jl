@@ -434,6 +434,26 @@ function MyMain()
 		@assert fuzzyEqual(box((ROTATE([1,2])(PI/2)(Cube(2)))),BoxNd([-1.0,0.0],[0.0,+1.0]))
 		@assert box((MAT([[1,0,0],[1,1,0],[2,0,1]])(Cube(2))))==BoxNd([1.0, 2.0], [2.0, 3.0])
 
+		# if you need to test shearing, enable this pirce
+		if false
+			
+			# in 2dim
+			VIEW(SHEARING(1)(.5)(SQUARE(1)))
+			VIEW(SHEARING(2)(.5)(SQUARE(1)))
+			
+			# in 3dim
+			VIEW(SHEARING(1)(.2,.3)(CUBE(1)))
+			VIEW(SHEARING(2)(.2,.3)(CUBE(1)))
+			VIEW(SHEARING(3)(.2,.3)(CUBE(1)))
+			
+			#  in 4 dim
+			SHEARING(1)(.2,.3,.4)(CUBOID([1,1,1,1]))
+			SHEARING(2)(.2,.3,.4)(CUBOID([1,1,1,1]))
+			SHEARING(3)(.2,.3,.4)(CUBOID([1,1,1,1]))
+			SHEARING(4)(.2,.3,.4)(CUBOID([1,1,1,1]))
+			
+		end
+
 		@assert box((STRUCT([
 			Cube(2),
 			T([1,2])([1.0,1.0]),
