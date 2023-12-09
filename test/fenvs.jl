@@ -293,6 +293,20 @@ function TestArguments()
 	
 	R([1,2])(3.14)
 	R(1,2)(3.14)
+
+
+	# all combinations
+	S( 1,2,3 )( .5,.5,.5  )(CUBE(1))
+	S([1,2,3])([ .5,.5,.5])(CUBE(1))
+	
+	T(1,2,3)(.5,.5,.5)(CUBE(1))
+	T([1,2,3])([.5,.5,.5])(CUBE(1))
+	
+	STRUCT(  S( 1,2,3 )(  .5,.5,.5 ) , CUBE(1) )
+	STRUCT(  S([1,2,3])([ .5,.5,.5]) , CUBE(1) )
+	STRUCT(  T( 1,2,3 )(  .5,.5,.5 ) , CUBE(1) )
+	STRUCT(  T([1,2,3])([ .5,.5,.5]) , CUBE(1) )
+
 end
 
 function TestViewText()

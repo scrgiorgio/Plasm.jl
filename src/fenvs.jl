@@ -909,7 +909,7 @@ UK = COMP([COMP([S1, S1]), UKPOL])
 OPTIMIZE(pol) = pol
 
 # /////////////////////////////////////////////////////////////////
-function TRANSLATE(axis,values, pol)
+function TRANSLATE(axis,values, pol::Hpc)
 	axis = ISNUM(axis) ? [axis] : axis
 	values = ISNUM(values) ? [values] : values
 	vt = [0.0 for I in 1:max(axis...)]
@@ -921,7 +921,7 @@ end
 
 function TRANSLATE(axis)
 	function TRANSLATE1(values)
-		function TRANSLATE2(pol)
+		function TRANSLATE2(pol::Hpc)
 			return TRANSLATE(axis,values,pol)
 		end
 		return TRANSLATE2
@@ -929,9 +929,13 @@ function TRANSLATE(axis)
 	return TRANSLATE1
 end
 
-function TRANSLATE(axis...)
-	function TRANSLATE1(values...)
-		function TRANSLATE2(pol)
+function TRANSLATE(a,b...)
+	b=collect(b)
+	axis=[a;b]
+	function TRANSLATE1(c,d...)
+		d=collect(d)
+		values=[c;d]
+		function TRANSLATE2(pol::Hpc)
 			return TRANSLATE(axis,values,pol)
 		end
 		return TRANSLATE2
@@ -942,7 +946,7 @@ end
 T = TRANSLATE
 
 # /////////////////////////////////////////////////////////////////
-function SCALE(axis,values,pol)
+function SCALE(axis,values,pol::Hpc)
 	axis = ISNUM(axis) ? [axis] : axis
 	values = ISNUM(values) ? [values] : values
 	vs = [1.0 for I in 1:max(axis...)] 
@@ -954,7 +958,7 @@ end
 
 function SCALE(axis)
 	function SCALE1(values)
-		function SCALE2(pol)
+		function SCALE2(pol::Hpc)
 			return SCALE(axis,values,pol)
 		end
 		return SCALE2
@@ -962,9 +966,13 @@ function SCALE(axis)
 	return SCALE1
 end
 
-function SCALE(axis...)
-	function SCALE1(values...)
-		function SCALE2(pol)
+function SCALE(a,b...)
+	b=collect(b)
+	axis=[a;b]
+	function SCALE1(c,d...)
+		d=collect(d)
+		values=[c;d]
+		function SCALE2(pol::Hpc)
 			return SCALE(axis,values,pol)
 		end
 		return SCALE2
@@ -975,13 +983,13 @@ end
 S = SCALE
 
 # /////////////////////////////////////////////////////////////////
-function ROTATE(plane_indexes,angle,pol)
+function ROTATE(plane_indexes,angle,pol::Hpc)
 	return Rotate(pol, plane_indexes[1], plane_indexes[2], angle)
 end
 
 function ROTATE(plane_indexes)
 	function ROTATE1(angle)
-		function ROTATE2(pol)
+		function ROTATE2(pol::Hpc)
 			return ROTATE(plane_indexes, angle, pol)
 		end
 		return ROTATE2
@@ -989,9 +997,11 @@ function ROTATE(plane_indexes)
 	return ROTATE1
 end
 
-function ROTATE(plane_indexes...)
+function ROTATE(a,b...)
+	b=collect(b)
+	plane_indexes=[a;b]
 	function ROTATE1(angle)
-		function ROTATE2(pol)
+		function ROTATE2(pol::Hpc)
 			return ROTATE(plane_indexes, angle, pol)
 		end
 		return ROTATE2
@@ -1005,8 +1015,10 @@ R = ROTATE
 # /////////////////////////////////////////////////////////////////
 # /////////////////////////////////////////////////////////////////
 function SHEARING(column)
-	function SHEARING1(shear_list...)
-		function SHEARING2(pol)
+	function SHEARING1(a,b...)
+		b=collect(b)
+		shear_list=[a;b]
+		function SHEARING2(pol::Hpc)
 			return SHEAR(column,shear_list, pol)
 		end
 		return SHEARING2
@@ -1015,7 +1027,7 @@ function SHEARING(column)
 end
 H = SHEARING
 
-function SHEAR(column,shear_list, pol)
+function SHEAR(column,shear_list, pol::Hpc)
 @show column
 	values = ISNUM(shear_list) ? [shear_list] : shear_list
 	vh = [0.0 for I in 1:length(values)+2]
