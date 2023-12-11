@@ -128,22 +128,31 @@ end
 TT = K(true)
 
 # /////////////////////////////////////////////////////////////////
-function DISTL(args)
-	Element, List = args
-
+function DISTL(a,B::Vector)
 	# see https://discourse.julialang.org/t/is-there-a-way-to-block-type-conversion/106302/6
-	Cast = Union{typeof(Element), eltype(List)}
-	return [Cast[Element, e] for e in List]
+	ret=[]
+	for b in B
+		push!(ret,(a,b))
+	end
+	return ret
+end
+
+function DISTL(args)
+	return DISTL(args...)
 end
 
 # /////////////////////////////////////////////////////////////////
-function DISTR(args)
-	List, Element = args
-
+function DISTR(A::Vector,b)
 	# see https://discourse.julialang.org/t/is-there-a-way-to-block-type-conversion/106302/6
-	Cast = Union{eltype(List), typeof(Element)}
+	ret=[]
+	for a in A
+		push!(ret,(a,b))
+	end
+	return ret
+end
 
-	return [Cast[e,Element] for e in List]
+function DISTR(args)
+	return DISTR(args...)
 end
 
 # /////////////////////////////////////////////////////////////////
