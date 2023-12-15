@@ -3,7 +3,7 @@
 # //////////////////////////////////////////////////////////////////////////////
 using DataStructures, SparseArrays
 
-export truncate, simplifyCells,CSC,Lar
+export truncate, simplifyCells, CSC, Lar, ToHPC
 
 # //////////////////////////////////////////////////////////////////////////////
 # With a docstring, can be seen from Help (?) the whole set of parameters
@@ -31,8 +31,8 @@ function simplifyCells(V,CV)
 	PRECISION = 14
 	vertDict = DefaultDict{Vector{Float64}, Int64}(0)
 	index = 0
-	W = Array{Float64,1}[]
-	FW = Array{Int64,1}[]
+	W = Vector{Float64}[]
+	FW = Vector{Int64}[]
 
 	for incell in CV
 		outcell = Int64[]
@@ -55,7 +55,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """
-   CSC( CV::Vector{Vector{Int64}} )::SparseMatrix
+   CSC( Cc::Vector{Vector{Int64}} )::SparseMatrix
 
 Creation of Compressed Sparse Column (CSC) sparse matrix format.
 Each CV element is the array of vertex indices of a cell.
@@ -100,16 +100,27 @@ end
 
 Constructor of object of Linear Algebraic Representation (Lar) type, from Hpc object. 
 """
-
 function Lar(obj::Hpc)::Lar
    V = ToLAR(obj).childs[1].points
-   #CV = obj.childs[1].hulls ?? 
-   #what to do about?  tu mi devi dare SEMPRE Hulls (d)  e Facets (d-1). IO ricavo le celle d-2 (!) 
+   #CV = obj.childs[1].hulls
    facets = ToLAR(obj).childs[1].facets
    V,FV = simplifyCells( hcat(V...), facets )
    FF = CSC(FV) * CSC(FV)'
    edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
    EV = sort!(collect(Set([ FV[i] ∩ FV[j] for (i,j) in edges ]))) # ∩ intersect
-   out = Lar( V, Dict(#:CV=>CV, 
+   out = Lar( V, Dict(# :CV=>CV, 
       :FV=>FV, :EV=>EV) )
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+   ToHPC(V,CV)::Hpc 
+
+Constructor of object of Hierarchical Polyhedral Complex (Hpc) type, starting from a pair V,CV of LAR kind. 
+V is of type Matrix{Float64}; CV is any ::Vector{Vector{Int64}} dataset.
+"""
+function ToHPC(V,CV) 
+   out = STRUCT(AA(MKPOL)(DISTL([V[:,k] for k=1:size(V,2)], AA(LIST)(CV)))) 
+   return out 
 end

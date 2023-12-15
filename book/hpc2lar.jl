@@ -1,5 +1,5 @@
 using Plasm
-include("./book/arrangement.jl")
+include("./arrangement.jl")
 using SparseArrays
 
 function CSC( CV ) # CV => Cells defined by their Vertices

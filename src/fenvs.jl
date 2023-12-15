@@ -1675,14 +1675,15 @@ end
 CYLINDER = MY_CYLINDER
 
 # /////////////////////////////////////////////////////////////
-function SPHERE(radius::Float64)
-	function SPHERE0(subds)
+function SPHERE(radius=1.0::Number)
+	function SPHERE0(subds=[16,32]::Vector{Int})
 		N, M = subds
-		domain = Translate(Power(INTERVALS(pi)(N), INTERVALS(2*pi)(M)),[-pi/2, 0])
-		fx = p -> radius * cos(p[1]) * sin(p[2])
+		domain = Translate(Power(INTERVALS(pi)(N), INTERVALS(2*pi)(M)),[-pi/2, -pi])
+		fx = p -> radius * (-cos(p[1])) * sin(p[2])
 		fy = p -> radius * cos(p[1]) * cos(p[2])
 		fz = p -> radius * sin(p[1])
-		return MAP([fx, fy, fz])(domain)
+		out = MAP([fx, fy, fz])(domain)
+		return out #Hpc(Lar(out))
 	end
 	return SPHERE0
 end
