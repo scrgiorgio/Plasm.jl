@@ -3,7 +3,7 @@
 # //////////////////////////////////////////////////////////////////////////////
 using DataStructures, SparseArrays
 
-export truncate, simplifyCells, CSC, Lar, ToHPC
+export truncate, simplifyCells, CSC, Lar, Hpc
 
 # //////////////////////////////////////////////////////////////////////////////
 # With a docstring, can be seen from Help (?) the whole set of parameters
@@ -115,12 +115,18 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """
-   ToHPC(V,CV)::Hpc 
+   Hpc(V,CV)::Hpc 
 
 Constructor of object of Hierarchical Polyhedral Complex (Hpc) type, starting from a pair V,CV of LAR kind. 
-V is of type Matrix{Float64}; CV is any ::Vector{Vector{Int64}} dataset.
+V is of type Matrix{Float64}; CV is any ::Vector{Vector{Int}} dataset.
 """
-function ToHPC(V,CV) 
-   out = STRUCT(AA(MKPOL)(DISTL([V[:,k] for k=1:size(V,2)], AA(LIST)(CV)))) 
+function Hpc(V::Matrix{Float64}, CV::Vector{Vector{Int}}) 
+   W = [V[:,k] for k=1:size(V,2)]
+   out = STRUCT(AA(MKPOL)(DISTL(W, AA(LIST)(CV)))) 
    return out 
+end
+
+function Hpc(obj::Lar) 
+   V = obj.V;  FV = obj.C[:FV]
+   return Hpc(V,FV) 
 end

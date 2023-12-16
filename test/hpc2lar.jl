@@ -1,7 +1,7 @@
 using Plasm
 
 # SPHERE: ::Hpc -> ::Lar
-obj1 = SPHERE(1)([3,3]).childs[1].childs[1]
+obj1 = ToLAR(SPHERE(1)([3,3])).childs[1]
 points = obj1.points;
 hulls  = obj1.hulls;
 facets = obj1.facets;
@@ -12,9 +12,9 @@ V, FV, EV = obj.V, obj.C[:FV], obj.C[:EV];
 println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 
 # SPHERE: ::Lar -> ::Hpc
-obj2 = ToHPC(V,EV);
+obj2 = Hpc(V,EV);
 VIEW(obj2)
-obj3 = ToHPC(V,FV);
+obj3 = Hpc(V,FV);
 VIEW(obj3)
 
 # SPHERE: ::Hpc -> ::Lar

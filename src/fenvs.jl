@@ -1682,8 +1682,9 @@ function SPHERE(radius=1.0::Number)
 		fx = p -> radius * (-cos(p[1])) * sin(p[2])
 		fy = p -> radius * cos(p[1]) * cos(p[2])
 		fz = p -> radius * sin(p[1])
-		out = MAP([fx, fy, fz])(domain)
-		return out #Hpc(Lar(out))
+		larvalue = Lar(MAP([fx, fy, fz])(domain))
+		V, FV = larvalue.V, larvalue.C[:FV]
+		return Hpc(V,FV)
 	end
 	return SPHERE0
 end
