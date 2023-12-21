@@ -52,22 +52,26 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function view_data(V,FV,EV)
-  using ViewerGL
-  GL = ViewerGL
-  GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,1));
-  GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,99,1));
-  GL.VIEW(GL.GLExplode(V,FV,1.,1.,1.,99,1));
+  
+  # disabled since it's another package?
+  # using ViewerGL
+  # GL = ViewerGL
+  # GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,1));
+  # GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,99,1));
+  # GL.VIEW(GL.GLExplode(V,FV,1.,1.,1.,99,1));
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function run_test(V,EV):
+function run_test(name, V,EV)
+  println("running test",name)
   save_data(V,EV)
   V,FV,EV = arrange2D(V,EV)
   view_data(V,FV,EV)
+end
 
-run_test(generate_debugging_data()...)
-run_test(generate_random_lines()...)
-run_test(generate_random_bubbles(n=50)...)
+run_test("generate_debugging_data",generate_debugging_data()...)
+run_test("generate_random_lines",generate_random_lines()...)
+run_test("generate_random_bubbles",generate_random_bubbles(n=50)...)
 
 
 

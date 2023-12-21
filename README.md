@@ -28,6 +28,7 @@ julia test/manhattan.jl
 julia test/properties.jl
 julia test/hpc2lar.jl
 julia test/fenvs.jl
+julia test/arrangement2d.jl
 ```
 
 # Jupyter
