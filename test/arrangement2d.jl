@@ -20,7 +20,7 @@ function generate_random_bubbles(; n=50)
     str = STRUCT([ transl, scale, CIRCUMFERENCE(1.)(32) ])
     push!(store, str)
   end
-  obj = LAR(STRUCT((AA)(STRUCT)(store)))
+  obj = Plasm.LAR(STRUCT((AA)(STRUCT)(store)))
   V,EV = obj.V, obj.C[:FV]
     return V,EV
   end
