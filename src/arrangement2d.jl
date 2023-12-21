@@ -5,7 +5,7 @@ using NearestNeighbors
 using Triangulate
 using IntervalTrees
 
-export arrange2D
+export arrange2D, LAR
 
 const Points = Matrix
 const Cells = Array{Array{Int,1},1}

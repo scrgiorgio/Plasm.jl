@@ -63,10 +63,11 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function run_test(name, V,EV)
-  println("running test",name)
+  println("running test ",name)
   save_data(V,EV)
   V,FV,EV = arrange2D(V,EV)
   view_data(V,FV,EV)
+  println("done ",name)
 end
 
 run_test("generate_debugging_data",generate_debugging_data()...)
