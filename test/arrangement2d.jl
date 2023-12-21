@@ -51,22 +51,22 @@ function save_data(V,EV, filename="/tmp/lar.txt")
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function view_data(V,FV,EV)
+function view_data(V,FVs,EVs)
   
   # disabled since it's another package?
   # using ViewerGL
   # GL = ViewerGL
-  # GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,1));
-  # GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,99,1));
-  # GL.VIEW(GL.GLExplode(V,FV,1.,1.,1.,99,1));
+  # GL.VIEW(GL.GLExplode(V,FVs,1.2,1.2,1.2,1));
+  # GL.VIEW(GL.GLExplode(V,FVs,1.2,1.2,1.2,99,1));
+  # GL.VIEW(GL.GLExplode(V,FVs,1.,1.,1.,99,1));
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 function run_test(name, V,EV)
   println("running test",name)
   save_data(V,EV)
-  V,FV,EV = arrange2D(V,EV)
-  view_data(V,FV,EV)
+  V,FVs,EVs = arrange2D(V,EV)    # YXs => Vector of YX objects.
+  view_data(V,FVs,EVs)
 end
 
 run_test("generate_debugging_data",generate_debugging_data()...)
