@@ -5,13 +5,13 @@ using NearestNeighbors
 using Triangulate
 using IntervalTrees
 
-export arrange2D, LAR
+export arrange2D, LAR, Points, Cells, Cell, Chain, ChainOp, ChainComplex
 
 const Points = Matrix
 const Cells = Array{Array{Int,1},1}
 const Cell = SparseVector{Int8, Int}
-const Chain = SparseArrays.SparseVector{Int8,Int}
-const ChainOp = SparseArrays.SparseMatrixCSC{Int8,Int}
+const Chain = SparseVector{Int8,Int}
+const ChainOp = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Array{ChainOp,1}
 
 
@@ -119,7 +119,7 @@ function minimal_cycles(angles_fn::Function, verbose=true)
 
         while (sigma = get_seed_cell()) > 0
 						if verbose
-                print(Int(floor(50 * sum(count_marks) / ld_cellsnum)), "%\r") # <<<<<<<<<<<<<<<<<<<
+                print(Int(floor(50 * sum(count_marks) / ld_cellsnum)), "%\r")
             end
 
             c_ld = spzeros(Int64, ld_cellsnum)

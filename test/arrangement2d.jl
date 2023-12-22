@@ -51,14 +51,14 @@ function save_data(V,EV, filename="/tmp/lar.txt")
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function view_data(V,FV,EV)
+function view_data(V,FVs,EVs)
   
   # disabled since it's another package?
   # using ViewerGL
   # GL = ViewerGL
-  # GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,1));
-  # GL.VIEW(GL.GLExplode(V,FV,1.2,1.2,1.2,99,1));
-  # GL.VIEW(GL.GLExplode(V,FV,1.,1.,1.,99,1));
+  # GL.VIEW(GL.GLExplode(V,FVs,1.2,1.2,1.2,1));
+  # GL.VIEW(GL.GLExplode(V,FVs,1.2,1.2,1.2,99,1));
+  # GL.VIEW(GL.GLExplode(V,FVs,1.,1.,1.,99,1));
 end
 
 # //////////////////////////////////////////////////////////////////////////////
