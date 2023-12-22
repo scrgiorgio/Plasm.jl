@@ -7,7 +7,8 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	norm,normalized,invalidBox,addPoint,getPoints,center,flatten,translateMatrix,scaleMatrix,lookAtMatrix,perspectiveMatrix,orthoMatrix,getLookAt,GetBoundingBox,
 	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,GLVertexBuffer,
 	POINTS,LINES,TRIANGLES,
-	GLCuboid,GLAxis,GLView
+	GLCuboid,GLAxis,GLCells,GLView,
+	explodecells
 
 import Base:*
 import Base.:-
@@ -1493,3 +1494,185 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=
 	ret.colors  =GLVertexBuffer(colors)
 	return ret
 end
+
+
+
+# ///////////////////////////////////////////////////////////////
+const WHITE   = Point4d([1.0, 1.0, 1.0, 1.0])
+const RED     = Point4d([1.0, 0.0, 0.0, 1.0])
+const GREEN   = Point4d([0.0, 1.0, 0.0, 1.0])
+const BLUE    = Point4d([0.0, 0.0, 1.0, 1.0])
+const CYAN    = Point4d([0.0, 1.0, 1.0, 1.0])
+const MAGENTA = Point4d([1.0, 0.0, 1.0, 1.0])
+const YELLOW  = Point4d([1.0, 1.0, 0.0, 1.0])
+const ORANGE  = Point4d([1.0, 0.65, 1.0, 1.0])
+const PURPLE  = Point4d([0.5, 0.0, 0.5, 1.0])
+const BROWN   = Point4d([0.65, 0.16, 0.16, 1.0])
+const GRAY    = Point4d([0.5, 0.5, 0.5, 1.0])
+const BLACK   = Point4d([0.0, 0.0, 0.0, 1.0])
+
+
+const COLORS = Dict(
+	1=>WHITE, 
+	2=>RED, 
+	3=>GREEN, 
+	4=>BLUE,
+	5=>CYAN, 
+	6=>MAGENTA, 
+	7=>YELLOW, 
+	8=>ORANGE,
+	9=>PURPLE, 
+	10=>BROWN, 
+	11=>GRAY, 
+	12=>BLACK 
+)
+
+# ////////////////////////////////////////////////////////////////////////
+# scrgiorgio NOTE this funciton should not be here, but it's simplier
+function explodecells(V,FVs; sx=1.2,sy=1.2,sz=1.2) 
+	ret = []
+	for FV in FVs  # FV = single cell made by edges or trias or quads
+		vertsidx = !(FV==Any[]) ? sort(union(FV...)) : nothing  # remove repeated vert indices
+		vcell = V[:,vertsidx] # geometry matrix of cell
+		vdict = Dict(zip(vertsidx,1:length(vertsidx))) # key=vertsidx => value=ordinal n.
+		centre = sum(vcell,dims=2)/size(vcell,2)  # sum points in FV cell/their number
+		scaled_center = size(centre,1)==2 ? centre .* [sx;sy] : centre .* [sx;sy;sz]
+		translation_vector = scaled_center - centre
+		cellverts = vcell .+ translation_vector # traslated geometry matrix of cell
+		newcells = [[vdict[v] for v in cell] for cell in FV] # local topology of cell prim.
+		points   = [cellverts[:,k] for k=1:size(cellverts,2)]
+		for it in newcells
+			# single item is MKPOL argument
+			push!(ret,(
+				points, 
+				[Vector{Int}(it)]
+			))
+		end
+	end
+	return ret
+end
+
+# ////////////////////////////////////////////////////////////////////////
+function embed3d(points::Vector{Vector{Float64}})::Vector{Point3d}
+	N=length(points)
+	ret=Vector{Point3d}()
+	for P in 1:N
+		p=points[P]
+		pdim=length(p)
+		@assert(pdim>=1 && pdim<=3)
+		if pdim==1
+			p=Point3d(p[1],0.0,0.0)
+		elseif pdim==2
+			p=Point3d(p[1],p[2],0.0)
+		else
+			p=Point3d(p[1],p[2],p[3])
+		end
+		push!(ret,p)
+	end
+	return ret
+end
+
+# ////////////////////////////////////////////////////////////////////////
+function GLColoredCells(points::Vector{Vector{Float64}}, cells::Vector{Vector{Int64}} ;color::Point4d=Point4d(1.0,1.0,1.0,1.0))::GLBatch
+
+	# test if all cells have same length
+	cell_lens = map(length,cells)
+	@assert( (&)(map((==)(cell_lens[1]),cell_lens)...) == true)
+
+	points=embed3d(points)
+
+	# cell dimension
+	cell_dim = length(cells[1])  
+	@assert(cell_dim>=1 && cell_dim<=4)
+
+	vertices= Vector{Float32}()
+	normals = Vector{Float32}()
+	colors  = Vector{Float32}()
+
+	N=length(cells)
+
+	# zero-dimensional grids
+	if cell_dim==1   
+		primitive=GL_POINTS
+		for K=1:N
+			p1 = [points[I] for I in cells[K]]
+			append!(vertices,p1); append!(colors, color);
+		end
+
+	# one-dimensional grids
+	elseif cell_dim==2   
+		primitive=GL_LINES
+		for K=1:N
+			p1,p2 = [points[I] for I in cells[K]]
+			# scrgiorgio: do not think I need normals for lines
+			# t = p2-p1;
+			# n = LinearAlgebra.normalize([-t[2];+t[1];t[3]])
+			# n  = convert(Point3d, n)
+			append!(vertices,p1); append!(colors, color)
+			append!(vertices,p2); append!(colors, color)
+		end
+
+	# triangle grids
+	elseif cell_dim==3 
+		primitive=GL_TRIANGLES
+		for K=1:N
+			p1,p2,p3 = [points[I] for I in cells[K]]
+			n = computeNormal(p1,p2,p3)
+			append!(vertices,p1); append!(normals,n); append!(colors,color) 
+			append!(vertices,p2); append!(normals,n); append!(colors,color)
+			append!(vertices,p3); append!(normals,n); append!(colors,color)
+		end
+
+	# quad grids
+	elseif cell_dim==4  
+		primitive=GL_TRIANGLES
+		for K=1:N
+			p1,p2,p3,p4 = [points[I] for I in cells[K]]
+			n = 0.5*computeNormal(p1,p2,p3)+0.5*computeNormal(p1,p3,p4)
+			append!(vertices,p1); append!(normals,n); append!(colors,color); 
+			append!(vertices,p2); append!(normals,n); append!(colors,color);
+			append!(vertices,p3); append!(normals,n); append!(colors,color); 
+			append!(vertices,p1); append!(normals,n); append!(colors,color);
+			append!(vertices,p3); append!(normals,n); append!(colors,color);
+			append!(vertices,p4); append!(normals,n); append!(colors,color);
+		end
+	end
+
+	ret          = GLBatch(primitive)
+	ret.vertices = GLVertexBuffer(vertices)
+	ret.colors   = GLVertexBuffer(colors)
+	if length(normals)>0
+		ret.normals  = GLVertexBuffer(normals)
+	end
+	return ret
+end
+
+
+# ////////////////////////////////////////////////////////////////////////////////
+function GLCells(assembly; color_index=1, color_alpha=0.2::Float64)::Vector{GLBatch}
+	batches = Vector{GLBatch}()
+	N=length(assembly)
+	for k=1:N
+
+		if assembly[k] ≠  Any[]
+
+			# Lar model with constant lemgth of cells, i.e a GRID object !!
+			points, cells = assembly[k]
+
+			if 1 <= color_index <= 12
+				color = Point4d(COLORS[color_index])
+			# cyclic colors w random component
+			else
+				color = Point4d(COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
+			end
+			
+			# todo
+			# color4 *= color_alpha
+
+			batch=GLColoredCells(points, cells, color=color)
+			push!(batches,batch)
+		end
+	end
+	return batches
+end
+

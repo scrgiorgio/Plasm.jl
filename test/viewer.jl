@@ -9,6 +9,9 @@ function MyMain()
 
 	GLView([GLText("hello")])
 	
+
+
+	
 end
 
 MyMain()
