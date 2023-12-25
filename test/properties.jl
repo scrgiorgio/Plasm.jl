@@ -19,7 +19,7 @@ VIEW(
 VIEW(
   PROPERTIES(
      CUBE(1),
-     Dict("line_color"=>[1.0,0.0,0.0])),
+     Dict("line_color"=>Point4d(1.0,0.0,0.0,1.0))),
   title="line_color"
 )
 
@@ -27,7 +27,7 @@ VIEW(
 VIEW(
    PROPERTIES(
      CUBE(1),
-     Dict("face_color"=>[0.0,1.0,0.0])),
+     Dict("face_color"=>Point4d(0.0,1.0,0.0,1.0))),
    title="face_color"
 )
 
@@ -35,12 +35,20 @@ VIEW(
 VIEW(STRUCT(
    PROPERTIES(
       STRUCT(T(1)(0.0),CUBE(1)), 
-      Dict("face_color"=>[0.0,1.0,0.0])
+      Dict(
+         "face_color"=>Point4d(0.0,1.0,0.0,1.0),
+         "line_color"=>Point4d(1.0,1.0,0.0,1.0),
+         "line_width"=>3
+      )
    ),
    PROPERTIES(
       STRUCT(T(1)(1.0),CUBE(1)), 
-      Dict("face_color"=>[1.0,0.0,0.0]))
-   ),
+      Dict(
+         "face_color"=>Point4d(1.0,0.0,0.0,1.0),
+         "line_color"=>Point4d(0.0,1.0,1.0,1.0),
+         "line_width"=>3
+      )
+   )),
    title="2 colored cubes",
    background_color=[0.0,0.0,0.0]
 )

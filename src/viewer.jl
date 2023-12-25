@@ -7,8 +7,9 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	norm,normalized,invalidBox,addPoint,getPoints,center,flatten,translateMatrix,scaleMatrix,lookAtMatrix,perspectiveMatrix,orthoMatrix,getLookAt,GetBoundingBox,
 	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,GLVertexBuffer,
 	POINTS,LINES,TRIANGLES,
-	GLCuboid,GLAxis,GLCells,GLView,
-	explodecells
+	GLCuboid,GLAxis,GLCells,GLView,GLExplode,ExplodeCells,COLORS, GetColorByName,
+	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK
+
 
 import Base:*
 import Base.:-
@@ -487,12 +488,24 @@ mutable struct GLBatch
 	colors::GLVertexBuffer
 
 	line_width::Int
-	line_color::Vector{Float64}
-	face_color::Vector{Float64}
+	point_color::Point4d
+	line_color::Point4d
+	face_color::Point4d
 
 	# constructor
 	function GLBatch(prim::UInt32=GL_POINTS)
-		ret=new(prim,Matrix4d(),GLVertexArray(),GLVertexBuffer(),GLVertexBuffer(),GLVertexBuffer(),1,[1.0,1.0,1.0],[0.5,0.5,0.5])
+		ret=new(
+			prim,
+			Matrix4d(),
+			GLVertexArray(),
+			GLVertexBuffer(),
+			GLVertexBuffer(),
+			GLVertexBuffer(),
+			1,
+			Point4d(0.0,0.0,0.0,1.0), 
+			Point4d(1.0,1.0,1.0,1.0),
+			Point4d(0.5,0.5,0.5,1.0)
+		)
 		finalizer(releaseGpuResources, ret)
 		return ret
 	end
@@ -1079,43 +1092,45 @@ function glRender(viewer::Viewer)
 	PROJECTION = getProjection(viewer)
 	MODELVIEW  = getModelview(viewer)
 
-	batch_show_lines=Dict(
-		GL_POINTS=>false, 
-		GL_LINE_STRIP=>false, 
-		GL_LINE_LOOP=>false, 
-		GL_LINES=>false, 
-		
-		GL_TRIANGLE_STRIP=>true, 
-		GL_TRIANGLE_FAN=>true, 
-		GL_TRIANGLES=>true)
-
 	lightpos=MODELVIEW * Point4d(viewer.pos[1],viewer.pos[2],viewer.pos[3],1.0)
 
 	for batch in viewer.batches
 
-		if batch.line_width!=1
-			glLineWidth(batch.line_width)
-		end
-	
-		show_lines=viewer.show_lines && batch_show_lines[batch.primitive]
 
-		if show_lines
-			# https://www.glprogramming.com/red/chapter06.html
-			glEnable(GL_POLYGON_OFFSET_FILL)
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
-			glPolygonOffset(1.0, 1.0)
-			glRenderBatch(viewer,batch, GL_FILL, PROJECTION, MODELVIEW, lightpos)
-			glDisable(GL_POLYGON_OFFSET_FILL)	
 
-			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
-			glRenderBatch(viewer,batch, GL_LINE, PROJECTION, MODELVIEW, lightpos)	
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+		if batch.primitive==GL_POINTS
 
+			glRenderBatch(viewer, batch, batch.point_color, PROJECTION, MODELVIEW, lightpos)	
+
+		elseif batch.primitive==GL_LINES || batch.primitive==GL_LINE_STRIP || batch.primitive==GL_LINE_LOOP
+
+				glLineWidth(batch.line_width)
+				glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)	
+				glLineWidth(1)
 		else
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
-			glRenderBatch(viewer,batch, GL_FILL, PROJECTION, MODELVIEW, lightpos)
-		end
 
+
+			if viewer.show_lines && batch.line_width>0
+
+				# https://www.glprogramming.com/red/chapter06.html
+				glEnable(GL_POLYGON_OFFSET_FILL)
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+				glPolygonOffset(1.0, 1.0)
+				glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+				glDisable(GL_POLYGON_OFFSET_FILL)	
+
+				glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
+				glLineWidth(batch.line_width)
+				glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)	
+				glLineWidth(1)
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+
+			else
+				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+				glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+			end
+
+		end
 	end
 
 	glCheckError()
@@ -1123,10 +1138,10 @@ function glRender(viewer::Viewer)
 end
 
 
-function glRenderBatch(viewer::Viewer,batch::GLBatch, polygon_mode,PROJECTION, MODELVIEW, lightpos)
+function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
 
-	lighting_enabled        =polygon_mode!=GL_LINE && length(batch.normals.vector)>0 
-	color_attribute_enabled =polygon_mode!=GL_LINE && length(batch.colors.vector )>0
+	lighting_enabled        = length(batch.normals.vector)>0 
+	color_attribute_enabled = length(batch.colors.vector )>0
 	
 	shader=getShader(viewer,lighting_enabled,color_attribute_enabled)
 
@@ -1146,8 +1161,8 @@ function glRenderBatch(viewer::Viewer,batch::GLBatch, polygon_mode,PROJECTION, M
 	end
 	
 	u_color = glGetUniformLocation(shader.program_id, "u_color")
-	if u_color>=0
-		color=polygon_mode==GL_LINE ? Point4d(batch.line_color[1],batch.line_color[2],batch.line_color[3],1.0) : Point4d(batch.face_color[1],batch.face_color[2],batch.face_color[3],1.0)
+	# println(u_color," ", color, " lighting_enabled ",lighting_enabled, " color_attribute_enabled ",color_attribute_enabled)
+	if u_color>=0 && color!=nothing
 		glUniform4f(u_color,color[1],color[2],color[3],color[4])	
 	end
 	
@@ -1159,7 +1174,7 @@ function glRenderBatch(viewer::Viewer,batch::GLBatch, polygon_mode,PROJECTION, M
 	
 	enableAttribute(a_position,batch.vertices,3)
 	enableAttribute(a_normal  ,batch.normals ,3)
-	enableAttribute(a_color   ,batch.colors ,4)
+	enableAttribute(a_color   ,batch.colors  ,4)
 
 	@assert length(batch.vertices.vector) % 3 == 0
 	glDrawArrays(batch.primitive, 0, Int64(length(batch.vertices.vector)/3))
@@ -1498,6 +1513,7 @@ end
 
 
 # ///////////////////////////////////////////////////////////////
+
 const WHITE   = Point4d([1.0, 1.0, 1.0, 1.0])
 const RED     = Point4d([1.0, 0.0, 0.0, 1.0])
 const GREEN   = Point4d([0.0, 1.0, 0.0, 1.0])
@@ -1527,9 +1543,29 @@ const COLORS = Dict(
 	12=>BLACK 
 )
 
-# ////////////////////////////////////////////////////////////////////////
-# scrgiorgio NOTE this funciton should not be here, but it's simplier
-function explodecells(V,FVs; sx=1.2,sy=1.2,sz=1.2) 
+function GetColorByName(name)
+
+	return Dict(
+		"white"=>WHITE, 
+		"red"=>RED, 
+		"green"=>GREEN, 
+		"blue"=>BLUE,
+		"cyan"=>CYAN, 
+		"magenta"=>MAGENTA, 
+		"yellow"=>YELLOW, 
+		"orange"=>ORANGE,
+		"purple"=>PURPLE, 
+		"brown"=>BROWN, 
+		"gray"=>GRAY, 
+		"black"=>BLACK
+
+	)
+
+end
+
+
+# /////////////////////////////////////////////////////////////////////
+function ExplodeCells(V,FVs; sx=1.2,sy=1.2,sz=1.2)
 	ret = []
 	for FV in FVs  # FV = single cell made by edges or trias or quads
 		vertsidx = !(FV==Any[]) ? sort(union(FV...)) : nothing  # remove repeated vert indices
@@ -1540,139 +1576,12 @@ function explodecells(V,FVs; sx=1.2,sy=1.2,sz=1.2)
 		translation_vector = scaled_center - centre
 		cellverts = vcell .+ translation_vector # traslated geometry matrix of cell
 		newcells = [[vdict[v] for v in cell] for cell in FV] # local topology of cell prim.
-		points   = [cellverts[:,k] for k=1:size(cellverts,2)]
-		for it in newcells
-			# single item is MKPOL argument
-			push!(ret,(
-				points, 
-				[Vector{Int}(it)]
-			))
-		end
+    points = [cellverts[:,k] for k=1:size(cellverts,2)]
+		mesh = DISTL([points, AA(LIST)(newcells)]) # single cell made by FV
+    # it's an homogeneous list to apply colors
+		push!(ret, STRUCT([MKPOL(it) for it in mesh]))
 	end
-	return ret
+	return STRUCT(ret) # assembly of exploded cells in FVs
 end
 
-# ////////////////////////////////////////////////////////////////////////
-function embed3d(points::Vector{Vector{Float64}})::Vector{Point3d}
-	N=length(points)
-	ret=Vector{Point3d}()
-	for P in 1:N
-		p=points[P]
-		pdim=length(p)
-		@assert(pdim>=1 && pdim<=3)
-		if pdim==1
-			p=Point3d(p[1],0.0,0.0)
-		elseif pdim==2
-			p=Point3d(p[1],p[2],0.0)
-		else
-			p=Point3d(p[1],p[2],p[3])
-		end
-		push!(ret,p)
-	end
-	return ret
-end
-
-# ////////////////////////////////////////////////////////////////////////
-function GLColoredCells(points::Vector{Vector{Float64}}, cells::Vector{Vector{Int64}} ;color::Point4d=Point4d(1.0,1.0,1.0,1.0))::GLBatch
-
-	# test if all cells have same length
-	cell_lens = map(length,cells)
-	@assert( (&)(map((==)(cell_lens[1]),cell_lens)...) == true)
-
-	points=embed3d(points)
-
-	# cell dimension
-	cell_dim = length(cells[1])  
-	@assert(cell_dim>=1 && cell_dim<=4)
-
-	vertices= Vector{Float32}()
-	normals = Vector{Float32}()
-	colors  = Vector{Float32}()
-
-	N=length(cells)
-
-	# zero-dimensional grids
-	if cell_dim==1   
-		primitive=GL_POINTS
-		for K=1:N
-			p1 = [points[I] for I in cells[K]]
-			append!(vertices,p1); append!(colors, color);
-		end
-
-	# one-dimensional grids
-	elseif cell_dim==2   
-		primitive=GL_LINES
-		for K=1:N
-			p1,p2 = [points[I] for I in cells[K]]
-			# scrgiorgio: do not think I need normals for lines
-			# t = p2-p1;
-			# n = LinearAlgebra.normalize([-t[2];+t[1];t[3]])
-			# n  = convert(Point3d, n)
-			append!(vertices,p1); append!(colors, color)
-			append!(vertices,p2); append!(colors, color)
-		end
-
-	# triangle grids
-	elseif cell_dim==3 
-		primitive=GL_TRIANGLES
-		for K=1:N
-			p1,p2,p3 = [points[I] for I in cells[K]]
-			n = computeNormal(p1,p2,p3)
-			append!(vertices,p1); append!(normals,n); append!(colors,color) 
-			append!(vertices,p2); append!(normals,n); append!(colors,color)
-			append!(vertices,p3); append!(normals,n); append!(colors,color)
-		end
-
-	# quad grids
-	elseif cell_dim==4  
-		primitive=GL_TRIANGLES
-		for K=1:N
-			p1,p2,p3,p4 = [points[I] for I in cells[K]]
-			n = 0.5*computeNormal(p1,p2,p3)+0.5*computeNormal(p1,p3,p4)
-			append!(vertices,p1); append!(normals,n); append!(colors,color); 
-			append!(vertices,p2); append!(normals,n); append!(colors,color);
-			append!(vertices,p3); append!(normals,n); append!(colors,color); 
-			append!(vertices,p1); append!(normals,n); append!(colors,color);
-			append!(vertices,p3); append!(normals,n); append!(colors,color);
-			append!(vertices,p4); append!(normals,n); append!(colors,color);
-		end
-	end
-
-	ret          = GLBatch(primitive)
-	ret.vertices = GLVertexBuffer(vertices)
-	ret.colors   = GLVertexBuffer(colors)
-	if length(normals)>0
-		ret.normals  = GLVertexBuffer(normals)
-	end
-	return ret
-end
-
-
-# ////////////////////////////////////////////////////////////////////////////////
-function GLCells(assembly; color_index=1, color_alpha=0.2::Float64)::Vector{GLBatch}
-	batches = Vector{GLBatch}()
-	N=length(assembly)
-	for k=1:N
-
-		if assembly[k] ≠  Any[]
-
-			# Lar model with constant lemgth of cells, i.e a GRID object !!
-			points, cells = assembly[k]
-
-			if 1 <= color_index <= 12
-				color = Point4d(COLORS[color_index])
-			# cyclic colors w random component
-			else
-				color = Point4d(COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
-			end
-			
-			# todo
-			# color4 *= color_alpha
-
-			batch=GLColoredCells(points, cells, color=color)
-			push!(batches,batch)
-		end
-	end
-	return batches
-end
 

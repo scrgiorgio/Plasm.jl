@@ -13,8 +13,9 @@ import Base.:*
 import Base.size
 import Base.transpose
 
-DEFAULT_LINE_COLOR=[1.0,1.0,1.0]
-DEFAULT_FACE_COLOR=[0.8,0.8,0.8]
+DEFAULT_POINT_COLOR= Point4d(1.0,1.0,1.0,1.0)
+DEFAULT_LINE_COLOR = Point4d(1.0,1.0,1.0,1.0)
+DEFAULT_FACE_COLOR = Point4d(0.8,0.8,0.8,1.0)
 
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
@@ -482,8 +483,8 @@ function GetBatchesForMkPol(obj::BuildMkPol)
 			p1 = ToVector3(sf.points[hull[2]])
 			push!(lines.vertices.vector, p0...)
 			push!(lines.vertices.vector, p1...)
-			push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
-			push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
+			# push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
+			# push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
 
 		# triangles
 		elseif hull_dim == 3
@@ -764,6 +765,9 @@ end
 
 
 
+
+
+
 # //////////////////////////////////////////////////////////////////////////////////////////
 function GetBatchesForHpc(hpc::Hpc)
 
@@ -779,9 +783,10 @@ function GetBatchesForHpc(hpc::Hpc)
 			T[1,2], T[1,3], T[1,4],   T[1,1]
 		)
 		for batch in GetBatchesForMkPol(obj)
-			batch.line_color=get(properties,"line_color",DEFAULT_LINE_COLOR)
-			batch.line_width=get(properties,"line_width",1)
-			batch.face_color=get(properties,"face_color",DEFAULT_FACE_COLOR)
+			batch.point_color = get(properties,"point_color", DEFAULT_POINT_COLOR)
+			batch.line_color  = get(properties,"line_color" , DEFAULT_LINE_COLOR)
+			batch.face_color  = get(properties,"face_color" , DEFAULT_FACE_COLOR)
+			batch.line_width  = copy(get(properties,"line_width",1))
 			prependTransformation(batch, T4d)
 			push!(batches, batch)
 		end
