@@ -76,45 +76,6 @@ function save_data(V,EV, filename="/tmp/lar.txt")
   end
 end
 
-# ///////////////////////////////////////////////////////
-function TestExplode()
-
-  obj=ToLAR(STRUCT(
-    SQUARE(1), 
-    T(1,2)(0.5,0.25), 
-    SQUARE(1)
-    ))
-  
-  V=hcat(obj.childs[1].points...)
-  EV=obj.childs[1].edges
-  V,FVs,EVs = Plasm.arrange2D(V,EV)
-  
-  # show colored exploded faces
-  if true
-    exploded=ExplodeCells(V, FVs, sx=1.2, sy=1.2, sz=1.2)
-    v=[]
-    for k in 1:length(exploded.childs)
-      face_color=Point4d(COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
-      face_color[4]=1.0
-      push!(v,PROPERTIES(exploded.childs[k], Dict("face_color" => face_color,"line_color" => BLACK,"line_width" => 3)))
-    end
-    VIEW(STRUCT(v))
-  end
-  
-  # show colored exploded edges
-  if true
-    exploded=ExplodeCells(V, EVs, sx=1.2, sy=1.2, sz=1.2)
-    v=[]
-    for k in 1:length(exploded.childs)
-      line_color=Point4d(COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
-      line_color[4]=1.0    
-      push!(v,PROPERTIES(exploded.childs[k], Dict( "line_color" => line_color, "line_width" => 3)))
-    end
-    VIEW(STRUCT(v))
-  end
-  
-
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestArrange2D(name, V,EV)
@@ -131,7 +92,6 @@ function TestLAR()
   TestArrange2D("generate_lar_debugging_data", generate_lar_debugging_data()...)
   TestArrange2D("generate_lar_random_lines"  , generate_lar_random_lines()...)
   TestArrange2D("generate_lar_random_bubbles", generate_lar_random_bubbles(n=50)...)
-  TestExplode()
   println("TestLAR ok")
 end
 

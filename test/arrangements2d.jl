@@ -1,32 +1,5 @@
 # ///////////////////////////////////////////////////////
 using Plasm 
-include("../src/arrangement2D.jl")
-
-function explodecells(V,FVs; sx=1.2,sy=1.2,sz=1.2) 
-   ret = []
-   for FV in FVs  
-   # FV = single cell made by edges or trias or quads
-      # remove repeated vert indices
-      vertsidx = !(FV==Any[]) ? sort(union(FV...)) : nothing  
-      # geometry matrix of cell
-      vcell = V[:,vertsidx] 
-      # key=vertsidx => value=ordinal n.
-      vdict = Dict(zip(vertsidx,1:length(vertsidx))) 
-      # barycenter: sum of points in FV cell/their number
-      centre = sum(vcell,dims=2)/size(vcell,2)  
-      scaled_center = size(centre,1)==2 ? centre .* [sx;sy] : centre .* [sx;sy;sz]
-      translation_vector = scaled_center - centre
-      # traslated geometry matrix of cell
-      cellverts = vcell .+ translation_vector 
-      # points of Hpc value
-      points = [cellverts[:,k] for k=1:size(cellverts,2)]
-      # local topology of chain primitive (array of triangles)
-      chain = [[vdict[v] for v in cell] for cell in FV] 
-      # single item is MKPOL argument
-      push!(ret, MKPOL(points, chain))
-   end
-   return ret
-end
 
 function TestExplode()
    obj=ToLAR(STRUCT(

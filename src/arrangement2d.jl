@@ -15,6 +15,9 @@ const Chain = SparseVector{Int8,Int}
 const ChainOp = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
 
+function lar_print(args)
+    # println(args)
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 """
@@ -38,7 +41,7 @@ end
 Find external cycles (area < 0) in chain complex (FE already computed).
 """
 function get_external_cycle(V::Points, EV::ChainOp, FE::ChainOp)
-println("get_external_cycle")
+    lar_print("get_external_cycle")
     FV = abs.(FE)*EV
     vs = sparsevec(mapslices(sum, abs.(EV), dims=1)').nzind
     minv_x1 = maxv_x1 = minv_x2 = maxv_x2 = pop!(vs)
@@ -78,11 +81,11 @@ end
 Interface of TGW algorithm in 2D
 """
 function minimal_cycles(angles_fn::Function, verbose=true)
-println("minimal_cycles")
+    lar_print("minimal_cycles")
     # External interface of TGW algorithm in 2D
     function _minimal_cycles(V::Points,
     	  ld_bounds::ChainOp)  # , EV)
-println("_minimal_cycles")
+            lar_print("_minimal_cycles")
 
         lld_cellsnum, ld_cellsnum = size(ld_bounds)
         count_marks = zeros(Int64, ld_cellsnum)
@@ -92,7 +95,7 @@ println("_minimal_cycles")
         angles = Array{Array{Int64, 1}, 1}(undef, lld_cellsnum)
 
         function get_seed_cell()
-println("get_seed_cell")
+            lar_print("get_seed_cell")
             s = -1
             for i in 1:ld_cellsnum
                 if count_marks[i] == 0
@@ -115,7 +118,7 @@ println("get_seed_cell")
         end
 
         function nextprev(lld::Int64, ld::Int64, norp)
-println("nextprev")
+            lar_print("nextprev")
             as = angles[lld]
             #ne = findfirst(as, ld)  (findfirst(isequal(v), A), 0)[1]
             ne = (findfirst(isequal(ld), as), 0)[1]
@@ -185,7 +188,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function minimal_2cycles(V::Points, EV::ChainOp)
-println("minimal_2cycles")
+    lar_print("minimal_2cycles")
 
     function edge_angle(v::Int, e::Int)
         edge = EV[e, :]
@@ -207,7 +210,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function bbox_contains(container, contained)
-println("bbox_contains")
+    lar_print("bbox_contains")
     b1_min, b1_max = container
     b2_min, b2_max = contained
     all(map((i,j,k,l)->i<=j<=k<=l, b1_min, b2_min, b2_max, b1_max))
@@ -216,7 +219,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function prune_containment_graph(n, V, EVs, shells, graph)
-println("prune_containment_graph")
+    lar_print("prune_containment_graph")
 
     for i in 1:n
         an_edge = shells[i].nzind[1]
@@ -243,7 +246,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function transitive_reduction!(graph)
-println("transitive_reduction")
+    lar_print("transitive_reduction")
     n = size(graph, 1)
     for j in 1:n
         for i in 1:n
@@ -261,7 +264,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function pre_containment_test(bboxes)
-println("pre_containment_test")
+    lar_print("pre_containment_test")
     n = length(bboxes)
     containment_graph = spzeros(Int8, n, n)
 
@@ -279,7 +282,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function componentgraph(V, copEV, bicon_comps)
-println("componentgraph")
+    lar_print("componentgraph")
     # arrangement of isolated components
 	n = size(bicon_comps, 1)
    	shells = Array{Chain, 1}(undef, n)
@@ -314,9 +317,9 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function cell_merging(n,containment_graph,V,EVs,boundaries,shells,shell_bboxes)
-println("cell_merging")
+    lar_print("cell_merging")
     function bboxes(V::Points, indexes::ChainOp)
-println("bboxes")
+        lar_print("bboxes")
         boxes = Array{Tuple{Any, Any}}(undef, indexes.n)
         for i in 1:indexes.n
             v_inds = indexes[:, i].nzind
@@ -373,7 +376,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function boundingbox(vertices::Points)
-println("boundingbox")
+   lar_print("boundingbox")
    minimum = mapslices(x->min(x...), vertices, dims=2)
    maximum = mapslices(x->max(x...), vertices, dims=2)
    return minimum, maximum
@@ -382,7 +385,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function coordintervals(coord,bboxes)
-println("boundingbox")
+    lar_print("boundingbox")
 	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()
 	for (h,box) in enumerate(bboxes)
 		key = box[coord,:]
@@ -398,7 +401,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function boxcovering(bboxes, index, tree)
-println("boxcovering")
+  lar_print("boxcovering")
   covers = [[] for k=1:length(bboxes)]
   for (i, boundingbox) in enumerate(bboxes)
 	extent = bboxes[i][index,:]
@@ -413,7 +416,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function lar2cop(CV::Cells)::ChainOp
-println("boxcovering")
+    lar_print("boxcovering")
 	I = Int[]; J = Int[]; Value = Int8[];
 	for k=1:size(CV,1)
 		n = length(CV[k])
@@ -427,13 +430,13 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function point_in_face(point, V::Points, copEV::ChainOp)
-println("point_in_face")
+    lar_print("point_in_face")
 
     function pointInPolygonClassification(V,EV)
-println("pointInPolygonClassification")
+    lar_print("pointInPolygonClassification")
 
         function crossingTest(new, old, status, count)
-println("crossingTest")
+    lar_print("crossingTest")
         if status == 0
             status = new
             return status, (count + 0.5)
@@ -447,11 +450,11 @@ println("crossingTest")
         end
 
         function setTile(box)
-println("setTile")
+        lar_print("setTile")
         tiles = [[9,1,5],[8,0,4],[10,2,6]]
         b1,b2,b3,b4 = box
         function tileCode(point)
-println("tileCode")
+        lar_print("tileCode")
             x,y = point
             code = 0
             if y>b1 code=code|1 end
@@ -464,7 +467,7 @@ println("tileCode")
         end
 
         function pointInPolygonClassification0(pnt)
-println("pointInPolygonClassification0")
+            lar_print("pointInPolygonClassification0")
             x,y = pnt
             xmin,xmax,ymin,ymax = x,x,y,y
             tilecode = setTile([ymax,ymin,xmax,xmin])
@@ -534,7 +537,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function delete_edges(todel, V::Points, EV::ChainOp)
-println("delete_edges")
+    lar_print("delete_edges")
     tokeep = setdiff(collect(1:EV.m), todel)
     EV = EV[tokeep, :]
 
@@ -556,7 +559,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function intersect_edges(V::Points, edge1::Cell, edge2::Cell)
-println("intersect_edges")
+    lar_print("intersect_edges")
     err = 10e-8
 
     x1, y1, x2, y2 = vcat(map(c->V[c, :], edge1.nzind)...)
@@ -597,7 +600,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function spaceindex(model)::Array{Array{Int,1},1}
-println("spaceindex")
+    lar_print("spaceindex")
 	V,CV = model[1:2]
 	dim = size(V,1)
 	cellpoints = [ V[:,CV[k]]::Points for k=1:length(CV) ]
@@ -637,7 +640,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function cop2lar(cop::ChainOp)::Cells
-println("cop2lar")
+    lar_print("cop2lar")
 	[findnz(cop[k,:])[1] for k=1:size(cop,1)]
 end
 
@@ -648,7 +651,7 @@ end
 Merge two **1-skeletons**
 """
 function skel_merge(V1::Points, EV1::ChainOp, V2::Points, EV2::ChainOp)
-println("skel_merge")
+    lar_print("skel_merge")
     V = [V1; V2]
     EV = blockdiag(EV1,EV2)
     return V, EV
@@ -661,7 +664,7 @@ Merge two **2-skeletons**
 """
 function skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp,
 					V2::Points, EV2::ChainOp, FE2::ChainOp)
-println("skel_merge")
+    lar_print("skel_merge")
     FE = blockdiag(FE1,FE2)
     V, EV = skel_merge(V1, EV1, V2, EV2)
     return V, EV, FE
@@ -670,12 +673,12 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function buildFV(EV::Cells, face::Cell)
-println("buildFV")
+    lar_print("buildFV")
     return buildFV(build_copEV(EV), face)
 end
 
 function buildFV(copEV::ChainOp, face::Cell)
-println("buildFV")
+    lar_print("buildFV")
     startv = -1
     nextv = 0
     edge = 0
@@ -702,14 +705,14 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function face_area(V::Points, EV::Cells, face::Cell)
-println("face_area")
+    lar_print("face_area")
     return face_area(V, build_copEV(EV), face)
 end
 
 function face_area(V::Points, EV::ChainOp, face::Cell)
-println("face_area")
+    lar_print("face_area")
     function triangle_area(triangle_points::Points)
-println("triangle_area")
+        lar_print("triangle_area")
         ret = ones(3,3)
         ret[:, 1:2] = triangle_points
         return .5*det(ret)
@@ -736,7 +739,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function constrained_triangulation2D(V::Points, EV::Cells)
-println("constrained_triangulation2D")
+    lar_print("constrained_triangulation2D")
 	triin = Triangulate.TriangulateIO()
 	triin.pointlist = V
 	triin.segmentlist = hcat(EV...)
@@ -748,7 +751,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function triangulate2d(V::Points, EV::Cells)
-println("triangulate2d")
+    lar_print("triangulate2d")
    	 # data for Constrained Delaunay Triangulation (CDT)
    	 points = convert(Array{Float64,2}, V')
 	 # points_map = Array{Int,1}(collect(1:1:size(points)[1]))
@@ -772,8 +775,8 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function planar_arrangement_2(V, copEV,bicon_comps, edge_map,
-		sigma::Chain=spzeros(Int8, 0))
-println("planar_arrangement_2")
+    sigma::Chain=spzeros(Int8, 0))
+    lar_print("planar_arrangement_2")
 
     edges = sort(union(bicon_comps...))
     todel = sort(setdiff(collect(1:size(copEV,1)), edges))
@@ -806,7 +809,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function biconnected_components(EV::ChainOp)
-println("biconnected_components")
+    lar_print("biconnected_components")
 
     ps = Array{Tuple{Int, Int, Int}, 1}()
     es = Array{Tuple{Int, Int}, 1}()
@@ -816,7 +819,7 @@ println("biconnected_components")
     hivtx = 1
 
     function an_edge(point) # TODO: fix bug
-println("an_edge")
+        lar_print("an_edge")
         # error? : BoundsError: attempt to access 0×0 SparseMatrix ...
         edges = setdiff(EV[:, point].nzind, todel)
         if length(edges) == 0
@@ -826,12 +829,12 @@ println("an_edge")
     end
 
     function get_head(edge, tail)
-println("get_head")
+        lar_print("get_head")
         setdiff(EV[edge, :].nzind, [tail])[1]
     end
 
     function v_to_vi(v)
-println("v_to_vi")
+        lar_print("v_to_vi")
         i = findfirst(t->t[1]==v, ps)
         # seems findfirst changed from 0 to Nothing
         if typeof(i) == Nothing
@@ -910,7 +913,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function cleandecomposition(V, copEV, sigma, edge_map)
-println("cleandecomposition")
+    lar_print("cleandecomposition")
     # Deletes edges outside sigma area
     todel = []
     new_edges = []
@@ -949,7 +952,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function merge_vertices!(V::Points, EV::ChainOp, edge_map, err=1e-4)
-println("merge_vertices")
+    lar_print("merge_vertices")
     vertsnum = size(V, 1)
     edgenum = size(EV, 1)
     newverts = zeros(Int, vertsnum)
@@ -1004,7 +1007,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function frag_edge(V, EV::ChainOp, edge_idx::Int, bigPI)
-println("frag_edge")
+    lar_print("frag_edge")
     alphas = Dict{Float64, Int}()
     edge = EV[edge_idx, :]
     verts = V[edge.nzind, :]
@@ -1036,7 +1039,7 @@ function planar_arrangement_1( V, copEV,
 		sigma::Chain=spzeros(Int8, 0),
 		return_edge_map::Bool=false,
 		multiproc::Bool=false)
-println("planar_arrangement_1")
+    lar_print("planar_arrangement_1")
 	# data structures initialization
 	edgenum = size(copEV, 1)
 	edge_map = Array{Array{Int, 1}, 1}(undef,edgenum)
@@ -1096,7 +1099,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function permutationOrbits(perm::OrderedDict)
-println("permutationOrbits")
+    lar_print("permutationOrbits")
 	out = Array{Int64,1}[]
     while perm ≠ Dict()
         x = collect(keys(perm))[1]
@@ -1114,7 +1117,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function faces2polygons(copEV,copFE)
-println("faces2polygons")
+    lar_print("faces2polygons")
 	polygons = Array{Array{Int64,1},1}[]
 	cycles = Array{Array{Array{Int64,1},1},1}[]
 	for f=1:size(copFE,1)
@@ -1132,7 +1135,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function triangulate2D(V::Points, cc::ChainComplex)::Array{Any, 1}
-println("triangulate2D")
+    lar_print("triangulate2D")
     copEV, copFE = cc
     triangulated_faces = Array{Any, 1}(undef, copFE.m)
     if size(V,2)==2
@@ -1177,7 +1180,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function FV2EVs(copEV::ChainOp, copFE::ChainOp)
-println("FV2EVs")
+    lar_print("FV2EVs")
 	EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
 	FE = [findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
 	EVs = [[EV[e] for e in fe] for fe in FE]
@@ -1192,7 +1195,7 @@ function planar_arrangement(
         sigma::Chain=spzeros(Int8, 0),
         return_edge_map::Bool=false,
         multiproc::Bool=false)
-println("planar_arrangement")
+    lar_print("planar_arrangement")
 
 #planar_arrangement_1
 	V,copEV,sigma,edge_map=planar_arrangement_1(V,copEV,sigma,return_edge_map,multiproc)
@@ -1207,7 +1210,7 @@ println("planar_arrangement")
     # V,bicon_comps = biconnectedComponent((V,EV))
 
 	if isempty(bicon_comps)
-    	println("No biconnected components found.")
+    	    lar_print("No biconnected components found.")
     	if (return_edge_map)
     	    return (nothing, nothing, nothing, nothing)
     	else
@@ -1226,7 +1229,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function characteristicMatrix( FV::Cells )::ChainOp
-println("characteristicMatrix")
+    lar_print("characteristicMatrix")
 	I,J,V = Int64[],Int64[],Int8[]
 	for f=1:length(FV)
 		for k in FV[f]
@@ -1242,7 +1245,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function boundary_1( EV::Cells )::ChainOp
-println("boundary_1")
+    lar_print("boundary_1")
 	out = characteristicMatrix(EV)'
 	for e = 1:length(EV)
 		out[EV[e][1],e] = -1
@@ -1255,7 +1258,7 @@ coboundary_0(EV::Cells) = convert(ChainOp,LinearAlgebra.transpose(boundary_1(EV:
 # //////////////////////////////////////////////////////////////////////////////
 
 function arrange2D(V,EV)
-println("arrange2D")
+    lar_print("arrange2D")
 	cop_EV = coboundary_0(EV::Cells)
 	cop_EW = convert(ChainOp, cop_EV)
 	W = convert(Points,V')
@@ -1271,7 +1274,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function removedups(obj)::Cells
-println("removedups")
+    lar_print("removedups")
    # initializations
    hulls = ToLAR(obj).childs[1].facets
    dict = ToLAR(obj).childs[1].db
@@ -1289,7 +1292,7 @@ println("removedups")
 end
 
 function LAR(obj)
-println("LAR")
+    lar_print("LAR")
    V = ToLAR(obj).childs[1].points
    CV = ToLAR(obj).childs[1].hulls
    facets = ToLAR(obj).childs[1].facets

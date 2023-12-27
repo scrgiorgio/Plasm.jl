@@ -7,7 +7,7 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	norm,normalized,invalidBox,addPoint,getPoints,center,flatten,translateMatrix,scaleMatrix,lookAtMatrix,perspectiveMatrix,orthoMatrix,getLookAt,GetBoundingBox,
 	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,GLVertexBuffer,
 	POINTS,LINES,TRIANGLES,
-	GLCuboid,GLAxis,GLCells,GLView,GLExplode,ExplodeCells,COLORS, GetColorByName,
+	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,
 	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK
 
 
@@ -1565,23 +1565,30 @@ end
 
 
 # /////////////////////////////////////////////////////////////////////
-function ExplodeCells(V,FVs; sx=1.2,sy=1.2,sz=1.2)
+function explodecells(V,FVs; sx=1.2,sy=1.2,sz=1.2) 
 	ret = []
-	for FV in FVs  # FV = single cell made by edges or trias or quads
-		vertsidx = !(FV==Any[]) ? sort(union(FV...)) : nothing  # remove repeated vert indices
-		vcell = V[:,vertsidx] # geometry matrix of cell
-		vdict = Dict(zip(vertsidx,1:length(vertsidx))) # key=vertsidx => value=ordinal n.
-		centre = sum(vcell,dims=2)/size(vcell,2)  # sum points in FV cell/their number
-		scaled_center = size(centre,1)==2 ? centre .* [sx;sy] : centre .* [sx;sy;sz]
-		translation_vector = scaled_center - centre
-		cellverts = vcell .+ translation_vector # traslated geometry matrix of cell
-		newcells = [[vdict[v] for v in cell] for cell in FV] # local topology of cell prim.
-    points = [cellverts[:,k] for k=1:size(cellverts,2)]
-		mesh = DISTL([points, AA(LIST)(newcells)]) # single cell made by FV
-    # it's an homogeneous list to apply colors
-		push!(ret, STRUCT([MKPOL(it) for it in mesh]))
+	for FV in FVs  
+	# FV = single cell made by edges or trias or quads
+		 # remove repeated vert indices
+		 vertsidx = !(FV==Any[]) ? sort(union(FV...)) : nothing  
+		 # geometry matrix of cell
+		 vcell = V[:,vertsidx] 
+		 # key=vertsidx => value=ordinal n.
+		 vdict = Dict(zip(vertsidx,1:length(vertsidx))) 
+		 # barycenter: sum of points in FV cell/their number
+		 centre = sum(vcell,dims=2)/size(vcell,2)  
+		 scaled_center = size(centre,1)==2 ? centre .* [sx;sy] : centre .* [sx;sy;sz]
+		 translation_vector = scaled_center - centre
+		 # traslated geometry matrix of cell
+		 cellverts = vcell .+ translation_vector 
+		 # points of Hpc value
+		 points = [cellverts[:,k] for k=1:size(cellverts,2)]
+		 # local topology of chain primitive (array of triangles)
+		 chain = [[vdict[v] for v in cell] for cell in FV] 
+		 # single item is MKPOL argument
+		 push!(ret, MKPOL(points, chain))
 	end
-	return STRUCT(ret) # assembly of exploded cells in FVs
+	return ret
 end
 
 
