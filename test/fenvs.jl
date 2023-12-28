@@ -628,6 +628,20 @@ function MyMain()
 
 	end
 
+	# example of `frame`?
+	begin
+		VIEW(
+			STRUCT(  
+				LINE([0.0,0.0,0.0],[1.0,0.0,0.0],line_color=RED  ,line_width=3),
+				LINE([0.0,0.0,0.0],[0.0,1.0,0.0],line_color=GREEN,line_width=3),
+				LINE([0.0,0.0,0.0],[0.0,0.0,1.0],line_color=BLUE ,line_width=3),
+			),
+			show_axis=false
+		)
+	end
+	
+
+
 	# BROKEN
 	if false
 		@assert fuzzyEqual(box(UNION([

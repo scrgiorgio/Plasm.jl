@@ -8,7 +8,22 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,GLVertexBuffer,
 	POINTS,LINES,TRIANGLES,
 	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,
-	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK
+	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, get_ortho_scale,set_ortho_scale
+
+
+
+# /////////////////////////////////////////////////////////////////////
+__ortho_scale::Float64=1.0
+
+function get_ortho_scale()
+	global __ortho_scale
+	return __ortho_scale
+end
+
+function set_ortho_scale(value::Float64)
+	global __ortho_scale
+	__ortho_scale=value
+end 
 
 
 import Base:*
@@ -880,7 +895,8 @@ function unprojectPoint(map::FrustumMap,x::Float64,y::Float64, z::Float64)
 	return Point3d(p4[1]/p4[4],p4[2]/p4[4],p4[3]/p4[4])
 end	
 
-# /////////////////////////////////////////////////////////////////////
+
+
 mutable struct Viewer
 	win::Any
 	W::Int32
@@ -903,6 +919,7 @@ mutable struct Viewer
 	exitNow:: Bool
 	show_lines:: Bool
 	background_color::Vector{Float64}
+
 
 	# constructor
 	function Viewer(batches) 
@@ -1035,7 +1052,11 @@ function getProjection(viewer::Viewer)
 		Z=viewer.zNear + 0.5*(viewer.zFar - viewer.zNear)
 		right=Z * tan(deg2rad(viewer.fov/2.0))
 		left=-right
-		return  orthoMatrix(left, right, -0.5*(right-left)/ratio, +0.5*(right-left)/ratio, viewer.zNear, viewer.zFar)
+		vs=get_ortho_scale()
+		# println("ortho_scale ",vs)
+		top   =-0.5*(right-left)/ratio
+		bottom=+0.5*(right-left)/ratio
+		return  orthoMatrix(vs*left, vs*right, vs*top, vs*bottom, viewer.zNear, viewer.zFar)
 	else
 		return perspectiveMatrix(viewer.fov,ratio,viewer.zNear,viewer.zFar)
 	end
