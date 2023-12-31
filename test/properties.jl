@@ -52,3 +52,75 @@ VIEW(STRUCT(
    title="2 colored cubes",
    background_color=[0.0,0.0,0.0]
 )
+
+# //////////////////////////////////////////////////////
+# 2d frame/hull/point example
+begin
+
+   points=[[rand()+1.0,rand()+1.0] for I in 1:100]
+ 
+   obj=STRUCT(
+ 
+     # show points
+     PROPERTIES(
+       MKPOINTS(points),
+       Dict(
+         "point_color"=>YELLOW, 
+         "point_size"=>3
+       )
+     ),
+     
+     # show hull (note face color is transparent, so no fill)
+     PROPERTIES(
+       MKPOL(
+         points,
+         [[it for it in 1:length(points)]]
+       ),
+       Dict(
+         "face_color"=>TRANSPARENT,
+         "line_color"=>GREEN, 
+         "line_width"=>2
+       )
+     ),
+     # show frame
+     FRAME2([0.0,0.0],[1.0,1.0]),
+   )
+ 
+   VIEW(obj, show_axis=false)
+end
+ 
+# //////////////////////////////////////////////////////
+# 3d frame/hull/point example
+begin
+
+   points=[[rand()+1.0,rand()+1.0,rand()+1.0] for I in 1:100]
+
+   obj=STRUCT(
+
+      # show points
+      PROPERTIES(
+         MKPOINTS(points),
+         Dict(
+         "point_color"=>YELLOW, 
+         "point_size"=>3
+         )
+      ),
+      # show hull
+      PROPERTIES(
+         MKPOL(
+         points,
+         [[it for it in 1:length(points)]]
+         ),
+         Dict(
+         "face_color"=>GRAY,
+         "line_color"=>GREEN, 
+         "line_width"=>2
+         )
+      ),
+      # show frame
+      FRAME3(Point3d(0,0,0),Point3d(1,1,1)),
+   )
+
+   VIEW(obj, show_axis=false)
+
+end

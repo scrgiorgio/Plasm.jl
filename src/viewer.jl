@@ -8,8 +8,7 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,GLVertexBuffer,
 	POINTS,LINES,TRIANGLES,
 	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,
-	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, get_ortho_scale,set_ortho_scale
-
+	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, TRANSPARENT, get_ortho_scale,set_ortho_scale
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -502,6 +501,7 @@ mutable struct GLBatch
 	normals::GLVertexBuffer
 	colors::GLVertexBuffer
 
+	point_size::Int
 	line_width::Int
 	point_color::Point4d
 	line_color::Point4d
@@ -516,6 +516,7 @@ mutable struct GLBatch
 			GLVertexBuffer(),
 			GLVertexBuffer(),
 			GLVertexBuffer(),
+			1,
 			1,
 			Point4d(0.0,0.0,0.0,1.0), 
 			Point4d(1.0,1.0,1.0,1.0),
@@ -1117,38 +1118,48 @@ function glRender(viewer::Viewer)
 
 	for batch in viewer.batches
 
-
-
 		if batch.primitive==GL_POINTS
 
-			glRenderBatch(viewer, batch, batch.point_color, PROJECTION, MODELVIEW, lightpos)	
+			if batch.point_color[4]>0.0
+				glPointSize(batch.point_size)
+				glRenderBatch(viewer, batch, batch.point_color, PROJECTION, MODELVIEW, lightpos)	
+				glPointSize(1)
+			end
 
 		elseif batch.primitive==GL_LINES || batch.primitive==GL_LINE_STRIP || batch.primitive==GL_LINE_LOOP
 
+			if batch.line_color[4]>0.0
 				glLineWidth(batch.line_width)
 				glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)	
 				glLineWidth(1)
+			end
 		else
-
 
 			if viewer.show_lines && batch.line_width>0
 
 				# https://www.glprogramming.com/red/chapter06.html
-				glEnable(GL_POLYGON_OFFSET_FILL)
-				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
-				glPolygonOffset(1.0, 1.0)
-				glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
-				glDisable(GL_POLYGON_OFFSET_FILL)	
 
-				glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
-				glLineWidth(batch.line_width)
-				glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)	
-				glLineWidth(1)
-				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+				if batch.face_color[4]>0.0
+					glEnable(GL_POLYGON_OFFSET_FILL)
+					glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+					glPolygonOffset(1.0, 1.0)
+					glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+					glDisable(GL_POLYGON_OFFSET_FILL)	
+				end
+
+				if batch.line_color[4]>0.0
+					glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
+					glLineWidth(batch.line_width)
+					glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)	
+					glLineWidth(1)
+					glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+				end
 
 			else
-				glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
-				glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+				if batch.face_color[4]>0.0
+					glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+					glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+				end
 			end
 
 		end
@@ -1535,18 +1546,19 @@ end
 
 # ///////////////////////////////////////////////////////////////
 
-const WHITE   = Point4d([1.0, 1.0, 1.0, 1.0])
-const RED     = Point4d([1.0, 0.0, 0.0, 1.0])
-const GREEN   = Point4d([0.0, 1.0, 0.0, 1.0])
-const BLUE    = Point4d([0.0, 0.0, 1.0, 1.0])
-const CYAN    = Point4d([0.0, 1.0, 1.0, 1.0])
-const MAGENTA = Point4d([1.0, 0.0, 1.0, 1.0])
-const YELLOW  = Point4d([1.0, 1.0, 0.0, 1.0])
-const ORANGE  = Point4d([1.0, 0.65, 1.0, 1.0])
-const PURPLE  = Point4d([0.5, 0.0, 0.5, 1.0])
-const BROWN   = Point4d([0.65, 0.16, 0.16, 1.0])
-const GRAY    = Point4d([0.5, 0.5, 0.5, 1.0])
-const BLACK   = Point4d([0.0, 0.0, 0.0, 1.0])
+const WHITE       = Point4d([1.0, 1.0, 1.0, 1.0])
+const RED         = Point4d([1.0, 0.0, 0.0, 1.0])
+const GREEN       = Point4d([0.0, 1.0, 0.0, 1.0])
+const BLUE        = Point4d([0.0, 0.0, 1.0, 1.0])
+const CYAN        = Point4d([0.0, 1.0, 1.0, 1.0])
+const MAGENTA     = Point4d([1.0, 0.0, 1.0, 1.0])
+const YELLOW      = Point4d([1.0, 1.0, 0.0, 1.0])
+const ORANGE      = Point4d([1.0, 0.65, 1.0, 1.0])
+const PURPLE      = Point4d([0.5, 0.0, 0.5, 1.0])
+const BROWN       = Point4d([0.65, 0.16, 0.16, 1.0])
+const GRAY        = Point4d([0.5, 0.5, 0.5, 1.0])
+const BLACK       = Point4d([0.0, 0.0, 0.0, 1.0])
+const TRANSPARENT = Point4d([0.0,0.0,0.0,0.0])
 
 
 const COLORS = Dict(

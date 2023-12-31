@@ -25,7 +25,7 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	JOINTS,BERNSTEINBASIS,TENSORPRODSURFACE,BILINEARSURFACE,BIQUADRATICSURFACE,HERMITESURFACE,BEZIERSURFACE,
 	TENSORPRODSOLID,BEZIERMANIFOLD,LOCATE,RIF,FRACTALSIMPLEX,MESH,NU_GRID,SEGMENT,SOLIDIFY,EXTRUSION,
 	EX,LEX,SEX,UKPOLF,POLAR,SWEEP,MINKOWSKI,OFFSET,THINSOLID,PLANE,RATIONALBEZIER,ELLIPSE,CURVE_NORMAL,DERBEZIER,
-	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO,PROPERTIES,SQUARE, LINE
+	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO,PROPERTIES,SQUARE, LINE,MKPOINTS, FRAME2,FRAME3
 
 PI = pi
 COS = cos
@@ -819,8 +819,37 @@ end
 VIEW=View
 
 function LINE(p1,p2;line_color=Point4d(1.0,1.0,1.0,1.0),line_width=1)
-  return PROPERTIES(MKPOL([p1,p2],[[1,2]]), Dict("line_color"=>line_color,"line_width"=>line_width))
+  return PROPERTIES(
+		MKPOL([p1,p2],[[1,2]]), 
+		Dict(
+			"line_color"=>line_color,
+			"line_width"=>line_width
+			)
+		)
 end
+
+function MKPOINTS(points)
+  return MKPOL(points,[ [I] for I in 1:length(points) ])
+end
+
+function FRAME2(p1=[0.0,0.0],p2=[1.0,1.0])
+	return  STRUCT(  
+			LINE([p1[1],p1[2]], [p2[1],p1[2]],line_color=RED  ),
+			LINE([p1[1],p1[2]], [p1[1],p2[2]],line_color=GREEN)
+		)
+end
+
+function FRAME3(p1=[0.0,0.0,0.0],p2=[1.0,1.0,1.0])
+	return STRUCT(  
+			LINE([p1[1],p1[2],p1[3]], [p2[1],p1[2],p1[3]],line_color=RED  ),
+			LINE([p1[1],p1[2],p1[3]], [p1[1],p2[2],p1[3]],line_color=GREEN),
+			LINE([p1[1],p1[2],p1[3]], [p1[1],p1[2],p2[3]],line_color=BLUE ),
+		)
+end
+
+
+
+
 
 
 # /////////////////////////////////////////////////////////////////

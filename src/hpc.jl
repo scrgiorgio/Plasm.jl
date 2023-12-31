@@ -475,7 +475,7 @@ function GetBatchesForMkPol(obj::BuildMkPol)
 		# points
 		if hull_dim == 1
 			p0 = ToVector3(sf.points[hull[1]])
-			push!(points.vertices, p0)
+			push!(points.vertices.vector, p0...)
 
 		# lines
 		elseif hull_dim == 2
@@ -553,7 +553,7 @@ end
 	 
 
 function Base.show(io::IO, self::Hpc)
-	print(io, "Hpc*(", self.T, ", ", self.childs, ", ", self.properties, ")")
+	print(io, "Hpc(", self.T, ", ", self.childs, ", ", self.properties, ")")
 end
 
 function dim(self::Hpc)
@@ -783,10 +783,11 @@ function GetBatchesForHpc(hpc::Hpc)
 			T[1,2], T[1,3], T[1,4],   T[1,1]
 		)
 		for batch in GetBatchesForMkPol(obj)
+			batch.point_size = get(properties,"point_size", 1)
+			batch.line_width  = copy(get(properties,"line_width",1))
 			batch.point_color = get(properties,"point_color", DEFAULT_POINT_COLOR)
 			batch.line_color  = get(properties,"line_color" , DEFAULT_LINE_COLOR)
 			batch.face_color  = get(properties,"face_color" , DEFAULT_FACE_COLOR)
-			batch.line_width  = copy(get(properties,"line_width",1))
 			prependTransformation(batch, T4d)
 			push!(batches, batch)
 		end
