@@ -154,7 +154,7 @@ Base.setindex!(self::MatrixNd, args...) = setindex!(self.T, args...)
 
 ==(matrix1::MatrixNd, matrix2::MatrixNd) = isa(matrix1, typeof(matrix2)) && matrix1.T == matrix2.T
 
-Base.show(io::IO, self::MatrixNd) = print(io, "MatrixNd(", repr(toList(self)), ")")
+Base.show(io::IO, self::MatrixNd) = print(io, "MatrixNd(", isIdentity(self) ? dim(self) : repr(toList(self)), ")")
 
 function isIdentity(self::MatrixNd)
 	 return self.T == I
@@ -359,7 +359,7 @@ function box(self::BuildMkPol)
 	 return ret
 end
 
-Base.show(io::IO, self::BuildMkPol) = print(io, "BuildMkPol(points=", repr(self.points), ", edges=",repr(self.edges),")", ", facets=",repr(self.facets),")", ", hulls=", repr(self.hulls))
+Base.show(io::IO, self::BuildMkPol) = print(io, "BuildMkPol(points=", repr(self.points), ", edges=",repr(self.edges),")", ", facets=",repr(self.facets),")", ", hulls=", repr(self.hulls),")")
 
 # /////////////////////////////////////////////////////////////////////////////////
 function ToSimplicialForm(self::BuildMkPol)
@@ -553,7 +553,7 @@ end
 	 
 
 function Base.show(io::IO, self::Hpc)
-	print(io, "Hpc(", self.T, ", ", self.childs, ", ", self.properties, ")")
+	print(io, "Hpc*(", self.T, ", ", self.childs, ", ", self.properties, ")")
 end
 
 function dim(self::Hpc)
