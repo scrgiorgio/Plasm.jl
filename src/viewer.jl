@@ -971,13 +971,13 @@ function runViewer(viewer::Viewer,title::String="Plasm")
 	viewer.scalex=framebuffer_size[1]/Float64(window_size[1])
 	viewer.scaley=framebuffer_size[2]/Float64(window_size[2])
 
-	GLFW.SetWindowSizeCallback(win,  function(win, width::Int32, height::Int32) handleResizeEvent(viewer) end)  
-	GLFW.SetKeyCallback(win,         function((win,key, scancode, action, mods)) handleKeyPressEvent(viewer,key,scancode,action,mods) end)	
-	GLFW.SetCursorPosCallback(win,   function((win,x,y)) handleMouseMoveEvent(viewer,x,y) end)
-	GLFW.SetMouseButtonCallback(win, function(win,button,action,mods) handleMouseButtonEvent(viewer,button,action,mods) end)
-	GLFW.SetScrollCallback(win,      function((win,dx,dy)) handleMouseWheelEvent(viewer,dy) end)	
+	GLFW.SetWindowSizeCallback(win,  function(win::GLFW.Window, width::Integer, height::Integer) handleResizeEvent(viewer) end)  
+	GLFW.SetKeyCallback(win,         function((win::GLFW.Window,key, scancode, action, mods)) handleKeyPressEvent(viewer,key,scancode,action,mods) end)	
+	GLFW.SetCursorPosCallback(win,   function((win::GLFW.Window,x,y)) handleMouseMoveEvent(viewer,x,y) end)
+	GLFW.SetMouseButtonCallback(win, function(win::GLFW.Window,button,action,mods) handleMouseButtonEvent(viewer,button,action,mods) end)
+	GLFW.SetScrollCallback(win,      function((win::GLFW.Window,dx,dy)) handleMouseWheelEvent(viewer,dy) end)	
 
-	handleResizeEvent(viewer)
+	handleResizeEvent(viewer::Viewer)
 	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
 		glRender(viewer)
 		GLFW.SwapBuffers(win)
@@ -1237,7 +1237,7 @@ function handleResizeEvent(viewer)
 end		
 	
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseButtonEvent(viewer,button,action,mods)
+function handleMouseButtonEvent(viewer::Viewer,button,action,mods)
 
 	button=Dict(GLFW.MOUSE_BUTTON_1=>1,GLFW.MOUSE_BUTTON_2=>3,GLFW.MOUSE_BUTTON_3=>2)[button]
 	
@@ -1255,7 +1255,7 @@ function handleMouseButtonEvent(viewer,button,action,mods)
 end
 	
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseMoveEvent(viewer,x,y)
+function handleMouseMoveEvent(viewer::Viewer,x::Float64,y::Float64)
 	
 	x=x*viewer.scalex
 	y=y*viewer.scaley
@@ -1306,13 +1306,13 @@ function handleMouseMoveEvent(viewer,x,y)
 end	
 	
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseWheelEvent(viewer,delta)
+function handleMouseWheelEvent(viewer::Viewer,delta)
 	viewer.pos=viewer.pos+viewer.dir * ((delta>=0 ? 10.0 : -10.0) * viewer.walk_speed)
 	redisplay(viewer)		
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleKeyPressEvent(viewer,key, scancode, action, mods)
+function handleKeyPressEvent(viewer::Viewer,key, scancode, action, mods)
 	
 	if action != GLFW.PRESS && action != GLFW.REPEAT
 		return	
