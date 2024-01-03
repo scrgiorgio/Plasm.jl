@@ -1071,7 +1071,16 @@ function ToLAR(self::Hpc)
 				push!(ret.facets, facet)
 			else
 			
-				points, facets = py"GetLARConvexHull"(points)
+				# can fail because it's not fully dimensional (e.g. MAP with a pole which collapse points, such as CIRCLE)
+				try
+					points, facets = py"GetLARConvexHull"(points)
+				catch e
+					points = [transformPoint(T,p) for p in points]
+					mapped = addPoints(ret, points)
+					facet=mapped
+					push!(ret.facets, facet)
+					continue
+				end
 
 				#println(typeof(points),points)
 				#println(typeof(facets),facets)
