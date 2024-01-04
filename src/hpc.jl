@@ -88,7 +88,10 @@ function fuzzyEqual(box1::BoxNd, box2::BoxNd, Epsilon=1e-4)
 	 return !(false in p1) && !(false in p2)
 end
 
-Base.show(io::IO, self::BoxNd) = print(io, "BoxNd(", repr(self.p1), ", ", repr(self.p2), ")")
+function Base.show(io::IO, self::BoxNd) 
+       print(io, "BoxNd(", repr(self.p1), ", ", repr(self.p2), ")")
+end 
+
 
 dim(self::BoxNd) = length(self.p1)
 
@@ -154,7 +157,9 @@ Base.setindex!(self::MatrixNd, args...) = setindex!(self.T, args...)
 
 ==(matrix1::MatrixNd, matrix2::MatrixNd) = isa(matrix1, typeof(matrix2)) && matrix1.T == matrix2.T
 
-Base.show(io::IO, self::MatrixNd) = print(io, "MatrixNd(", isIdentity(self) ? dim(self) : repr(toList(self)), ")")
+function Base.show(io::IO, self::MatrixNd) 
+	print(io, "MatrixNd(", isIdentity(self) ? dim(self) : repr(toList(self)), ")")
+end
 
 function isIdentity(self::MatrixNd)
 	 return self.T == I
@@ -309,8 +314,25 @@ function box(self::Geometry)
 	 return ret
 end
 
-Base.show(io::IO, self::Geometry) = print(io, "Geometry(points=", repr(self.points), ", edges=",repr(self.edges),", facets=",repr(self.facets),", hulls=", repr(self.hulls),")")
+function Base.show(io::IO, self::Geometry) 
+	print(io, "Geometry(")
 
+	print(io, repr(self.points))
+
+	if length(self.hulls)>0
+					print(io, ", hulls=", repr(self.hulls))
+	end
+
+	if length(self.edges)>0
+					print(io, ", edges=",repr(self.edges))
+	end
+
+	if length(self.facets)>0
+					print(io, ", facets=",repr(self.facets))
+	end
+
+	print(io,")")   
+end 
 # /////////////////////////////////////////////////////////////////////////////////
 function ToSimplicialForm(self::Geometry)
 
@@ -502,7 +524,18 @@ end
 	 
 
 function Base.show(io::IO, self::Hpc)
-	print(io, "Hpc(", self.T, ", ", self.childs, ", ", self.properties, ")")
+	print(io, "Hpc(")
+	print(io, self.T)
+
+	if length(self.childs)>0
+		print(io, ", ", self.childs)
+	end
+
+	if length(self.properties)>0
+					print(io, ", properties=", self.properties)
+	end
+
+	print(io, ")")
 end
 
 function dim(self::Hpc)
