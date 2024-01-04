@@ -1,12 +1,12 @@
 using Test,LinearAlgebra,PyCall
 
 export ComputeTriangleNormal,GoodTetOrientation,
-	BoxNd,MatrixNd,Hpc,BuildMkPol,
+	BoxNd,MatrixNd,Hpc,Geometry,
 	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
 	View,
-	GetBatchesForHpc,GetBatchesForMkPol, GetBatchesForText
+	GetBatchesForHpc,GetBatchesForGeometry, GetBatchesForText
 
 import Base.:(==)
 import Base.:*
@@ -237,7 +237,7 @@ end
 
 
 # /////////////////////////////////////////////////////////////
-mutable struct BuildMkPol
+mutable struct Geometry
 
 	 db::Dict{Vector{Float64}, Int}
 	 points::Vector{Vector{Float64}}
@@ -246,7 +246,7 @@ mutable struct BuildMkPol
 	 hulls::Vector{Vector{Int}}
 
 	# constructor
-	function BuildMkPol()
+	function Geometry()
 		self=new(
 			# db
 			Dict{Vector{Float64}, Int}(),
@@ -267,63 +267,13 @@ mutable struct BuildMkPol
 		return self
 	end
 
-	# constructor
-	function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
-
-		self=BuildMkPol()
-
-		if isempty(points)
-			 return self
-		end
-		
-		# take all points
-		if isempty(hulls)
-			 hulls = [collect(1:length(points))]
-		end
-
-		pdim = length(points[1])
-		# special case in zero-dimension
-		if pdim==0
-			self.points=Vector{Vector{Float64}}()
-			push!(self.points,[]) # an 'empty' point
-			self.hulls=[[1]]
-			return self
-		end
-
-		for hull in hulls
-
-			 if isempty(hull)
-				  continue
-			 end
-
-			 if pdim == 1
-				  @assert length(hull) >= 2
-				  box = BoxNd(1)
-				  for idx in hull
-						box = addPoint(box, points[idx])
-				  end
-				  addHull(self, Vector{Vector{Float64}}([box.p1, box.p2]))
-			 else
-				  hull_points = [points[idx] for idx in hull]
-				  __spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
-				  ConvexHull = __spatial.ConvexHull
-				  try
-						h = ConvexHull([points[idx] for idx in hull])
-						hull_points = [Vector{Float64}(h.points[idx+1,:]) for idx in h.vertices]
-				  catch
-				  end
-				  addHull(self, hull_points)
-			 end
-		end
-
-		return self
-
-  end	
 
 end
 
 
-function addPoint(self::BuildMkPol, p::Vector{Float64})::Int
+
+
+function addPoint(self::Geometry, p::Vector{Float64})::Int
 	 idx = get(self.db, p, 0)
 	 if idx>=1
 		  return idx
@@ -336,7 +286,7 @@ function addPoint(self::BuildMkPol, p::Vector{Float64})::Int
 end
 
 
-function addPoints(self::BuildMkPol, points::Vector{Vector{Float64}})::Vector{Int64}
+function addPoints(self::Geometry, points::Vector{Vector{Float64}})::Vector{Int64}
 	N=length(points)
 	ret = Vector{Int64}(undef,N)
 	for P in 1:N
@@ -345,13 +295,13 @@ function addPoints(self::BuildMkPol, points::Vector{Vector{Float64}})::Vector{In
 	return ret
 end
 
-function addHull(self::BuildMkPol, points::Vector{Vector{Float64}})
+function addHull(self::Geometry, points::Vector{Vector{Float64}})
 	push!(self.hulls, [addPoint(self, p) for p in points])
 end
 
-dim(self::BuildMkPol) = isempty(self.points) ? 0 : length(self.points[1])
+dim(self::Geometry) = isempty(self.points) ? 0 : length(self.points[1])
 
-function box(self::BuildMkPol)
+function box(self::Geometry)
 	 ret = BoxNd(dim(self))
 	 if !isempty(self.points)
 		  addPoints(ret, self.points)
@@ -359,10 +309,10 @@ function box(self::BuildMkPol)
 	 return ret
 end
 
-Base.show(io::IO, self::BuildMkPol) = print(io, "BuildMkPol(points=", repr(self.points), ", edges=",repr(self.edges),")", ", facets=",repr(self.facets),")", ", hulls=", repr(self.hulls),")")
+Base.show(io::IO, self::Geometry) = print(io, "Geometry(points=", repr(self.points), ", edges=",repr(self.edges),", facets=",repr(self.facets),", hulls=", repr(self.hulls),")")
 
 # /////////////////////////////////////////////////////////////////////////////////
-function ToSimplicialForm(self::BuildMkPol)
+function ToSimplicialForm(self::Geometry)
 
 	 if isempty(self.points) || isempty(self.hulls)
 		  return self
@@ -373,7 +323,7 @@ function ToSimplicialForm(self::BuildMkPol)
 		  return self
 	 end
 	 
-	 ret = BuildMkPol()
+	 ret = Geometry()
 	 for hull in self.hulls
 		  if length(hull) <= pdim + 1
 				addHull(ret, [self.points[idx] for idx in hull])
@@ -400,7 +350,7 @@ end
 
 
 # ////////////////////////////////////////////////////////////////////////////////
-function FixOrientation!(self::BuildMkPol)
+function FixOrientation!(self::Geometry)
 	 pdim = dim(self)
 	 if pdim != 2 && pdim != 3
 		  return
@@ -460,8 +410,7 @@ function ToVector3(value)
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
-export GetBatchesForMkPol 
-function GetBatchesForMkPol(obj::BuildMkPol)
+function GetBatchesForGeometry(obj::Geometry)
 
 	sf = ToSimplicialForm(obj)
 
@@ -532,11 +481,11 @@ end
 # /////////////////////////////////////////////////////////////
 mutable struct Hpc
 	 T::MatrixNd
-	 childs::Union{Vector{Hpc}, Vector{BuildMkPol}}
+	 childs::Union{Vector{Hpc}, Vector{Geometry}}
 	 properties::Dict{Any, Any}
 	 
 	 # constructor
-	 function Hpc(T::MatrixNd=MatrixNd(0), childs:: Union{Vector{Hpc}, Vector{BuildMkPol}}=[], properties=Dict())
+	 function Hpc(T::MatrixNd=MatrixNd(0), childs:: Union{Vector{Hpc}, Vector{Geometry}}=[], properties=Dict())
 
 		  self = new()
 		  self.childs = childs
@@ -594,6 +543,58 @@ end
 
 
 
+# ////////////////////////////////////////////////////////////////////////////////////////
+function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+
+	ret=Geometry()
+
+	if isempty(points)
+			return ret
+	end
+	
+	# take all points
+	if isempty(hulls)
+			hulls = [collect(1:length(points))]
+	end
+
+	pdim = length(points[1])
+	# special case in zero-dimension
+	if pdim==0
+		ret.points=Vector{Vector{Float64}}()
+		push!(ret.points,[]) # an 'empty' point
+		ret.hulls=[[1]]
+		return ret
+	end
+
+	for hull in hulls
+
+			if isempty(hull)
+				continue
+			end
+
+			if pdim == 1
+				@assert length(hull) >= 2
+				box = BoxNd(1)
+				for idx in hull
+					box = addPoint(box, points[idx])
+				end
+				addHull(ret, Vector{Vector{Float64}}([box.p1, box.p2]))
+			else
+				hull_points = [points[idx] for idx in hull]
+				__spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
+				ConvexHull = __spatial.ConvexHull
+				try
+					h = ConvexHull([points[idx] for idx in hull])
+					hull_points = [Vector{Float64}(h.points[idx+1,:]) for idx in h.vertices]
+				catch
+				end
+				addHull(ret, hull_points)
+			end
+	end
+
+	return ret
+
+end	
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function MkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
@@ -606,18 +607,14 @@ function MkPol(points::Vector{Vector{Int64}}, hulls::Vector{Vector{Int}}=Vector{
 end
 
 function MkPol0()
-
 	points=Vector{Vector{Float64}}()
 	push!(points,[])
-	hulls=[[1]]
-	obj=BuildMkPol(points,hulls)
-	return Hpc(MatrixNd(), [obj])
+	return MkPol(points,[[1]])
 end
 
 function Struct(pols::Vector{Hpc})
 	return Hpc(MatrixNd(), pols)
 end
-
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Cube(dim::Int, From::Float64=0.0, To::Float64=1.0)
@@ -700,12 +697,16 @@ function Power(a::Hpc, b::Hpc)
 	childs = Vector{Hpc}()
 	for (T2, properties2, obj2) in toList(b)
 		for (T1, properties1, obj1) in toList(a)
+
+				# combine points
 				points = Vector{Vector{Float64}}()
 				for py in obj2.points
 					for px in obj1.points
 						push!(points, [px;py])
 					end
 				end
+
+				# combine hulls
 				hulls = Vector{Vector{Int}}()
 				nx, ny = length(obj1.points), length(obj2.points)
 				for hy in obj2.hulls
@@ -719,7 +720,11 @@ function Power(a::Hpc, b::Hpc)
 						push!(hulls,hull)
 					end
 				end
+
+				# combine matrices
 				T = adjoin(T1, T2)
+
+				# TODO here...
 				push!(childs, Hpc(T, [BuildMkPol(points, hulls)]))
 		end
 	end
@@ -782,7 +787,7 @@ function GetBatchesForHpc(hpc::Hpc)
 			T[4,2], T[4,3], T[4,4],   T[4,1],
 			T[1,2], T[1,3], T[1,4],   T[1,1]
 		)
-		for batch in GetBatchesForMkPol(obj)
+		for batch in GetBatchesForGeometry(obj)
 			batch.point_size = get(properties,"point_size", 1)
 			batch.line_width  = copy(get(properties,"line_width",1))
 			batch.point_color = get(properties,"point_color", DEFAULT_POINT_COLOR)
@@ -1042,11 +1047,11 @@ end
 function ToLAR(self::Hpc)
 
 	# returning always an unique cell
-	ret=BuildMkPol()
+	ret=Geometry()
 
 	for (T, properties, obj) in toList(self)
 
-		@assert obj isa BuildMkPol
+		@assert obj isa Geometry
 
 		# automatic filter useless obj
 		if isempty(obj.points) || isempty(obj.hulls) || dim(obj) <= 1
@@ -1144,7 +1149,7 @@ function ComputeCentroid(points)
 end
 
 # ///////////////////////////////////////////////////////////////////
-function GetBatchesForText(obj::BuildMkPol; single_w=0.05, color_vertices=Point4d(1,1,1,1),color_edges=Point4d(1,0,0,1),color_facets=Point4d(0,1,0,1))
+function GetBatchesForText(obj::Geometry; single_w=0.05, color_vertices=Point4d(1,1,1,1),color_edges=Point4d(1,0,0,1),color_facets=Point4d(0,1,0,1))
 
 	# assuming ToLar converasion here
 	batches=Vector{GLBatch}()
