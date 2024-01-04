@@ -689,21 +689,6 @@ function MyMain()
 
 end
 
-begin
 
-	# example WITH simplicial conversion
-	obj=CIRCLE(1)([4,1])
-	#print(obj)
-	@assert( all([ length(hull)==3 for hull in obj.childs[1].childs[1].hulls]))
-	VIEW(obj, title="WITH simplicial conversion")
 
-	# example WITHOUT simplicial conversion
-	set_config("map-convert-to-simplicial",false)
-	obj=CIRCLE(1)([4,1])
-	#print(obj)
-	@assert( all([ length(hull)==4 for hull in obj.childs[1].childs[1].hulls]))
-	VIEW(obj, title="WITHOUT simplicial conversiom")
-	set_config("map-convert-to-simplicial",true)
-end
-
-# MyMain()
+MyMain()
