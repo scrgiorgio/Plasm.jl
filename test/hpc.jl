@@ -59,7 +59,7 @@ function TestHpcMkPol()
   # 1D
   points=[[0.0],[1.0],[2.0],   [8.0],[9.0],[10.0]]
   hulls=[[1,2,3],[4,5,6]]
-  obj=BuildMkPol(points,hulls)
+  obj=MkPol(points,hulls).childs[1]
   @test dim(obj)==1
   @test box(obj)==BoxNd([0.0],[10.0])
   obj=ToSimplicialForm(obj)
@@ -70,7 +70,7 @@ function TestHpcMkPol()
   # 2D
   points = [[0.0, 0.0], [0.2, 0.2], [1.0, 0.0], [0.3, 0.3], [1.0, 1.0], [0.4, 0.4], [0.0, 1.0], [0.5, 0.5], [0.2, 0.8]]
   hulls = [collect(1:length(points))]
-  obj = BuildMkPol(points, hulls)
+  obj = MkPol(points, hulls).childs[1]
   @test dim(obj) == 2
   @test box(obj) == BoxNd([0.0,0.0], [1.0,1.0])
   obj = ToSimplicialForm(obj)
@@ -93,7 +93,7 @@ function TestHpcMkPol()
 	  [0.3, 0.3, 0.3]
   ]
   hulls = [collect(1:length(points))]
-  obj = BuildMkPol(points, hulls)
+  obj = MkPol(points, hulls).childs[1]
   @test dim(obj) == 3
   @test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
   obj = ToSimplicialForm(obj)
@@ -221,7 +221,7 @@ function TestToLAR()
       [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
       [0.9,0.2]
     ]
-    hpc=Hpc(MatrixNd(), [BuildMkPol(points)])
+    hpc=MkPol(points)
     lar = ToLAR(hpc)
     @assert length(lar.childs)==1
     obj=lar.childs[1]
@@ -239,7 +239,7 @@ function TestToLAR()
       [0.0,0.0,1.0],[1.0,0.0,1.0],[1.0,1.0,1.0], [0.5,2.0,1.0], [0.0,1.0,1.0],
       [0.9,0.2,0.3]
     ]
-    hpc=Hpc(MatrixNd(), [BuildMkPol(points)])
+    hpc=MkPol(points)
     lar = ToLAR(hpc)
     @assert length(lar.childs)==1
     obj=lar.childs[1]

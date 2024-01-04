@@ -1,5 +1,6 @@
 module Plasm
 
+include("./config.jl")
 include("./viewer.jl")
 include("./hpc.jl")
 include("./fenvs.jl")

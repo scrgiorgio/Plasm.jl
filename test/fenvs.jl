@@ -313,7 +313,7 @@ function TestViewText()
 	if true
 		obj=ToLAR(CUBOID([1.0, 1.0])).childs[1]
 		batches=Vector{GLBatch}()
-		append!(batches,GetBatchesForMkPol(obj))
+		append!(batches,GetBatchesForGeometry(obj))
 		append!(batches,GetBatchesForText(obj))
 		View(batches)
 	end
@@ -321,7 +321,7 @@ function TestViewText()
 	if true
 		obj=ToLAR(CUBOID([1.0, 1.0, 1.0])).childs[1]
 		batches=Vector{GLBatch}()
-		append!(batches,GetBatchesForMkPol(obj))
+		append!(batches,GetBatchesForGeometry(obj))
 		append!(batches,GetBatchesForText(obj))
 		View(batches)
 	end
@@ -628,7 +628,7 @@ function MyMain()
 
 	end
 
-	# example of `frame`?
+	# example of `frame`
 	begin
 		VIEW(
 			STRUCT(  
@@ -636,7 +636,8 @@ function MyMain()
 				LINE([0.0,0.0,0.0],[0.0,1.0,0.0],line_color=GREEN,line_width=3),
 				LINE([0.0,0.0,0.0],[0.0,0.0,1.0],line_color=BLUE ,line_width=3),
 			),
-			show_axis=false
+			show_axis=false,
+			title="Frame"
 		)
 	end
 	
@@ -658,6 +659,24 @@ function MyMain()
 			Cube(2,0.5,1.5)])),BoxNd([0.0,0.0],[1.5,1.5]))
 	end
 
+	begin
+
+		# example WITH simplicial conversion
+		obj=CIRCLE(1)([4,1])
+		#print(obj)
+		@assert( all([ length(hull)==3 for hull in obj.childs[1].childs[1].hulls]))
+		VIEW(obj, title="WITH simplicial conversion")
+
+		# example WITHOUT simplicial conversion
+		set_config("map-convert-to-simplicial",false)
+		obj=CIRCLE(1)([4,1])
+		#print(obj)
+		@assert( all([ length(hull)==4 for hull in obj.childs[1].childs[1].hulls]))
+		VIEW(obj, title="WITHOUT simplicial conversiom")
+		set_config("map-convert-to-simplicial",true)
+	end
+
+
 	# BROKEN in julia
 	# TestMinkowski()
 
@@ -669,5 +688,7 @@ function MyMain()
 	println("TestFenvs ok")
 
 end
+
+
 
 MyMain()

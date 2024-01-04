@@ -33,6 +33,7 @@ LEN = length
 AND = all
 OR = any
 
+
 # /////////////////////////////////////////////////////////////////
 function ToFloat64(value)
 	if isa(value,Vector)
@@ -1715,9 +1716,14 @@ function SPHERE(radius=1.0::Number)
 		fx = p -> radius * (-cos(p[1])) * sin(p[2])
 		fy = p -> radius * cos(p[1]) * cos(p[2])
 		fz = p -> radius * sin(p[1])
-		larvalue = Lar(MAP([fx, fy, fz])(domain))
-		V, FV = larvalue.V, larvalue.C[:FV]
-		return Hpc(V,FV)
+
+		# scrgiorgio: removed LAR depenendency
+		#larvalue = Lar(MAP([fx, fy, fz])(domain))
+		#V, FV = larvalue.V, larvalue.C[:FV]
+		#return Hpc(V,FV)
+
+		return MAP([fx, fy, fz])(domain)
+
 	end
 	return SPHERE0
 end
