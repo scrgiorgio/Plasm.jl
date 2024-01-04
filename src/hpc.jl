@@ -542,6 +542,41 @@ function box(self::Hpc)
 end
 
 
+# ////////////////////////////////////////////////////////////////////////////////////////
+function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+
+	# edge case: all empty
+	if isempty(points)
+			return Geometry()
+	end
+	
+	# edge case: zero-dimension
+	pdim = length(points[1])
+	if pdim==0
+		ret=Geometry()
+		ret.points=Vector{Vector{Float64}}()
+		push!(ret.points,[]) # an 'empty' point
+		ret.hulls=[[1]]
+		return ret
+	end
+
+	# take all points
+	if isempty(hulls)
+		hulls = [collect(1:length(points))]
+	end
+
+	# filter empty hulls
+	hulls=[hull for hull in hulls if length(hull)>0]	
+
+	ret=Geometry()
+	for hull in hulls
+			addHull(ret, [points[idx] for idx in hull])
+	end
+	return ret
+
+end	
+
+
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
@@ -724,8 +759,9 @@ function Power(a::Hpc, b::Hpc)
 				# combine matrices
 				T = adjoin(T1, T2)
 
-				# TODO here...
-				push!(childs, Hpc(T, [BuildMkPol(points, hulls)]))
+				# scrgiorgio: I do NOT think I need to mkpol here
+				# push!(childs, Hpc(T, [BuildMkPol(points, hulls)]))
+				push!(childs, Hpc(T, [CreateGeometry(points, hulls)]))
 		end
 	end
 	return Hpc(MatrixNd(), childs)
@@ -828,7 +864,11 @@ function MapFn(self::Hpc, fn)
 		sf = ToSimplicialForm(obj)
 		points = [fn(transformPoint(T,p)) for p in sf.points]
 		hulls = sf.hulls
-		push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+		# scrgiorgio: I do NOT think I need to mkpol here
+		# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+		push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
+
+
 	end
 	ret = Hpc(MatrixNd(), childs)
 	return ret

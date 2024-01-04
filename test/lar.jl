@@ -79,10 +79,10 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestArrange2D(name, V,EV)
-  println("running test ",name)
+  println("Running test ",name,"...")
   save_data(V,EV)
   V,FV,EV = arrange2D(V,EV)
-  println("done ",name)
+  println("...done ",name)
 end
 
 

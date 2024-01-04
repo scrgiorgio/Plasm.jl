@@ -628,7 +628,7 @@ function MyMain()
 
 	end
 
-	# example of `frame`?
+	# example of `frame`
 	begin
 		VIEW(
 			STRUCT(  
@@ -636,7 +636,8 @@ function MyMain()
 				LINE([0.0,0.0,0.0],[0.0,1.0,0.0],line_color=GREEN,line_width=3),
 				LINE([0.0,0.0,0.0],[0.0,0.0,1.0],line_color=BLUE ,line_width=3),
 			),
-			show_axis=false
+			show_axis=false,
+			title="Frame"
 		)
 	end
 	
