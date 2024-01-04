@@ -659,6 +659,24 @@ function MyMain()
 			Cube(2,0.5,1.5)])),BoxNd([0.0,0.0],[1.5,1.5]))
 	end
 
+	begin
+
+		# example WITH simplicial conversion
+		obj=CIRCLE(1)([4,1])
+		#print(obj)
+		@assert( all([ length(hull)==3 for hull in obj.childs[1].childs[1].hulls]))
+		VIEW(obj, title="WITH simplicial conversion")
+
+		# example WITHOUT simplicial conversion
+		set_config("map-convert-to-simplicial",false)
+		obj=CIRCLE(1)([4,1])
+		#print(obj)
+		@assert( all([ length(hull)==4 for hull in obj.childs[1].childs[1].hulls]))
+		VIEW(obj, title="WITHOUT simplicial conversiom")
+		set_config("map-convert-to-simplicial",true)
+	end
+
+
 	# BROKEN in julia
 	# TestMinkowski()
 
@@ -671,4 +689,21 @@ function MyMain()
 
 end
 
-MyMain()
+begin
+
+	# example WITH simplicial conversion
+	obj=CIRCLE(1)([4,1])
+	#print(obj)
+	@assert( all([ length(hull)==3 for hull in obj.childs[1].childs[1].hulls]))
+	VIEW(obj, title="WITH simplicial conversion")
+
+	# example WITHOUT simplicial conversion
+	set_config("map-convert-to-simplicial",false)
+	obj=CIRCLE(1)([4,1])
+	#print(obj)
+	@assert( all([ length(hull)==4 for hull in obj.childs[1].childs[1].hulls]))
+	VIEW(obj, title="WITHOUT simplicial conversiom")
+	set_config("map-convert-to-simplicial",true)
+end
+
+# MyMain()
