@@ -475,6 +475,10 @@ function point_in_face(point, V::Points, copEV::ChainOp)
 
             for k in 1:EV.m
                 edge = EV[k,:]
+
+                # scrgiorgio: don't know why this happens...
+                if length(edge.nzind)==1 continue end
+
                 p1, p2 = V[edge.nzind[1], :], V[edge.nzind[2], :]
                 (x1,y1),(x2,y2) = p1,p2
                 c1,c2 = tilecode(p1),tilecode(p2)

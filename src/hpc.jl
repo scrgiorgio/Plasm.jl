@@ -895,7 +895,7 @@ function MapFn(self::Hpc, fn)
 	childs = Vector{Hpc}()
 	for (T, properties, obj) in toList(self)
 
-		if get_config("map-convert-to-simplicial", true)
+		if get_config("map-convert-to-simplicial", false) # scrgiorgio: default now is false
 			sf = ToSimplicialForm(obj)
 			points = [fn(transformPoint(T,p)) for p in sf.points]
 			hulls = sf.hulls
