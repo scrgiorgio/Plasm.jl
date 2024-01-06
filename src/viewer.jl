@@ -920,11 +920,11 @@ mutable struct Viewer
 	exitNow:: Bool
 	show_lines:: Bool
 	background_color::Vector{Float64}
-
+	title:: String
 
 	# constructor
 	function Viewer(batches) 
-		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true,[0.3,0.4,0.5])
+		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true,[0.3,0.4,0.5], "Viewer")
 	end
 	
 end
@@ -943,7 +943,9 @@ function releaseGpuResources(viewer::Viewer)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function runViewer(viewer::Viewer,title::String="Plasm")
+function runViewer(viewer::Viewer)
+
+	redisplay(viewer)
 
 	ret_code=GLFW.Init()
 	# println("GLFW init returned ",ret_code)
@@ -954,12 +956,12 @@ function runViewer(viewer::Viewer,title::String="Plasm")
 	#GLFW.WindowHint(GLFW.OPENGL_FORWARD_COMPAT, GL_TRUE)
 	#GLFW.WindowHint(GLFW.OPENGL_PROFILE, GLFW.OPENGL_CORE_PROFILE)
 	
-	win = GLFW.CreateWindow(viewer.W, viewer.H, title)
+	win = GLFW.CreateWindow(viewer.W, viewer.H, viewer.title)
 	viewer.win=win	
 	viewer.exitNow=false
 	GLFW.MakeContextCurrent(win)
 
-	#println("Running viewer",title)
+	#println("Running viewer",viewer.title)
 	#println("GL_SHADING_LANGUAGE_VERSION ",unsafe_string(glGetString(GL_SHADING_LANGUAGE_VERSION)))
 	#println("GL_VERSION                  ",unsafe_string(glGetString(GL_VERSION)))
 	#println("GL_VENDOR                   ",unsafe_string(glGetString(GL_VENDOR)))
@@ -1002,12 +1004,7 @@ function GLView(batches::Vector{GLBatch}, properties::Dict=Dict())
 	global viewer
 	viewer=Viewer(batches)
 
-	background_color=get(properties,"background-color",nothing)
-	if !isnothing(background_color)
-		viewer.background_color=background_color
-	end
-
-	# calculate bounding box -> (-1,+1) ^3
+	# calculate bounding box
 	BOX=invalidBox()
 	for batch in viewer.batches
 		box=GetBoundingBox(batch)
@@ -1017,35 +1014,21 @@ function GLView(batches::Vector{GLBatch}, properties::Dict=Dict())
 	
 	Size=BOX.p2-BOX.p1
 	MaxSize=max(Size[1],Size[2],Size[3])
+	Center=center(BOX)
 
-	if true
-		Center=center(BOX)
-		viewer.pos = Center + Point3d(MaxSize,MaxSize,MaxSize)*3.0
-		viewer.dir = normalized(Center-viewer.pos)
-		viewer.vup = Point3d(0,0,1)
-		viewer.zNear	   = MaxSize / 50.0
-		viewer.zFar	      = MaxSize * 10.0
-		viewer.walk_speed = MaxSize / 100.0
+	viewer.background_color =           get(properties,"background-color", viewer.background_color)
+	viewer.title            =           get(properties,"title",       viewer.title)
+	viewer.use_ortho        =           get(properties,"use-ortho",   viewer.use_ortho)
+	viewer.show_lines       =           get(properties,"show-lines",  viewer.show_lines)
+	viewer.fov              =           get(properties,"fov",         viewer.fov)
+	viewer.pos              =           get(properties,"pos",         Center + Point3d(MaxSize,MaxSize,MaxSize)*3.0 )
+	viewer.dir              =normalized(get(properties,"dir",         Center-viewer.pos))
+	viewer.vup              =normalized(get(properties,"vup"        , Point3d(0,0,1)))
+	viewer.zNear	          =           get(properties,"znear"      , MaxSize / 50.0) 
+	viewer.zFar	            =           get(properties,"zfar "      , MaxSize * 10.0) 
+	viewer.walk_speed       =           get(properties,"walk-speed ", MaxSize / 100.0) 
 
-	else
-	
-		for batch in viewer.batches
-			batch.T=translateMatrix(Point3d(-1.0,-1.0,-1.0)) * scaleMatrix(Point3d(2.0/MaxSize,2.0/MaxSize,2.0/MaxSize)) * translateMatrix(-BOX.p1)
-		end
-		
-		viewer.pos = Point3d(3,3,3)
-		viewer.dir = normalized(Point3d(0,0,0)-viewer.pos)
-		viewer.vup = Point3d(0,0,1)
-		
-		MaxSize           = 2.0
-		viewer.zNear	   = MaxSize / 50.0
-		viewer.zFar	      = MaxSize * 10.0
-		viewer.walk_speed = MaxSize / 100.0
-	end
-	redisplay(viewer)
-
-	title=get(properties,"title","Viewer")
-	runViewer(viewer, title)
+	runViewer(viewer)
 	
 end
 

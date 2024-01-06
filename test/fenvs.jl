@@ -678,6 +678,35 @@ function MyMain()
 		VIEW(obj, "WITHOUT simplicial conversiom")
 	end
 
+	VIEW(
+		CUBOID([1,1,1]),
+	
+		# view properties
+		Dict(
+			"title" => "view with properties",
+
+			# 3d pipeline position
+			"pos" => Point3d(0.5, 0.5, 3.0),
+			"dir" => Point3d(0.0, 0.0,-1.0),
+			"vup" => Point3d(1.0, 0.0, 0.0),
+			"znear" => 0.1,
+			"zfar"  => 10.0,
+	
+			# perspective fov
+			"fov" => 60.0,
+	
+			#triangles, show/hide lines
+			"show-lines" => false,
+	
+			#viewer background color
+			"background-color" => Point4d(1.0, 1.0, 1.0, 1.0),
+	
+			# perspective or ortho projection
+			"use-ortho" => true
+		)
+
+	)
+
 
 	# BROKEN in julia
 	# TestMinkowski()
