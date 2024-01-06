@@ -871,22 +871,26 @@ function GetBatchesForHpc(hpc::Hpc)
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function View(batches::Vector{GLBatch}; title::String="Plasm.jl", show_axis::Bool=true, background_color=nothing)
-
-	if show_axis
-		push!(batches,GLAxis(Point3d(0,0,0),Point3d(2,2,2)))
-	end
-
-	append!(batches,)
-	GLView(batches, title=title, background_color=background_color)
+function View(batches::Vector{GLBatch}, properties::Dict=Dict())
+	GLView(batches, properties)
 end
 
-function View(hpc::Hpc; title::String="Plasm.jl", show_axis::Bool=true, background_color=nothing)
-	return View(GetBatchesForHpc(hpc),title=title,show_axis=show_axis,background_color=background_color)
+# backward compatible
+function View(batches::Vector{GLBatch}, title::String)
+	properties=Dict( "title" => title)
+	GLView(batches, properties)
 end
 
-function View(hpc, title)
-	return View(hpc, title=title)
+function View(hpc::Hpc, properties::Dict=Dict())
+	batches=GetBatchesForHpc(hpc)
+	return View(batches, properties)
+end
+
+# backward compatible
+function View(hpc::Hpc, title::String)
+	batches=GetBatchesForHpc(hpc)
+	properties=Dict( "title" => title)
+	return View(batches, properties)
 end
 
 

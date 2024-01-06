@@ -992,10 +992,17 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////////
-function GLView(batches::Vector{GLBatch};title::String="Plasm.jl", background_color=nothing)
+function GLView(batches::Vector{GLBatch}, properties::Dict=Dict())
 	
+	show_axis=get(properties,"show-axis",true)
+	if show_axis
+		push!(batches,GLAxis(Point3d(0,0,0),Point3d(2,2,2)))
+	end
+
 	global viewer
 	viewer=Viewer(batches)
+
+	background_color=get(properties,"background-color",nothing)
 	if !isnothing(background_color)
 		viewer.background_color=background_color
 	end
@@ -1036,6 +1043,8 @@ function GLView(batches::Vector{GLBatch};title::String="Plasm.jl", background_co
 		viewer.walk_speed = MaxSize / 100.0
 	end
 	redisplay(viewer)
+
+	title=get(properties,"title","Viewer")
 	runViewer(viewer, title)
 	
 end

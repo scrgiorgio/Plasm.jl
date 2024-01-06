@@ -594,7 +594,7 @@ function MyMain()
 			Translate(Cube(2)     , [1.0, 1.0, 0.0]),
 			Translate(Cube(3)     , [2.0, 1.0, 0.0]),
 		])
-		View(obj,title="Example")
+		View(obj, Dict("title" => "Example" ))
 
 		TestArguments()
 		TestCube()
@@ -636,8 +636,10 @@ function MyMain()
 				LINE([0.0,0.0,0.0],[0.0,1.0,0.0],line_color=GREEN,line_width=3),
 				LINE([0.0,0.0,0.0],[0.0,0.0,1.0],line_color=BLUE ,line_width=3),
 			),
-			show_axis=false,
-			title="Frame"
+			Dict(
+				"show-axis" => false,
+				"title" => "Frame"
+			)
 		)
 	end
 	
@@ -666,14 +668,14 @@ function MyMain()
 		obj=CIRCLE(1)([4,1])
 		#print(obj)
 		@assert( all([ length(hull)==3 for hull in obj.childs[1].childs[1].hulls]))
-		VIEW(obj, title="WITH simplicial conversion")
+		VIEW(obj, "WITH simplicial conversion")
 		set_config("map-convert-to-simplicial",false)
 
 		# example WITHOUT simplicial conversion (NOw THE DEFAULT)
 		obj=CIRCLE(1)([4,1])
 		#print(obj)
 		@assert( all([ length(hull)==4 for hull in obj.childs[1].childs[1].hulls]))
-		VIEW(obj, title="WITHOUT simplicial conversiom")
+		VIEW(obj, "WITHOUT simplicial conversiom")
 	end
 
 
