@@ -2,9 +2,6 @@
 
 [![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-Links:
-- https://www.codeconvert.ai/python-to-julia-converter (good to create the first skeleton, but problems with 0-1 indices and list concatenation)
-
 
 # Clone and enable dev
 
@@ -29,6 +26,7 @@ julia test/properties.jl
 julia test/fenvs.jl
 julia test/lar.jl
 julia test/arrangements2d.jl
+julia test/complex.jl
 ```
 
 # Jupyter

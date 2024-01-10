@@ -6,6 +6,7 @@ include("./hpc.jl")
 include("./fenvs.jl")
 include("./hpc2lar.jl")
 include("./arrangement2d.jl")
+include("./complex.jl")
 
 # module init
 function __init__()
