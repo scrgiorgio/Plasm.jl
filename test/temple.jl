@@ -37,13 +37,16 @@ function Temple()
 	
 	Ground = EMBED(1)(BOX([1,2])(Temple))
 
-	Xsizes = QUOTE( DOUBLE_DIESIS(14)([0.6,-1.2]) )
-	Ysizes = QUOTE( AL([ -0.7, DOUBLE_DIESIS(5)([-1,5]) ]))
+	Xsizes = QUOTE( DOUBLE_DIESIS(12)([0.6,-1.2]) )
+	Ysizes = QUOTE( DOUBLE_DIESIS(5)([-1,5]) )
 	Zsizes = QUOTE([ -13, 0.6 ])
 
-	SecondaryBeams = POWER([POWER([Xsizes,Ysizes]),Zsizes])
-	model= STRUCT([Temple, SecondaryBeams, Ground])
+	SecondaryBeams = POWER([ POWER([Xsizes,Ysizes]),Zsizes ])
+	model= STRUCT([Temple, Ground, T(1,2,3)(-1.65,0.6,0), SecondaryBeams, ])
 	VIEW(model)
+	
+	mod = LAR(model)
+	VIEW(Hpc(mod.V, mod.C[:EV]))
 end
 
 # ////////////////////////////////////////////////
