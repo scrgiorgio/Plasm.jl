@@ -1,7 +1,7 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1
+export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON
 
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
@@ -67,4 +67,20 @@ GRID1(n) = QUOTE(DIESIS(n)(1.0))
 # //////////////////////////////////////////////////////////////////////////////
 function CUBOIDGRID(shape::Vector{Int})
    LAR(INSL(POWER)(AA(GRID1)(shape)))
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function SKELETON(ord::Int)
+   function SKELETON0(pol)
+      larpol = LAR(pol)
+      if ord==1
+         return Hpc(larpol.V, larpol.C[:EV])
+      elseif ord==2
+         return Hpc(larpol.V, larpol.C[:FV])
+      elseif ord==3
+         return Hpc(larpol.V, larpol.C[:CV])
+      else error("SKELETON($(ord)) not yet implemented")
+      end 
+   end
+   return SKELETON0
 end
