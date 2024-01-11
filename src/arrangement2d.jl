@@ -1295,8 +1295,7 @@ function removedups(obj)::Cells
    faces = sort!(AA(sort!)(faces))
 end
 
-function LAR(obj)
-    lar_print("LAR")
+function LAR(obj::Hpc)::Lar
    V = ToLAR(obj).childs[1].points
    CV = ToLAR(obj).childs[1].hulls
    facets = ToLAR(obj).childs[1].facets
