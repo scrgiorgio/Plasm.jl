@@ -54,11 +54,11 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function CHULL(points::Matrix)
-   convexhull = QHull.chull(points)
-   FV = convexhull.simplices
+   ch = QHull.chull(points)
+   FV = ch.simplices
    pairs = [map(sort,[[i,j],[i,k],[j,k]]) for (i,j,k) in FV]
    EV = sort!(union(vcat(pairs...)))
-   ret = Lar(2, Matrix(p'), Dict(:EV => EV, :FV => FV))
+   ret = Lar(2, Matrix(points'), Dict(:EV => EV, :FV => FV))
 end
 
 # //////////////////////////////////////////////////////////////////////////////
