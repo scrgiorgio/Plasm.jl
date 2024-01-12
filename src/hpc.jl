@@ -6,7 +6,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
 	View,
-	GetBatchesForHpc,GetBatchesForGeometry, GetBatchesForText
+	GetBatchesForHpc,GetBatchesForGeometry
 
 import Base.:(==)
 import Base.:*
@@ -1233,24 +1233,3 @@ function ComputeCentroid(points)
 	return ret
 end
 
-# ///////////////////////////////////////////////////////////////////
-function GetBatchesForText(obj::Geometry; single_w=0.05, color_vertices=Point4d(1,1,1,1),color_edges=Point4d(1,0,0,1),color_facets=Point4d(0,1,0,1))
-
-	# assuming ToLar converasion here
-	batches=Vector{GLBatch}()
-
-	for V in 1:length(obj.points)
-		push!(batches,GLText(string(V),center=ComputeCentroid([obj.points[it] for it in [V]]), single_w=single_w, color=color_vertices))
-	end
-
-	for E in 1:length(obj.edges)
-		push!(batches,GLText(string(E),center=ComputeCentroid([obj.points[it] for it in obj.edges[E]]), single_w=single_w, color=color_edges))
-	end
-
-	for F in 1:length(obj.facets)
-		push!(batches,GLText(string(F),center=ComputeCentroid([obj.points[it] for it in obj.facets[F]]), single_w=single_w, color=color_facets))
-	end
-
-	return batches
-
-end

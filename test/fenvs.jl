@@ -311,18 +311,18 @@ end
 
 function TestViewText()
 	if true
-		obj=ToLAR(CUBOID([1.0, 1.0])).childs[1]
+		geometry=ToLAR(CUBOID([1.0, 1.0])).childs[1]
 		batches=Vector{GLBatch}()
-		append!(batches,GetBatchesForGeometry(obj))
-		append!(batches,GetBatchesForText(obj))
+		append!(batches,GetBatchesForGeometry(geometry))
+		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.facets))
 		View(batches)
 	end
 	
 	if true
-		obj=ToLAR(CUBOID([1.0, 1.0, 1.0])).childs[1]
+		geometry=ToLAR(CUBOID([1.0, 1.0, 1.0])).childs[1]
 		batches=Vector{GLBatch}()
-		append!(batches,GetBatchesForGeometry(obj))
-		append!(batches,GetBatchesForText(obj))
+		append!(batches,GetBatchesForGeometry(geometry))
+		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.facets))
 		View(batches)
 	end
 end

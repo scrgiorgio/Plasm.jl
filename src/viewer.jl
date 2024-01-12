@@ -1528,13 +1528,47 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=
 		end
 	end
 
-	ret=GLBatch(LINES)
-	ret.vertices=GLVertexBuffer(vertices)
-	ret.colors  =GLVertexBuffer(colors)
+	batch=GLBatch(LINES)
+	batch.vertices=GLVertexBuffer(vertices)
+	batch.colors  =GLVertexBuffer(colors)
+
+	ret=Vector{GLBatch}()
+	push!(ret,batch)
 	return ret
 end
 
 
+# ///////////////////////////////////////////////////////////////////
+function GLText(
+		V::Vector{Vector{Float64}}; 
+		EV=nothing, 
+		FV=nothing, 
+		V_color=Point4d(1,1,1,1),
+		EV_color=Point4d(1,0,0,1),
+		FV_color=Point4d(0,1,0,1),
+		single_w=0.05)
+
+	batches=Vector{GLBatch}()
+
+	for I in 1:length(V)
+		append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in [I]]), single_w=single_w, color=V_color))
+	end
+
+	if EV!=nothing
+		for I in 1:length(EV)
+			append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in EV[I]]), single_w=single_w, color=EV_color))
+		end
+	end
+
+	if FV!=nothing
+		for I in 1:length(FV)
+			append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in FV[I]]), single_w=single_w, color=FV_color))
+		end
+	end
+
+	return batches
+
+end
 
 # ///////////////////////////////////////////////////////////////
 

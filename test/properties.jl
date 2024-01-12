@@ -1,14 +1,12 @@
 using Plasm
 
 # different ways to `View`
-VIEW(CUBE(1),="normal cube (1)")
-VIEW(CUBE(1), "normal cube (2)")
-VIEW(CUBE(1),"normal cube (13)")
+VIEW(CUBE(1), "normal cube (1)")
 
 # example: how to set the overall background color
 VIEW(CUBE(1),
    Dict(
-      "background-color" => [0.8,0.1,0.5]
+      "background-color" => [0.8,0.1,0.5],
       "title" => "cube with background color"
    ))
 
@@ -17,7 +15,7 @@ VIEW(
    PROPERTIES(
       CUBE(1),
       Dict("line_width"=>10)),
-   ="line_width")
+   "line_width")
 
 # line_color property
 VIEW(
