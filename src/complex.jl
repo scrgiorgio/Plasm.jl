@@ -66,7 +66,15 @@ GRID1(n) = QUOTE(DIESIS(n)(1.0))
 
 # //////////////////////////////////////////////////////////////////////////////
 function CUBOIDGRID(shape::Vector{Int})
-   LAR(INSL(POWER)(AA(GRID1)(shape)))
+   obj = INSL(POWER)(AA(GRID1)(shape))
+   if RN(obj) == 2
+      V = ToLAR(obj).childs[1].points
+      FV = ToLAR(obj).childs[1].hulls
+      EV = ToLAR(obj).childs[1].edges
+      return Plasm.Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
+   else 
+      return LAR(INSL(POWER)(AA(GRID1)(shape)))
+   end
 end
 
 # //////////////////////////////////////////////////////////////////////////////
