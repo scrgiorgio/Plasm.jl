@@ -37,21 +37,9 @@ simplexfacets
 end;
 @testset "CUBOID" "$shape" for shape in [[1],[3,2,1],[3,2],[1,1,1,1]]
    @test CUBOID(shape).childs[1].childs[1].points[1] == zeros(LEN(shape))
-end;
-
-
-# View 2D and 3D CUBOIDGRID(shape) 
-
- 
-mesh2 = CUBOIDGRID([5,5])
-mesh3 = CUBOIDGRID([3,3,3])
-
-ViewGrid(mesh2)
-ViewGrid(mesh3)
-
+end; 
 
 # //////////////////////////////////////////////////////////////////////////////
-
 @testset "CHULL1" begin
  points = rand(6, 3)
   obj = CHULL(points)
@@ -66,28 +54,12 @@ end
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function ViewCuboidGrid(mesh)
-   V = mesh.V; EV = mesh.C[:EV]; FV = mesh.C[:FV]
-   obj = Hpc(V,EV)
-   batches=Vector{GLBatch}()
-   append!(batches,GetBatchesForHpc(obj))
-   append!(batches,GLText(
-      [V[:,k] for k=1:size(V,2)],
-      EV=[it for it in EV],
-      FV=FV,
-      V_color=Point4d(1,1,1,1),
-      EV_color=Point4d(1,0,1,1),
-      FV_color=Point4d(0,1,0,1)
-   ))
-   View(batches)
-end
-
-@testset "CUBOIDGRID"  begin
+@testset "CUBOIDGRID"  begin  # View 2D and 3D CUBOIDGRID(shape) 
    mesh2D = CUBOIDGRID([5,5])
-   ViewGrid(mesh2D)
+   ViewCuboidGrid(mesh2D)
    mesh3D = CUBOIDGRID([2,3,4])
-   ViewGrid(mesh3D)
-end
+   ViewCuboidGrid(mesh3D)
+end;
 
 # //////////////////////////////////////////////////////////////////////////////
 # extracted from alberto's code

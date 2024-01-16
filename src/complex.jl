@@ -1,7 +1,7 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON
+export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid
 
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
@@ -75,6 +75,22 @@ function CUBOIDGRID(shape::Vector{Int})
    else 
       return LAR(INSL(POWER)(AA(GRID1)(shape)))
    end
+end
+
+function ViewCuboidGrid(mesh)
+   V = mesh.V; EV = mesh.C[:EV]; FV = mesh.C[:FV]
+   obj = Hpc(V,EV)
+   batches=Vector{GLBatch}()
+   append!(batches,GetBatchesForHpc(obj))
+   append!(batches,GLText(
+      [V[:,k] for k=1:size(V,2)],
+      EV=[it for it in EV],
+      FV=FV,
+      V_color=Point4d(1,1,1,1),
+      EV_color=Point4d(1,0,1,1),
+      FV_color=Point4d(0,1,0,1)
+   ))
+   View(batches)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
