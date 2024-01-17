@@ -65,9 +65,17 @@ end;
    VIEWCOMPLEX(mesh3D)
 end;
 
+# //////////////////////////////////////////////////////////////////////////////
 @testset "VIEWCOMPLEX SPHERE"  begin 
    mesh3D = SPHERE(1)([6,12])
    @test size(mesh3D.V)==(3, 62)
+   VIEWCOMPLEX(mesh3D)
+end;
+
+# //////////////////////////////////////////////////////////////////////////////
+@testset "VIEWCOMPLEX TORUS"  begin 
+   mesh3D = TORUS([1,3])([12,12])
+   @test size(mesh3D.V)==(3, 144)
    VIEWCOMPLEX(mesh3D)
 end;
 

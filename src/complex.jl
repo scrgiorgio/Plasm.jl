@@ -1,7 +1,7 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX
+export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS
 
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
@@ -139,4 +139,20 @@ function SPHERE(radius=1.0::Number)
 		return Lar(MAP([fx, fy, fz])(domain))
 	end
 	return SPHERE0
+end
+
+# /////////////////////////////////////////////////////////////
+function TORUS(radius)
+	r1, r2 = radius
+	function TORUS0(subds)
+		N, M = subds
+		a = 0.5*(r2-r1)
+		c = 0.5*(r1+r2)
+		domain = Power(INTERVALS(2*pi)(N), INTERVALS(2*pi)(M))
+		fx = p -> (c+a*cos(p[2])) * cos(p[1])
+		fy = p -> (c+a*cos(p[2])) * sin(p[1])
+		fz = p -> a*sin(p[2])
+		return Lar(MAP([fx, fy, fz])(domain))
+	end
+	return TORUS0
 end
