@@ -1,7 +1,7 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, VIEWCOMPLEX
+export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX
 
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
@@ -73,13 +73,12 @@ function CUBOIDGRID(shape::Vector{Int})
       EV = ToLAR(obj).childs[1].edges
       return Plasm.Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
    else 
-      return LAR(INSL(POWER)(AA(GRID1)(shape)))
+      return LAR(obj)
    end
 end
 
-
-function VIEWCOMPLEX(mesh::Lar; properties=Dict())
-   println("C")
+# //////////////////////////////////////////////////////////////////////////////
+function ViewCuboidGrid(mesh::Lar)
    V = mesh.V; EV = mesh.C[:EV]; FV = mesh.C[:FV]
    obj = Hpc(V,EV)
    batches=Vector{GLBatch}()
@@ -92,6 +91,24 @@ function VIEWCOMPLEX(mesh::Lar; properties=Dict())
       EV_color=Point4d(1,0,1,1),
       FV_color=Point4d(0,1,0,1)
    ))
+   View(batches)
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function VIEWCOMPLEX(mesh::Lar; background=Point4d(1,1,1,1))
+   V = mesh.V; EV = mesh.C[:EV]; FV = mesh.C[:FV]
+   obj = Hpc(V,EV)
+   batches=Vector{GLBatch}()
+   append!(batches,GetBatchesForHpc(obj))
+   append!(batches,GLText(
+      [V[:,k] for k=1:size(V,2)],
+      EV=[it for it in EV],
+      FV=FV,
+      V_color=Point4d(1,1,1,1),
+      EV_color=Point4d(1,0,1,1),
+      FV_color=Point4d(0,1,0,1)
+   ))
+   properties = Dict("background_color"=>background)   
    View(batches, properties)
 end
 
@@ -109,4 +126,17 @@ function SKELETON(ord::Int)
       end 
    end
    return SKELETON0
+end
+
+# /////////////////////////////////////////////////////////////
+function SPHERE(radius=1.0::Number)
+	function SPHERE0(subds=[16,32]::Vector{Int})
+		N, M = subds
+		domain = T(1,2)(-pi/2, -pi)(Power(INTERVALS(pi)(N), INTERVALS(2*pi)(M)))
+		fx = p -> radius * (-cos(p[1])) * sin(p[2])
+		fy = p -> radius * cos(p[1]) * cos(p[2])
+		fz = p -> radius * sin(p[1])
+		return Lar(MAP([fx, fy, fz])(domain))
+	end
+	return SPHERE0
 end

@@ -2,7 +2,7 @@ using Plasm
 
 # /////////////////////////////////////////////////////////////
 function TestSphere()
-	VIEW(SPHERE(1.0)([16,16]), "TestSphere")
+	VIEW(Hpc(SPHERE(1.0)([16,16])), "TestSphere")
 end
 
 function TestTorus()
@@ -522,7 +522,7 @@ function MyMain()
 		@assert box((RING([0.5,1])([8,8])))==BoxNd([-1.0, -1.0], [1.0, 1.0])
 		@assert box( CIRCLE(1.0)([8,8]))==BoxNd([-1.0, -1.0], [1.0, 1.0])
 		@assert fuzzyEqual(box(CYLINDER([1.0,2.0])(8)),BoxNd([-1.0,-1.0,0.0],[+1.0,+1.0,2.0]))
-		@assert box((SPHERE(1.0)([8,8])))==BoxNd([-1.0, -1.0, -1.0], [1.0, 1.0, 1.0])
+		@assert box(Hpc(SPHERE(1.0)([8,8])))==BoxNd([-1.0, -1.0, -1.0], [1.0, 1.0, 1.0])
 		@assert fuzzyEqual(box((TORUS([1.0,2.0])([8,8]))),BoxNd([-2.0,-2.0,-0.5],[+2.0,+2.0,+0.5]))
 		@assert fuzzyEqual(box((CONE([1.0,3.0])(16))),BoxNd([-1.0,-1.0,0.0],[+1.0,+1.0,3.0]))
 

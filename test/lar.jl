@@ -4,13 +4,7 @@ using Plasm
 function TestHpcToLAR()
 
   # SPHERE: ::Hpc -> ::Lar
-  obj1 = ToLAR(SPHERE(1)([3,3])).childs[1]
-  points = obj1.points;
-  hulls  = obj1.hulls;
-  facets = obj1.facets;
-  println("points, hulls, facets: $(LEN(points)), $(LEN(hulls)), $(LEN(facets))")
-
-  obj = Lar(SPHERE(1.)([3,3]));
+  obj = (SPHERE(1.)([3,3]));
   V, FV, EV = obj.V, obj.C[:FV], obj.C[:EV];
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 

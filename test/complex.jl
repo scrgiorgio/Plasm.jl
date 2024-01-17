@@ -56,13 +56,20 @@ end;
 #end
 
 # //////////////////////////////////////////////////////////////////////////////
-@testset "VIEWCOMPLEX"  begin  # View 2D and 3D Lar
+@testset "VIEWCOMPLEX CUBOIDGRID"  begin  # View 2D and 3D Lar
    mesh2D = CUBOIDGRID([5,5])
-   VIEWCOMPLEX(mesh2D, properties=Dict())
+   @test length(mesh2D.C[:EV])==60
+   VIEWCOMPLEX(mesh2D)
    mesh3D = CUBOIDGRID([2,3,4])
-   VIEWCOMPLEX(mesh3D, properties=Dict("background-color"=>Point4d(1,1,1,1)))
+   @test size(mesh3D.V)==(3, 60)
+   VIEWCOMPLEX(mesh3D)
 end;
 
+@testset "VIEWCOMPLEX SPHERE"  begin 
+   mesh3D = SPHERE(1)([6,12])
+   @test size(mesh3D.V)==(3, 62)
+   VIEWCOMPLEX(mesh3D)
+end;
 
 # //////////////////////////////////////////////////////////////////////////////
 # extracted from alberto's code

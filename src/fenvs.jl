@@ -17,7 +17,7 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	MAT,EMBED,STRUCT,
 	UNION,INTERSECTION,DIFFERENCE,XOR,
 	JOIN,POWER,SIZE,MIN,MAX,MED,ALIGN,TOP,BOTTOM,LEFT,RIGHT,UP,DOWN,BOX,MAP,
-	CIRCLE_POINTS,CIRCUMFERENCE,NGON,RING,TUBE,CIRCLE,CYLINDER,SPHERE,TORUS,CONE,TRUNCONE,DODECAHEDRON,ICOSAHEDRON,TETRAHEDRON,
+	CIRCLE_POINTS,CIRCUMFERENCE,NGON,RING,TUBE,CIRCLE,CYLINDER,TORUS,CONE,TRUNCONE,DODECAHEDRON,ICOSAHEDRON,TETRAHEDRON,
 	POLYPOINT,POLYLINE,TRIANGLESTRIPE,TRIANGLEFAN,MIRROR,POLYMARKER,BEZIER,BEZIERCURVE,COONSPATCH,RULEDSURFACE,
 	PROFILEPRODSURFACE,ROTATIONALSURFACE,CYLINDRICALSURFACE,CONICALSURFACE,CUBICHERMITE,HERMITE,Q,
 	EXTRUDE,MULTEXTRUDE,PROJECT,SPLITCELLS,EXTRACT_WIRES,SPLITPOLS,PERMUTAHEDRON,STAR,SCHLEGEL2D,SCHLEGEL3D,
@@ -1692,26 +1692,6 @@ function MY_CYLINDER(args::Vector{Float64})
 	return MY_CYLINDER0
 end
 CYLINDER = MY_CYLINDER
-
-# /////////////////////////////////////////////////////////////
-function SPHERE(radius=1.0::Number)
-	function SPHERE0(subds=[16,32]::Vector{Int})
-		N, M = subds
-		domain = Translate(Power(INTERVALS(pi)(N), INTERVALS(2*pi)(M)),[-pi/2, -pi])
-		fx = p -> radius * (-cos(p[1])) * sin(p[2])
-		fy = p -> radius * cos(p[1]) * cos(p[2])
-		fz = p -> radius * sin(p[1])
-
-		# scrgiorgio: removed LAR depenendency
-		#larvalue = Lar(MAP([fx, fy, fz])(domain))
-		#V, FV = larvalue.V, larvalue.C[:FV]
-		#return Hpc(V,FV)
-
-		return MAP([fx, fy, fz])(domain)
-
-	end
-	return SPHERE0
-end
 
 # /////////////////////////////////////////////////////////////
 function TORUS(radius)

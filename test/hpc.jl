@@ -278,11 +278,9 @@ function TestToLAR()
 
   # 3D brep
   obj=SPHERE(1.0)([16,16])
-  obj=ToLAR(obj)
-  @assert(length(obj.childs[1].hulls)==0)
-  @assert(length(obj.childs[1].facets)>0)
-  @assert(length(obj.childs[1].points[1])==3)
-
+  @assert(size(obj.V)==(3,242))
+  @assert(length(obj.C[:FV])==256)
+  @assert(length(obj.C[:EV])==496)
 end
 
 # ///////////////////////////////////////////////////////
