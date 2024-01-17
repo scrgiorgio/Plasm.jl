@@ -29,7 +29,27 @@ julia test/arrangements2d.jl
 julia test/complex.jl
 ```
 
-# Jupyter
+# View properties
+
+Important: use String as Dict keys, not symbols
+
+```julia
+View(batches,properties=Dict(
+  "background-color" => Point4d(1,1,1,1))
+  "title"            => "my title")
+  "use-ortho"        => false)
+  "show-lines"       => true)
+  "fov"              => 60.0)
+  "pos"              => Point3d(0,0,0) )
+  "dir"              => Point3d(0,0,-1))
+  "vup"              => Point3d(1,0,0))
+  "znear"            => 0.00001) 
+  "zfar "            => 100.0) 
+  "walk-speed "      => 10.0) 
+)
+'''
+
+# Jupyter or Juno?
 
 ```
 julia
