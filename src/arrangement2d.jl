@@ -5,7 +5,7 @@ using NearestNeighbors
 using Triangulate
 using IntervalTrees
 
-export arrange2D, LAR, Points, Cells, Cell, Chain, ChainOp, ChainComplex,
+export arrange2D, Points, Cells, Cell, Chain, ChainOp, ChainComplex,
 bbox
 
 const Points = Matrix
@@ -1275,35 +1275,5 @@ function arrange2D(V,EV)
 	return V,FVs,EVs, copEV, copFE
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-
-function removedups(obj)::Cells
-    lar_print("removedups")
-   # initializations
-   hulls = ToLAR(obj).childs[1].facets
-   dict = ToLAR(obj).childs[1].db
-   inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
-   [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) in dict]  
-   DB = []  # convert arrays of indices to arrays of points
-   for hull in hulls
-      points = []
-      [ append!(points, inverted_dict[k]) for k in hull ]
-      push!(DB, Set(points))
-   end 
-   DB = Set(DB) # eliminate duplicates
-   faces = [[dict[point] for point in set] for set in DB]
-   faces = sort!(AA(sort!)(faces))
-end
-
-function LAR(obj::Hpc)::Lar
-   V = ToLAR(obj).childs[1].points
-   CV = ToLAR(obj).childs[1].hulls
-   facets = ToLAR(obj).childs[1].facets
-   FV = removedups(obj)
-   FF = CSC(FV) * CSC(FV)'
-   edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
-   EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
-   out = Plasm.Lar(hcat(V...), Dict(:CV=>CV, :FV=>FV, :EV=>EV))
-end
 
 

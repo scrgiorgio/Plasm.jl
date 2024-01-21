@@ -14,8 +14,8 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	VECT2MAT,VECT2DTOANGLE,CART,POWERSET,ARC,ISPOL,PRINTPOL,PRINT,VIEW,
 	GRID,QUOTE,INTERVALS,CUBOID,CUBE,HEXAHEDRON,SIMPLEX,RN,DIM,ISPOLDIM,MKPOL,
 	MK,UKPOL,UK,OPTIMIZE,TRANSLATE,T,SCALE,S,ROTATE,R,SHEARING,H,
-	MAT,EMBED,STRUCT,
-	UNION,INTERSECTION,DIFFERENCE,XOR,
+	MAT,EMBED,STRUCT,HOLLOWCYL,SOLIDCYL,
+	UNION,INTERSECTION,DIFFERENCE,XOR,CONVEXHULL,
 	JOIN,POWER,SIZE,MIN,MAX,MED,ALIGN,TOP,BOTTOM,LEFT,RIGHT,UP,DOWN,BOX,MAP,
 	CIRCLE_POINTS,CIRCUMFERENCE,NGON,RING,TUBE,CIRCLE,CYLINDER,CONE,TRUNCONE,DODECAHEDRON,ICOSAHEDRON,TETRAHEDRON,
 	POLYPOINT,POLYLINE,TRIANGLESTRIPE,TRIANGLEFAN,MIRROR,POLYMARKER,BEZIER,BEZIERCURVE,COONSPATCH,RULEDSURFACE,
@@ -900,6 +900,25 @@ function HEXAHEDRON()
 end
 
 # /////////////////////////////////////////////////////////////////
+"""
+    SIMPLEX(dim::Int)::Hpc
+Generator of the standard `Hpc` simplex object of dimension `dim`.
+
+Simplex object of `Hpc` type with arbitrary dimension `dim ≥ 1`. 
+It is the convex combination of ``d+1`` affinely independent points.
+
+# Examples
+```
+julia> SIMPLEX(1)
+Hpc(MatrixNd(2), Geometry[Geometry([[0.0], [1.0]], hulls=[[1, 2]])])
+
+julia> SIMPLEX(2)
+Hpc(MatrixNd(3), Geometry[Geometry([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], hulls=[[1, 2, 3]])])
+
+julia> SIMPLEX(3)
+Hpc(MatrixNd(4), Geometry[Geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], hulls=[[1, 2, 3, 4]])])
+```
+"""
 function SIMPLEX(dim)
 	return Simplex(dim)
 end
@@ -1682,6 +1701,23 @@ function CIRCLE(R::Number)
 end
 
 # ///////////////////////////////////////////////////////////
+function HOLLOWCYL(rmin=1., rmax=2., angle=2*pi, height=2*rmax)
+   function HOLLOWCYL0(shape=[36, 1])
+      basis = Hpc(RING(rmin,rmax,angle)(shape))
+      return Power(basis, INTERVALS(height)(shape[2]))
+   end
+   return HOLLOWCYL0
+end
+
+# ///////////////////////////////////////////////////////////
+function SOLIDCYL(rmax=2., angle=2*pi, height=2*rmax)
+   function SOLIDCYL0(shape=[36, 1])
+      return HOLLOWCYL(0.,rmax,angle,height)(shape)
+   end
+   return SOLIDCYL0
+end
+
+# ///////////////////////////////////////////////////////////
 function MY_CYLINDER(args::Vector{Float64})
 	R, H = args
 	function MY_CYLINDER0(N)
@@ -1692,7 +1728,6 @@ function MY_CYLINDER(args::Vector{Float64})
 	return MY_CYLINDER0
 end
 CYLINDER = MY_CYLINDER
-
 
 # /////////////////////////////////////////////////////////////
 function CONE(args)

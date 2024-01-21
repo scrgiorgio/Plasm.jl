@@ -3,7 +3,7 @@
 # //////////////////////////////////////////////////////////////////////////////
 using DataStructures, SparseArrays
 
-export truncate, simplifyCells, CSC, Lar, Hpc
+export truncate, simplifyCells, CSC, Lar, Hpc, LAR
 
 # //////////////////////////////////////////////////////////////////////////////
 # With a docstring, can be seen from Help (?) the whole set of parameters
@@ -52,6 +52,7 @@ function simplifyCells(V,CV)
 	end
 	return hcat(W...), filter(x->!(LEN(x)<3), FW)
 end
+
 
 # //////////////////////////////////////////////////////////////////////////////
 """
@@ -130,3 +131,42 @@ function Hpc(obj::Lar)
    V = obj.V;  FV = obj.C[:FV]
    return Hpc(V,FV) 
 end
+
+# //////////////////////////////////////////////////////////////////////////////
+
+function removedups(obj)::Cells
+   # initializations
+   hulls = ToLAR(obj).childs[1].facets
+   dict = ToLAR(obj).childs[1].db
+show(ToLAR(obj).childs[1].db)
+   inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
+   [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) in dict]  
+show(inverted_dict)
+   DB = []  # convert arrays of indices to arrays of points
+   for hull in hulls
+      points = []
+      [ append!(points, inverted_dict[k]) for k in hull ]
+      push!(DB, Set(points))
+   end 
+   DB = Set(DB) # eliminate duplicates
+   faces = [[dict[point] for point in set] for set in DB]
+   faces = sort!(AA(sort!)(faces))
+end
+
+function removedups(V,FV)::Cells
+
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function LAR(obj::Hpc)::Lar
+   V = ToLAR(obj).childs[1].points
+   CV = ToLAR(obj).childs[1].hulls
+   FV = ToLAR(obj).childs[1].facets
+   V,FV = simplifyCells(hcat(V...),FV)
+   FV = union(FV)
+   FF = CSC(FV) * CSC(FV)'
+   edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
+   EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
+   out = Plasm.Lar(V, Dict(:CV=>CV, :FV=>FV, :EV=>EV))
+end
+
