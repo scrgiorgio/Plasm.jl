@@ -191,14 +191,24 @@ function VIEWCOMPLEX(mesh::Lar)
    obj = Hpc(V,EV)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
-   append!(batches,GLText(
-      [V[:,k] for k=1:size(V,2)],
-      EV=[it for it in EV],
-      FV=FV,
-      V_color=Point4d(1,1,1,1),
-      EV_color=Point4d(1,0,1,1),
-      FV_color=Point4d(0,1,0,1)
-   ))
+   if :FV in keys(mesh.C)
+      append!(batches,GLText(
+         [V[:,k] for k=1:size(V,2)],
+         EV=[it for it in EV],
+         FV=FV,
+         V_color=Point4d(1,1,1,1),
+         EV_color=Point4d(1,0,1,1),
+         FV_color=Point4d(0,1,0,1)
+      ))
+   else
+      append!(batches,GLText(
+         [V[:,k] for k=1:size(V,2)],
+         EV=[it for it in EV],
+         V_color=Point4d(1,1,1,1),
+         EV_color=Point4d(1,0,1,1),
+         FV_color=Point4d(0,1,0,1)
+      ))
+   end
    View(batches)
 end
 

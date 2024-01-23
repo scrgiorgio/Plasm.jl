@@ -1,9 +1,7 @@
 using SparseArrays
 #= Sparse matrix generation from a set of {triplets} 
 (i,j,x) of non-zero, given as a triple (I,J,X) of arrays =#
-"""
-Characteristic sparse binary matrix of CV collection of h-cells.
-"""
+""lar_print("Characteristic sparse binary matrix of CV collection of h-cells.")""
 function K( CV ) # CV => Cells defined by their Vertices
 	I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)		
 	# vcat maps arrayofarrays to single array

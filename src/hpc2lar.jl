@@ -53,7 +53,6 @@ function simplifyCells(V,CV)
 	return hcat(W...), filter(x->!(LEN(x)<3), FW)
 end
 
-
 # //////////////////////////////////////////////////////////////////////////////
 """
    CSC( Cc::Vector{Vector{Int64}} )::SparseMatrix
@@ -160,13 +159,17 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function LAR(obj::Hpc)::Lar
    V = ToLAR(obj).childs[1].points
-   CV = ToLAR(obj).childs[1].hulls
+   EV = ToLAR(obj).childs[1].edges
    FV = ToLAR(obj).childs[1].facets
-   V,FV = simplifyCells(hcat(V...),FV)
-   FV = union(FV)
-   FF = CSC(FV) * CSC(FV)'
-   edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
-   EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
-   out = Plasm.Lar(V, Dict(:CV=>CV, :FV=>FV, :EV=>EV))
+   V,FV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV)
+   if !(FV == [])
+      FV = union(FV)
+      FF = CSC(FV) * CSC(FV)'
+      edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
+      EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
+   elseif all(length(x)==2 for x in EV) 
+      return Plasm.Lar(hcat(V...), Dict(:EV=>EV))
+   end
+   return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EV))
 end
 

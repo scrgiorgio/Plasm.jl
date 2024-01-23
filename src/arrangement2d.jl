@@ -16,7 +16,7 @@ const ChainOp = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
 
 function lar_print(args)
-    # println(args)
+#     println(args)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -384,6 +384,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 
+""" Make dictionary of 1D boxes for IntervalTrees construction """
 function coordintervals(coord,bboxes)
     lar_print("boundingbox")
 	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()

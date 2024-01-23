@@ -524,7 +524,7 @@ function DIESIS(n)
 end
 
 # scrgiorgio: very dangerous to use D as a function name
-#             there is a risk of confusion between the function and the argument D
+# there is a risk of confusion between the function and the argument D
 # D = DIESIS
 
 # /////////////////////////////////////////////////////////////////

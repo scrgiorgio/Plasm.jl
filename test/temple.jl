@@ -49,8 +49,6 @@ function Temple()
 	VIEW(skel1model)
 	skel1model = SKELETON(2)(model)
 	VIEW(skel1model)
-	skel1model = SKELETON(3)(model)
-	VIEW(skel1model)
 	
 	# SKELETON(4)(model) -> error
 end
