@@ -606,9 +606,8 @@ end
 
 function spaceindex(model)::Array{Array{Int,1},1}
     lar_print("spaceindex")
-	   V,CV = model[1:2]
-	   dim = size(V,1)
-@show (V,CV,dim);
+   V,CV = model[1:2]
+   dim = size(V,1)
 	cellpoints = [ V[:,CV[k]] for k=1:length(CV) ]
 	#----------------------------------------------------------
 	bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints]
@@ -1046,7 +1045,7 @@ function planar_arrangement_1( V, copEV,
 		return_edge_map::Bool=false,
 		multiproc::Bool=false)
     lar_print("planar_arrangement_1")
-@show V,copEV;
+
 	# data structures initialization
 	edgenum = size(copEV, 1)
 	edge_map = Array{Array{Int, 1}, 1}(undef,edgenum)
