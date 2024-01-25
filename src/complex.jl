@@ -187,11 +187,13 @@ Remark: Any `Hpc` object may by visualized with numbered cells of its 2D or boun
 ```
 """
 function VIEWCOMPLEX(mesh::Lar)
-   V = mesh.V; EV = mesh.C[:EV]; FV = mesh.C[:FV]
-   obj = Hpc(V,EV)
-   batches=Vector{GLBatch}()
-   append!(batches,GetBatchesForHpc(obj))
+   V = mesh.V; EV = mesh.C[:EV]
+   batches = Vector{GLBatch}()
+#   obj = Hpc(V,EV)
+#   batches=Vector{GLBatch}()
+#   append!(batches,GetBatchesForHpc(obj))
    if :FV in keys(mesh.C)
+      FV = mesh.C[:FV]
       append!(batches,GLText(
          [V[:,k] for k=1:size(V,2)],
          EV=[it for it in EV],

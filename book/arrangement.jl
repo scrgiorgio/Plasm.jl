@@ -312,7 +312,7 @@ function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
 # 2D transformation of `sigma` face
    sigmavs = (abs.(FE[sigma:sigma,:]) * abs.(EV))[1,:].nzind # sigma vertex indices
    sV = V[sigmavs, :]
-   sEV = EV[FE[sigma, :].nzind, sigmavs]
+   sEV = Matrix(EV[FE[sigma, :].nzind, sigmavs])
    M = submanifold_mapping(sV)
    tV = ([V ones(vs_num)]*M)[:, 1:3]  # folle convertire *tutti* i vertici
    sV = tV[sigmavs, :]
@@ -335,9 +335,8 @@ end
 """ Compute the map from vs (at least three) to z=0 """
 # REMARK: will not work when vs[:,1:3] are aligned !!!!  TODO: fix 
 function submanifold_mapping(vs)
-   #@show vs;
-    u1 = vs[2,:] - vs[1,:]
-    u2 = vs[3,:] - vs[1,:]
+    u1 = vs[:,2] - vs[:,1]
+    u2 = vs[:,3] - vs[:,1]
     u3 = LinearAlgebra.cross(u1, u2)
     T = Matrix{Float64}(LinearAlgebra.I, 4, 4)
     T[4, 1:3] = - vs[1,:]
@@ -1349,8 +1348,8 @@ end
 
 """ Alternate method of function `coboundary_1` from `Cells` """
 function coboundary_1(FV::Cells, EV::Cells) 
-	copFV = cop(FV)
-	I,J,Val = findnz(cop(EV))
+	copFV = lar2cop(FV)
+	I,J,Val = findnz(lar2cop(EV))
 	copVE = sparse(J,I,Val)
 	triples = hcat([[i,j,1]  for (i,j,v)  in zip(findnz(copFV * copVE)...) if v==2]...)
 	I,J,Val = triples[1,:], triples[2,:], triples[3,:]
@@ -1888,7 +1887,7 @@ end
 """ Test the whole arrangement pipeline; return the triangulated geometry """
 function testarrangement(V,FV,EV)
 		cop_EV = coboundary_0(EV::Cells)
-		cop_FE = coboundary_1(V, FV::Cells, EV::Cells)
+		cop_FE = coboundary_1(FV::Cells, EV::Cells)
 		W = convert(Points, V');
       #@show W, cop_EV, cop_FE;
 		V, copEV, copFE, copCF = space_arrangement(
@@ -1899,3 +1898,12 @@ function testarrangement(V,FV,EV)
 end;
 
 # //////////////////////////////////////////////////////////////////////////////
+
+using Plasm
+
+obj = CIRCLE(1)([6,12]);
+double = STRUCT(obj, T(1,2)(.5,.5), obj);
+lardouble = LAR(double);
+V,FV,EV = lardouble.V, lardouble.C[:FV], lardouble.C[:EV]
+V,CVs,FVs,EVs = testarrangement(V,FV,EV)
+
