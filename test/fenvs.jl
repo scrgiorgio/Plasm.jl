@@ -637,13 +637,30 @@ function MyMain()
 				LINE([0.0,0.0,0.0],[0.0,0.0,1.0],line_color=BLUE ,line_width=3),
 			),
 			Dict(
-				"show-axis" => false,
+				"show_axis" => false,
 				"title" => "Frame"
 			)
 		)
 	end
 	
 
+
+	# example of VIEW2D
+	begin
+		VIEW2D(STRUCT([
+			CUBOID([1,1]),
+			FRAME2([0.0,0.0],[1.5,1.5]),
+	]))
+	end
+
+	# example of VIEW2D
+	begin
+		VIEW2D(STRUCT([
+			CUBOID([1,1,1]),
+			FRAME3([0.0,0.0,0.0],[1.5,1.5,1.5]),
+	])
+	)
+	end
 
 	# BROKEN
 	if false
@@ -696,13 +713,13 @@ function MyMain()
 			"fov" => 60.0,
 	
 			#triangles, show/hide lines
-			"show-lines" => false,
+			"show_lines" => false,
 	
 			#viewer background color
-			"background-color" => Point4d(1.0, 1.0, 1.0, 1.0),
+			"background_color" => Point4d(1.0, 1.0, 1.0, 1.0),
 	
 			# perspective or ortho projection
-			"use-ortho" => true
+			"use_ortho" => true
 		)
 
 	)

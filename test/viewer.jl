@@ -24,11 +24,11 @@ function MyMain()
 				# perspective fov
 				"fov" => 60.0,
 				#triangles, show/hide lines
-				"show-lines" => false,
+				"show_lines" => false,
 				#viewer background color
-				"background-color" => Point4d(1.0, 1.0, 1.0, 1.0),
+				"background_color" => Point4d(1.0, 1.0, 1.0, 1.0),
 				# perspective or ortho projection
-				"use-ortho" => true
+				"use_ortho" => true
 			)
 		)
 	end

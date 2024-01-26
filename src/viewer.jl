@@ -921,10 +921,11 @@ mutable struct Viewer
 	show_lines:: Bool
 	background_color::Vector{Float64}
 	title:: String
+	lighting_enabled:: Bool
 
 	# constructor
 	function Viewer(batches) 
-		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true,[0.3,0.4,0.5], "Viewer")
+		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true,[0.3,0.4,0.5], "Viewer", true)
 	end
 	
 end
@@ -996,7 +997,7 @@ end
 # ///////////////////////////////////////////////////////////////////////
 function GLView(batches::Vector{GLBatch}, properties::Dict=Dict())
 	
-	show_axis=get(properties,"show-axis",true)
+	show_axis=get(properties,"show_axis",true)
 	if show_axis
 		push!(batches,GLAxis(Point3d(0,0,0),Point3d(2,2,2)))
 	end
@@ -1016,17 +1017,23 @@ function GLView(batches::Vector{GLBatch}, properties::Dict=Dict())
 	MaxSize=max(Size[1],Size[2],Size[3])
 	Center=center(BOX)
 
-	viewer.background_color =           get(properties,"background-color", viewer.background_color)
-	viewer.title            =           get(properties,"title",       viewer.title)
-	viewer.use_ortho        =           get(properties,"use-ortho",   viewer.use_ortho)
-	viewer.show_lines       =           get(properties,"show-lines",  viewer.show_lines)
-	viewer.fov              =           get(properties,"fov",         viewer.fov)
-	viewer.pos              =           get(properties,"pos",         Center + Point3d(MaxSize,MaxSize,MaxSize)*3.0 )
-	viewer.dir              =normalized(get(properties,"dir",         Center-viewer.pos))
-	viewer.vup              =normalized(get(properties,"vup"        , Point3d(0,0,1)))
-	viewer.zNear	          =           get(properties,"znear"      , MaxSize / 50.0) 
-	viewer.zFar	            =           get(properties,"zfar "      , MaxSize * 10.0) 
-	viewer.walk_speed       =           get(properties,"walk-speed ", MaxSize / 100.0) 
+	# backward compatible
+	function _get(properties, key, default)
+		return get(properties,key,get(properties,replace(key,"_" => "-"),default))
+	end
+
+	viewer.background_color =           _get(properties,"background_color", viewer.background_color)
+	viewer.title            =           _get(properties,"title",       viewer.title)
+	viewer.use_ortho        =           _get(properties,"use_ortho",   viewer.use_ortho)
+	viewer.show_lines       =           _get(properties,"show_lines",  viewer.show_lines)
+	viewer.fov              =           _get(properties,"fov",         viewer.fov)
+	viewer.pos              =           _get(properties,"pos",         Center + Point3d(MaxSize,MaxSize,MaxSize)*3.0 )
+	viewer.dir              =normalized(_get(properties,"dir",         Center-viewer.pos))
+	viewer.vup              =normalized(_get(properties,"vup"        , Point3d(0,0,1)))
+	viewer.zNear	          =           _get(properties,"znear"      , MaxSize / 50.0) 
+	viewer.zFar	            =           _get(properties,"zfar "      , MaxSize * 10.0) 
+	viewer.walk_speed       =           _get(properties,"walk_speed", MaxSize / 100.0) 
+	viewer.lighting_enabled =           _get(properties,"lighting_enabled", viewer.lighting_enabled)
 
 	runViewer(viewer)
 	
@@ -1078,6 +1085,8 @@ end
 
 # ///////////////////////////////////////////////////////////////////////
 function getShader(viewer::Viewer,lighting_enabled,color_attribute_enabled)
+
+	lighting_enabled=lighting_enabled && viewer.lighting_enabled
 
 	key=(lighting_enabled,color_attribute_enabled)
 	
@@ -1164,7 +1173,7 @@ end
 
 function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
 
-	lighting_enabled        = length(batch.normals.vector)>0 
+	lighting_enabled        = length(batch.normals.vector)>0  && viewer.lighting_enabled
 	color_attribute_enabled = length(batch.colors.vector )>0
 	
 	shader=getShader(viewer,lighting_enabled,color_attribute_enabled)

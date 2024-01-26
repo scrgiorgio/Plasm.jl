@@ -6,7 +6,7 @@ VIEW(CUBE(1), "normal cube (1)")
 # example: how to set the overall background color
 VIEW(CUBE(1),
    Dict(
-      "background-color" => [0.8,0.1,0.5],
+      "background_color" => [0.8,0.1,0.5],
       "title" => "cube with background color"
    ))
 
@@ -54,7 +54,7 @@ VIEW(STRUCT(
 
    Dict(
       "title" => "2 colored cubes",
-      "background-color" => [0.0,0.0,0.0]
+      "background_color" => [0.0,0.0,0.0]
    )
 )
 
@@ -126,6 +126,6 @@ begin
       FRAME3(Point3d(0,0,0),Point3d(1,1,1)),
    )
 
-   VIEW(obj, Dict("show-axis" => false) )
+   VIEW(obj, Dict("show_axis" => false) )
 
 end
