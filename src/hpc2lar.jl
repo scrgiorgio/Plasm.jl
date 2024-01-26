@@ -137,10 +137,10 @@ function removedups(obj)::Cells
    # initializations
    hulls = ToLAR(obj).childs[1].facets
    dict = ToLAR(obj).childs[1].db
-show(ToLAR(obj).childs[1].db)
+#@show(ToLAR(obj).childs[1].db)
    inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
    [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) in dict]  
-show(inverted_dict)
+#@show(inverted_dict)
    DB = []  # convert arrays of indices to arrays of points
    for hull in hulls
       points = []
@@ -158,18 +158,18 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function LAR(obj::Hpc)::Lar
-   V = ToLAR(obj).childs[1].points
-   EV = ToLAR(obj).childs[1].edges
-   FV = ToLAR(obj).childs[1].facets
-   V,FV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV)
+   V = ToLAR(obj).childs[1].points;
+   EV = ToLAR(obj).childs[1].edges;
+   FV = ToLAR(obj).childs[1].facets;
+   V,FV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
    if !(FV == [])
       FV = union(FV)
       FF = CSC(FV) * CSC(FV)'
       edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
-      EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
+      EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
    elseif all(length(x)==2 for x in EV) 
-      return Plasm.Lar(hcat(V...), Dict(:EV=>EV))
+      return Plasm.Lar(1,V, Dict(:EV=>EV))
    end
-   return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EV))
+   return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
 end
 

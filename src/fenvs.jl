@@ -1091,7 +1091,6 @@ end
 H = SHEARING
 
 function SHEAR(column,shear_list, pol::Hpc)
-@show column
 	values = ISNUM(shear_list) ? [shear_list] : shear_list
 	vh = [0.0 for I in 1:length(values)+2]
 	for a in 2:length(vh)-1
@@ -1659,6 +1658,9 @@ function CIRCUMFERENCE(R)
 	function CIRCUMFERENCE1(N)
 		domain=INTERVALS(2*pi)(N)
 		fn=p -> [R*cos(p[1]), R*sin(p[1])]
+		last = domain.childs[1].hulls[end]
+		domain.childs[1].hulls[end] = [LEN(domain.childs[1].hulls),1]
+		pop!(domain.childs[1].points)
 		return MAP(fn)(domain)
 	end
 	return CIRCUMFERENCE1

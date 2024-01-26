@@ -85,7 +85,7 @@ function TestLAR()
   TestHpcToLAR()
   TestArrange2D("generate_lar_debugging_data", generate_lar_debugging_data()...)
   TestArrange2D("generate_lar_random_lines"  , generate_lar_random_lines()...)
-#  TestArrange2D("generate_lar_random_bubbles", generate_lar_random_bubbles(n=10)...)
+  TestArrange2D("generate_lar_random_bubbles", generate_lar_random_bubbles(n=1)...)
 #  AlbertoPao 20240124 commented because errored: identical to https://github.com/cvdlab/LinearAlgebraicRepresentation.jl/blob/master/examples/2d/randombubbles.jl, which works...
   println("TestLAR ok")
 end
