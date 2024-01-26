@@ -923,7 +923,7 @@ function View2D(hpc::Hpc; properties::Dict=Dict())
 	properties["line_color"]       =           get(properties,"line_color", BLACK)
 	properties["show_axis"]        =           get(properties,"show_axis", false)
 
-  hpc=PROPERTIES(hpc, Dict("line_color"=>BLACK, "line_width"=>1))
+  hpc=PROPERTIES(hpc, Dict("line_color"=>BLACK, "line_width"=>2))
 	VIEW(hpc, properties)
 end
 
