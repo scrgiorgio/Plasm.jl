@@ -416,17 +416,17 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 
-function lar2cop(CV::Cells)::ChainOp
-    lar_print("boxcovering")
-	I = Int[]; J = Int[]; Value = Int8[];
-	for k=1:size(CV,1)
-		n = length(CV[k])
-		append!(I, k * ones(Int, n))
-		append!(J, CV[k])
-		append!(Value, ones(Int, n))
-	end
-	return SparseArrays.sparse(I,J,Value)
-end
+#function lar2cop(CV::Cells)::ChainOp
+#    lar_print("boxcovering")
+#	I = Int[]; J = Int[]; Value = Int8[];
+#	for k=1:size(CV,1)
+#		n = length(CV[k])
+#		append!(I, k * ones(Int, n))
+#		append!(J, CV[k])
+#		append!(Value, ones(Int, n))
+#	end
+#	return SparseArrays.sparse(I,J,Value)
+#end
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -604,43 +604,43 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 
-function spaceindex(model)::Array{Array{Int,1},1}
-    lar_print("spaceindex")
-   V,CV = model[1:2]
-   dim = size(V,1)
-	cellpoints = [ V[:,CV[k]] for k=1:length(CV) ]
-	#----------------------------------------------------------
-	bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints]
-	xboxdict = coordintervals(1,bboxes)
-	yboxdict = coordintervals(2,bboxes)
-	# xs,ys are IntervalTree type
-	xs = IntervalTrees.IntervalMap{Float64, Array}()
-	for (key,boxset) in xboxdict
-		xs[tuple(key...)] = boxset
-	end
-	ys = IntervalTrees.IntervalMap{Float64, Array}()
-	for (key,boxset) in yboxdict
-		ys[tuple(key...)] = boxset
-	end
-	xcovers = boxcovering(bboxes, 1, xs)
-	ycovers = boxcovering(bboxes, 2, ys)
-	covers = [intersect(pair...) for pair in zip(xcovers,ycovers)]
-
-	if dim == 3
-		zboxdict = coordintervals(3,bboxes)
-		zs = IntervalTrees.IntervalMap{Float64, Array}()
-		for (key,boxset) in zboxdict
-			zs[tuple(key...)] = boxset
-		end
-		zcovers = boxcovering(bboxes, 3, zs)
-		covers = [intersect(pair...) for pair in zip(zcovers,covers)]
-	end
-	# remove each cell from its cover
-	for k=1:length(covers)
-		covers[k] = setdiff(covers[k],[k])
-	end
-	return covers
-end
+#function spaceindex(model)::Array{Array{Int,1},1}
+#    lar_print("spaceindex")
+#   V,CV = model[1:2]
+#   dim = size(V,1)
+#	cellpoints = [ V[:,CV[k]] for k=1:length(CV) ]
+#	#----------------------------------------------------------
+#	bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints]
+#	xboxdict = coordintervals(1,bboxes)
+#	yboxdict = coordintervals(2,bboxes)
+#	# xs,ys are IntervalTree type
+#	xs = IntervalTrees.IntervalMap{Float64, Array}()
+#	for (key,boxset) in xboxdict
+#		xs[tuple(key...)] = boxset
+#	end
+#	ys = IntervalTrees.IntervalMap{Float64, Array}()
+#	for (key,boxset) in yboxdict
+#		ys[tuple(key...)] = boxset
+#	end
+#	xcovers = boxcovering(bboxes, 1, xs)
+#	ycovers = boxcovering(bboxes, 2, ys)
+#	covers = [intersect(pair...) for pair in zip(xcovers,ycovers)]
+#
+#	if dim == 3
+#		zboxdict = coordintervals(3,bboxes)
+#		zs = IntervalTrees.IntervalMap{Float64, Array}()
+#		for (key,boxset) in zboxdict
+#			zs[tuple(key...)] = boxset
+#		end
+#		zcovers = boxcovering(bboxes, 3, zs)
+#		covers = [intersect(pair...) for pair in zip(zcovers,covers)]
+#	end
+#	# remove each cell from its cover
+#	for k=1:length(covers)
+#		covers[k] = setdiff(covers[k],[k])
+#	end
+#	return covers
+#end
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -745,37 +745,37 @@ end
 
 function constrained_triangulation2D(V::Points, EV::Cells)
     lar_print("constrained_triangulation2D")
-	triin = Triangulate.TriangulateIO()
+	triin = Triangulate.TriangulateIO()    # object generation
 	triin.pointlist = V
 	triin.segmentlist = hcat(EV...)
-	(triout, vorout) = Triangulate.triangulate("pQ", triin)
+	(triout, vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
 	trias = Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
 	return trias
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 
-function triangulate2d(V::Points, EV::Cells)
-    lar_print("triangulate2d")
-   	 # data for Constrained Delaunay Triangulation (CDT)
-   	 points = convert(Array{Float64,2}, V')
-	 # points_map = Array{Int,1}(collect(1:1:size(points)[1]))
-   	 # edges_list = convert(Array{Int,2}, hcat(EV...)')
-   	 # edge_boundary = [true for k=1:size(edges_list,1)] ## dead code !!
-	trias = constrained_triangulation2D(V::Points, EV::Cells)
-
- 	#Triangle.constrained_triangulation(points,points_map,edges_list)
-	innertriangles = Array{Int,1}[]
-	for (u,v,w) in trias
-		point = (points[u,:]+points[v,:]+points[w,:])./3
-		copEV = lar2cop(EV)
-		inner = point_in_face(point, points::Points, copEV::ChainOp)
-		if inner
-			push!(innertriangles,[u,v,w])
-		end
-	end
-    return innertriangles
-end
+#function triangulate2d(V::Points, EV::Cells)
+#    lar_print("triangulate2d")
+#   	 # data for Constrained Delaunay Triangulation (CDT)
+#   	 points = convert(Array{Float64,2}, V')
+#	 # points_map = Array{Int,1}(collect(1:1:size(points)[1]))
+#   	 # edges_list = convert(Array{Int,2}, hcat(EV...)')
+#   	 # edge_boundary = [true for k=1:size(edges_list,1)] ## dead code !!
+#	trias = constrained_triangulation2D(V::Points, EV::Cells)
+#
+# 	#Triangle.constrained_triangulation(points,points_map,edges_list)
+#	innertriangles = Array{Int,1}[]
+#	for (u,v,w) in trias
+#		point = (points[u,:]+points[v,:]+points[w,:])./3
+#		copEV = lar2cop(EV)
+#		inner = point_in_face(point, points::Points, copEV::ChainOp)
+#		if inner
+#			push!(innertriangles,[u,v,w])
+#		end
+#	end
+#    return innertriangles
+#end
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -1041,66 +1041,98 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function planar_arrangement_1( V, copEV,
-		sigma::Chain=spzeros(Int8, 0),
-		return_edge_map::Bool=false,
-		multiproc::Bool=false)
-    lar_print("planar_arrangement_1")
+sigma::Chain=spzeros(Int8, 0),
+return_edge_map::Bool=false,
+multiproc::Bool=false)
+  lar_print("planar_arrangement_1")
 
-	# data structures initialization
-	edgenum = size(copEV, 1)
-	edge_map = Array{Array{Int, 1}, 1}(undef,edgenum)
-	rV = Points(zeros(0, 2))
-	rEV = SparseArrays.spzeros(Int8, 0, 0)
-	finalcells_num = 0
+# data structures initialization
+edgenum = size(copEV, 1)
+edge_map = Array{Array{Int, 1}, 1}(undef,edgenum)
+rV = Points(zeros(0, 2))
+rEV = SparseArrays.spzeros(Int8, 0, 0)
+finalcells_num = 0
 
-	# spaceindex computation
-	model = (convert(Points,V'),cop2lar(copEV))
-	bigPI = spaceindex(model)
+# spaceindex computation
+model = (convert(Points,V'),cop2lar(copEV))
+bigPI = spaceindex(model)
 
-    # multiprocessing of edge fragmentation
-    if (multiproc == true)
-        in_chan = Distributed.RemoteChannel(()->Channel{Int64}(0))
-        out_chan = Distributed.RemoteChannel(()->Channel{Tuple}(0))
-        ordered_dict = SortedDict{Int64,Tuple}()
-        @async begin
-            for i in 1:edgenum
-                put!(in_chan,i)
-            end
-            for p in distributed.workers()
-                put!(in_chan,-1)
-            end
-        end
-        for p in distributed.workers()
-            @async Base.remote_do(frag_edge_channel, p, in_chan, out_chan, V, copEV, bigPI)
-        end
-        for i in 1:edgenum
-            frag_done_job = take!(out_chan)
-            ordered_dict[frag_done_job[1]] = frag_done_job[2]
-        end
-        for (dkey, dval) in ordered_dict
-            i = dkey
-            v, ev = dval
-            newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
-            edge_map[i] = newedges_nums
-            finalcells_num += size(ev, 1)
-            rV, rEV = skel_merge(rV, rEV, v, ev)
-        end
-    else
-        # sequential (iterative) processing of edge fragmentation
-        for i in 1:edgenum
-            v, ev = frag_edge(V, copEV, i, bigPI)
-            newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
-            edge_map[i] = newedges_nums
-            finalcells_num += size(ev, 1)
-            rV = convert(Points, rV)
-            rV, rEV = skel_merge(rV, rEV, v, ev)
-        end
-    end
-    # merging of close vertices and edges (2D congruence)
-    V, copEV = rV, rEV
-    V, copEV = merge_vertices!(V, copEV, edge_map)
-	return V,copEV,sigma,edge_map
+  # multiprocessing of edge fragmentation
+  if (multiproc == true)
+      in_chan = Distributed.RemoteChannel(()->Channel{Int64}(0))
+      out_chan = Distributed.RemoteChannel(()->Channel{Tuple}(0))
+      ordered_dict = SortedDict{Int64,Tuple}()
+      @async begin
+          for i in 1:edgenum
+              put!(in_chan,i)
+          end
+          for p in distributed.workers()
+              put!(in_chan,-1)
+          end
+      end
+      for p in distributed.workers()
+          @async Base.remote_do(frag_edge_channel, p, in_chan, out_chan, V, copEV, bigPI)
+      end
+      for i in 1:edgenum
+          frag_done_job = take!(out_chan)
+          ordered_dict[frag_done_job[1]] = frag_done_job[2]
+      end
+      for (dkey, dval) in ordered_dict
+          i = dkey
+          v, ev = dval
+          newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
+          edge_map[i] = newedges_nums
+          finalcells_num += size(ev, 1)
+          rV, rEV = skel_merge(rV, rEV, v, ev)
+      end
+  else
+      # sequential (iterative) processing of edge fragmentation
+      for i in 1:edgenum
+          v, ev = frag_edge(V, copEV, i, bigPI)
+          newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
+          edge_map[i] = newedges_nums
+          finalcells_num += size(ev, 1)
+          rV = convert(Points, rV)
+          rV, rEV = skel_merge(rV, rEV, v, ev)
+      end
+  end
+  # merging of close vertices and edges (2D congruence)
+  V, copEV = rV, rEV
+  V, copEV = merge_vertices!(V, copEV, edge_map)
+return V,copEV,sigma,edge_map
 end
+
+""" Build the 2D 1-skeleton of arranged face `sigma` """
+#function planar_arrangement_1( V, copEV,
+#		sigma::Chain=spzeros(Int8, 0),
+#		return_edge_map::Bool=false )
+##Print_Organizer("planar_arrangement_1")
+#	# data structures initialization
+#	edgenum = size(copEV, 1)
+#	edge_map = Vector{Vector{Int}}(undef,edgenum)
+#	rV = Points(zeros(0, 2))
+#	rEV = SparseArrays.spzeros(Int8, 0, 0)
+#	finalcells_num = 0
+#
+#	# spaceindex computation
+#	model = (convert(Points,V'), cop2lar(copEV))
+#	bigPI = spaceindex(model)#::LAR)
+#
+#    # sequential (iterative) processing of edge fragmentation
+#   for i in 1:edgenum
+#      v, ev = frag_edge(V, copEV, i, bigPI)
+#      newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
+#      edge_map[i] = newedges_nums
+#      finalcells_num += size(ev, 1)
+#      rV = convert(Points, rV)
+#      rV, rEV = skel_merge(rV, rEV, v, ev)
+#   end
+#    # merging of close vertices and edges (2D congruence)
+#    V, copEV = rV, rEV
+#    V, copEV = merge_vertices!(V, copEV, edge_map)
+#	return V,copEV,sigma,edge_map
+#end
+
 
 # //////////////////////////////////////////////////////////////////////////////
 
