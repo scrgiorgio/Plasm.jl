@@ -17,6 +17,7 @@ NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 IntervalTrees = "524e6230-43b7-53ae-be76-1e9e4d08d11b"
 QHull = "a8468747-bd6f-53ef-9e5c-744dbc5c59e7"
+StaticArrays = "48dec2c7e420f02d6085d346d4cc5125b204e022"
 
 [compat]
 julia = "1"

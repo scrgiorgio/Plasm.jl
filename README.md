@@ -26,7 +26,11 @@ julia test/properties.jl
 julia test/fenvs.jl
 julia test/lar.jl
 julia test/arrangements2d.jl
+julia test/arrangements3d.jl
+julia test/arrangements.jl
 julia test/complex.jl
+# julia test/organizer.jl
+# import Pkg; Pkg.add("ViewerGL")` to install the ViewerGL package.
 ```
 
 # View properties
