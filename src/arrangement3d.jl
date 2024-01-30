@@ -1,5 +1,5 @@
 using Plasm
-export testarrangement, Print_Organizer
+export testarrangement, Print_Organizer, show_exploded
 
 # ////// To compute the histogram of function calls ///////////////////////////////////////////////////
  using DataStructures
@@ -1900,3 +1900,27 @@ end
 ##    inner = !(pointInPolygonClassification(V, copEV)(point) == "p_out")
 ##    return inner
 #end
+
+function show_exploded(V,CVs,FVs,EVs)
+   exploded = explodecells(V, FVs, sx=1.2, sy=1.2, sz=1.2)
+   v=[]
+   for k in 1:length(exploded)
+     face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
+     face_color[4] = 1.0
+     push!(v,PROPERTIES(exploded[k], Dict(
+     "face_color" => face_color, 
+     #"line_color" => GL.BLACK, 
+     "line_width" => 3)))
+   end
+   VIEW(STRUCT(v))
+
+   exploded=explodecells(V, EVs, sx=1.2, sy=1.2, sz=1.2)
+   v=[]
+   for k in 1:length(exploded)
+      line_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
+      line_color[4]=1.0    
+      push!(v,PROPERTIES(exploded[k], 
+            Dict("line_color" => line_color, "line_width" => 3)))
+   end
+   VIEW(STRUCT(v))
+end
