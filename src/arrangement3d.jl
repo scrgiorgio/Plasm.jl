@@ -982,7 +982,7 @@ function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
        end
    end
    nV = V[setdiff(collect(1:vertsnum), todelete), :]
-   V[30,:] = V[26,:] #<<<<<<<<<<<<<<<<<< TEST
+   #V[30,:] = V[26,:] #<<<<<<<<<<<<<<<<<< TEST
 
    # translate edges to take congruence into account
    edges = Array{Tuple{Int, Int}, 1}(undef, edgenum)
@@ -1495,8 +1495,8 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
    # strange but necessary cycle of computations to get FV::Cells algebraically
    FV = (abs.(FE) * abs.(EV)).÷ 2;
    FV = convert(ChainOp, FV);
-   model = V', cop2lar(FV);
-   sp_idx = spaceindex(model)
+   model = V', Plasm.cop2lar(FV);
+   sp_idx = Plasm.spaceindex(model)
 
    rV = Points(undef, 0,3)
    rEV = SparseArrays.spzeros(Int8,0,0)
@@ -1507,16 +1507,27 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	depot_FE = Array{ChainOp,1}(undef,fs_num)
    for sigma in 1:fs_num
      print(sigma, "/", fs_num, "\r")
-     nV, nEV, nFE = frag_face( V, EV, FE, sp_idx, sigma)
+     nV, nEV, nFE = Plasm.frag_face( V, EV, FE, sp_idx, sigma)
+     if !(size(nV,1) - size(nEV,1) + size(nFE,1) == 1) error("single") end
+     
      depot_V[sigma] = nV
      depot_EV[sigma] = nEV
      depot_FE[sigma] = nFE
    end
-	rV = vcat(depot_V...)
-	rEV = SparseArrays.blockdiag(depot_EV...)
-	rFE = SparseArrays.blockdiag(depot_FE...)
+	rV = vcat(depot_V...);
+	rEV = SparseArrays.blockdiag(depot_EV...);
+	rFE = SparseArrays.blockdiag(depot_FE...);
+	if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
+@show rV;
+@show rEV;
+@show rFE;
 
-   rV, rcopEV, rcopFE = merge_vertices(rV, rEV, rFE)
+   rV, rcopEV, rcopFE = merge_vertices(rV, rEV, rFE);
+   
+C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
+println("V - E + F = ", C)   
+   if !(size(rV,1) - size(rcopEV,1) + size(rcopFE,1) == 4) error("merged") end
+   
    rcopCF = build_copFC(rV, rcopEV, rcopFE)
    return rV, rcopEV, rcopFE, rcopCF
 end
@@ -1527,6 +1538,9 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ TGW algorithm implementation (pao) """
 function build_copFC(rV, rcopEV, rcopFE)
+@show rV;
+@show rcopEV;
+@show rcopFE;
 	Print_Organizer("build_copFC")
 #function build_copFC(V,FV,EV,copFE)
 
@@ -1561,6 +1575,9 @@ function build_copFC(rV, rcopEV, rcopFE)
 		end
 		# compute boundary cd2 of seed cell
 		cd2 = copEF * cd1
+@show "0: ", cd1;
+@show "1: ", cd2;
+#if !(cd2 == 1 || !cd2 == -1 || !cd2 == 0) error("cd2 = $(cd2)") end
 		# loop until (boundary) cd2 becomes empty
 		while nnz(cd2)≠0
 			corolla = sparsevec([], Int[], m)
@@ -1601,6 +1618,7 @@ function build_copFC(rV, rcopEV, rcopFE)
 			end
 			# compute again the boundary of cd1
 			cd2 = copEF * cd1
+@show "2: ",cd2;
 		end
 		for σ ∈ SparseArrays.findnz(cd1)[1]
 			# update the counters of used cells
