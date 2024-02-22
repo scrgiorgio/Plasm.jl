@@ -4,8 +4,7 @@
 # //// Global variable. Dictionary of  function names /////////////////////////
 calldict = DefaultDict{String}{Int}(0) 
 
-function Print_Organizer(function_name)
-   if calldict[function_name] == 0
+Print_Organizer,    if calldict[function_name] == 0
       calldict[function_name] = 1
    else 
       calldict[function_name] += 1
@@ -39,8 +38,7 @@ const LAR = Union{
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Triangle containment test of checkpoint into `f`; used in TGW algorithm """
-function interior_to_f(triangle,f,V,FV,EV,FE)::Bool
-	Print_Organizer("interior_to_f")
+interior_to_f, 	Print_Organizer("interior_to_f")
    # affine mapping computation to z=0 plane
 	v1,v2,v3 = triangle
 	u = V[:,v2]-V[:,v1]
@@ -75,16 +73,14 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Test for relative containment of two boxes; used with 2D graphs """
-function bbox_contains(container, contained)::Bool
-	Print_Organizer("bbox_contains")
+bbox_contains, 	Print_Organizer("bbox_contains")
     b1_min, b1_max = container
     b2_min, b2_max = contained
     all(map((i,j,k,l) -> i<=j<=k<=l, b1_min, b2_min, b2_max, b1_max))
 end
 
 """ Multidimensional constructor of bounding box of a vertex subset """
-function bbox(vertices::Points)
-	Print_Organizer("bbox")
+bbox, 	Print_Organizer("bbox")
     minimum = mapslices(x->min(x...), vertices, dims=1)
     maximum = mapslices(x->max(x...), vertices, dims=1)
     minimum, maximum
@@ -95,16 +91,14 @@ end
 using IntervalTrees
 
 """ Compute the boundingbox for multidimensional points """
-function boundingbox(vertices::Points)
-	Print_Organizer("boundingbox")
+boundingbox, 	Print_Organizer("boundingbox")
    minimum = mapslices(x->min(x...), vertices, dims=2)
    maximum = mapslices(x->max(x...), vertices, dims=2)
    return minimum, maximum
 end
 
 """ Make dictionary of boxes for IntervalTrees construction """
-function coordintervals(coord, bboxes)	
-	Print_Organizer("coordintervals")
+coordintervals, 	Print_Organizer("coordintervals")
 	boxdict = OrderedDict{Vector{Float64}, Vector{Int64}}()
 	for (h, box) in enumerate(bboxes)
 		key = box[coord, :]
@@ -118,8 +112,7 @@ function coordintervals(coord, bboxes)
 end
 
 """ Compute the `tree` 1D `covers` for each bounding box `extent` """
-function boxcovering(bboxes, index, tree)
-	Print_Organizer("boxcovering")
+boxcovering, 	Print_Organizer("boxcovering")
   covers = [[] for k=1:length(bboxes)]
   for (i, boundingbox) in enumerate(bboxes)
 	extent = bboxes[i][index,:]
@@ -132,8 +125,7 @@ function boxcovering(bboxes, index, tree)
 end
 
 """ Main to build the multidimensional `spaceindex(model)` for any d-cell type """
-function spaceindex(model)::Vector{Vector{Int}}
-	Print_Organizer("spaceindex")
+spaceindex, 	Print_Organizer("spaceindex")
 	V,CV = model[1:2]
 	dim = size(V,1)
 	cellpoints = [ V[:,CV[k]]::Points for k=1:length(CV) ]
@@ -154,8 +146,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Arrangement of 2D space starting from 1-skeleton in 2D """
-function planar_arrangement(
-        V::Points,
+planar_arrangement,         V::Points,
         copEV::ChainOp,
         sigma::Chain=spzeros(Int8, 0),
         return_edge_map::Bool=false)
@@ -194,8 +185,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Build the 2D 1-skeleton of arranged face `sigma` """
-function planar_arrangement_1( V, copEV,
-		sigma::Chain=spzeros(Int8, 0),
+planar_arrangement_1, 		sigma::Chain=spzeros(Int8, 0),
 		return_edge_map::Bool=false )
 	Print_Organizer("planar_arrangement_1")
 	# data structures initialization
@@ -228,8 +218,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Final task of 2D `planar_arrangement` """
-function planar_arrangement_2(V, copEV,bicon_comps, edge_map,
-		   sigma::Chain=spzeros(Int8, 0))
+planar_arrangement_2, 		   sigma::Chain=spzeros(Int8, 0))
 	Print_Organizer("planar_arrangement_2")
 
    #edges = sort(union(bicon_comps...))
@@ -265,8 +254,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Merge two 1-chains; used by `frag_face` """
-function skel_merge(V1::Points, EV1::ChainOp, V2::Points, EV2::ChainOp)
-	Print_Organizer("skel_merge")
+skel_merge, 	Print_Organizer("skel_merge")
    V = [V1; V2]
    EV = blockdiag(EV1,EV2)
    return V, EV
@@ -279,8 +267,7 @@ end
 # ma non esegue lo splitting di (ogni) `face` 
 # quindi riporta i dati di input alla pipeline !!
 
-function face_int(V::Points, EV::ChainOp, face::Cell)
-	Print_Organizer("face_int")
+face_int, 	Print_Organizer("face_int")
     vs = buildFV(EV, face)     # EV::ChainOp, face::Cell
 #@show vs;
     retV = Points(undef, 0, 3)
@@ -327,8 +314,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Splitting of `sigma` face against faces in `sp_idx[sigma]` """
-function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
-	Print_Organizer("frag_face")
+frag_face, 	Print_Organizer("frag_face")
 
    vs_num = size(V, 1)
 
@@ -357,8 +343,7 @@ end
 #//////////////////////////////////////////////////////////////////////////////KO incompleta
 """ Compute the map from vs (at least three) to z=0 """
 # REMARK: will not work when vs[:,1:3] are aligned !!!!  TODO: fix 
-function submanifold_mapping(vs)
-	Print_Organizer("submanifold_mapping")
+submanifold_mapping, 	Print_Organizer("submanifold_mapping")
    #@show vs;
     u1 = vs[2,:] - vs[1,:]
     u2 = vs[3,:] - vs[1,:]
@@ -377,8 +362,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Intersection of two edges in 2D space (Maria Teresa?) """
-function intersect_edges(V::Points, edge1::Cell, edge2::Cell)
-	Print_Organizer("intersect_edges")
+intersect_edges, 	Print_Organizer("intersect_edges")
     err = 10e-8
 #@show V, findnz(edge1), findnz(edge2);
     x1, y1, x2, y2 = vcat(map(c->V[c, :], edge1.nzind)...)
@@ -420,8 +404,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 	
 """ Fragment in 2D the `edge_idx` edge """
-function frag_edge(V, EV::ChainOp, edge_idx::Int, bigPI)
-	Print_Organizer("frag_edge")
+frag_edge, 	Print_Organizer("frag_edge")
    #@show V, findnz(EV), edge_idx, bigPI[edge_idx];
    alphas = Dict{Float64, Int}()
     edge = EV[edge_idx, :]
@@ -452,8 +435,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Find external cycles (area < 0) in chain complex (FE already computed) """
-function get_external_cycle(V::Points, EV::ChainOp, FE::ChainOp)
-	Print_Organizer("get_external_cycle")
+get_external_cycle, 	Print_Organizer("get_external_cycle")
     FV = abs.(FE)*EV
     vs = sparsevec(mapslices(sum, abs.(EV), dims=1)').nzind
     minv_x1 = maxv_x1 = minv_x2 = maxv_x2 = pop!(vs)
@@ -488,11 +470,9 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ 2D partial input (`function edge_angle`) for multidimensional TGW """
-function minimal_2cycles(V::Points, EV::ChainOp)
-	Print_Organizer("minimal_2cycles")
+minimal_2cycles, 	Print_Organizer("minimal_2cycles")
 
-    function edge_angle(v::Int, e::Int)
-        edge = EV[e, :]
+    edge_angle,         edge = EV[e, :]
         v2 = setdiff(edge.nzind, [v])[1]
         x, y = V[v2, :] - V[v, :]
         return atan(y, x)
@@ -511,8 +491,7 @@ end
 #///// 8.4.1 Extract maximal biconnected graphs  /////////////////////
 # //////////////////////////////////////////////////////////////////////////////
 """ Prune the 2D (graph) of local complex in `planar_arrangement_2`  """
-function componentgraph(V, copEV, bicon_comps)
-	Print_Organizer("componentgraph")
+componentgraph, 	Print_Organizer("componentgraph")
     # arrangement of isolated components
 	n = size(bicon_comps, 1)
    	shells = Array{Chain, 1}(undef, n)
@@ -547,12 +526,10 @@ end
 #///// 8.4.2 Topological gift wrapping in 2D   /////////////////////
 # //////////////////////////////////////////////////////////////////////////////
 """ Main for Furiani's dimension-independent (2D-3D) TGW; used only in 2D """
-function minimal_cycles(angles_fn::Function)
-	Print_Organizer("minimal_cycles")
+minimal_cycles, 	Print_Organizer("minimal_cycles")
 
     """ Actual computational engine for 2D TGW algorithm """
-    function _minimal_cycles(V::Points, ld_bounds::ChainOp)  #  EV)
-    
+    _minimal_cycles,     
         # sembra scritto appositamente per essere illegibile !!
         # posso riscriverlo in modo più umano.
         # molto dipende dall'uso di matrici sparse, inutili, in quanto i
@@ -566,8 +543,7 @@ function minimal_cycles(angles_fn::Function)
 
         angles = Array{Array{Int64, 1}, 1}(undef, lld_cellsnum)
 
-        function get_seed_cell()
-            s = -1
+        get_seed_cell,             s = -1
             for i in 1:ld_cellsnum
                 if count_marks[i] == 0
                     return i
@@ -588,8 +564,7 @@ function minimal_cycles(angles_fn::Function)
             angles[lld] = as
         end
         
-        function nextprev(lld::Int64, ld::Int64, norp)
-            as = angles[lld]
+        nextprev,             as = angles[lld]
             #ne = findfirst(as, ld)  (findfirst(isequal(v), A), 0)[1]
             ne = (findfirst(isequal(ld), as), 0)[1]
             while true
@@ -654,8 +629,7 @@ end
 #///// 8.4.3 Set of 2D local chain complexes   /////////////////////
 # //////////////////////////////////////////////////////////////////////////////
 """ Delete graph edges outside `sigma`s areas; used by `cleandecomposition` """
-function delete_edges(todel, V::Points, EV::ChainOp)
-	Print_Organizer("delete_edges")
+delete_edges, 	Print_Organizer("delete_edges")
     tokeep = setdiff(collect(1:EV.m), todel)
     EV = EV[tokeep, :]
 
@@ -676,8 +650,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Remove external incomplete (open) parts from 2D local arrangements  """
-function cleandecomposition(V, copEV, sigma, edge_map)
-	Print_Organizer("cleandecomposition")
+cleandecomposition, 	Print_Organizer("cleandecomposition")
     # Deletes edges outside sigma area
     todel = []
     new_edges = []
@@ -716,8 +689,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Probably not useful; used in `componentgraph`: Quadratic in 2D shells !! 
 Implementation of DAG of relative containment of complexes (ACM TSAS) """
-function pre_containment_test(bboxes)
-	Print_Organizer("pre_containment_test")
+pre_containment_test, 	Print_Organizer("pre_containment_test")
    n = length(bboxes)
    containment_graph = spzeros(Int8, n, n)
    for i in 1:n
@@ -732,8 +704,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Implementation of DAG of relative containment of complexes (ACM TSAS) """
-function prune_containment_graph(n, V, EVs, shells, graph)
-	Print_Organizer("prune_containment_graph")
+prune_containment_graph, 	Print_Organizer("prune_containment_graph")
     for i in 1:n
         an_edge = shells[i].nzind[1]
         origin_index = EVs[i][an_edge, :].nzind[1]
@@ -758,8 +729,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Implementation of DAG of relative containment of complexes (ACM TSAS) """
-function transitive_reduction!(graph)
-	Print_Organizer("transitive_reduction!")
+transitive_reduction!, 	Print_Organizer("transitive_reduction!")
     n = size(graph, 1)
     for j in 1:n
         for i in 1:n
@@ -778,8 +748,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Collect the edges into different subsets for each face in `copFE` """
-function FV2EVs(copEV::ChainOp, copFE::ChainOp)
-	Print_Organizer("FV2EVs")
+FV2EVs, 	Print_Organizer("FV2EVs")
 	EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
 	FE = [findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
 	EVs = [[EV[e] for e in fe] for fe in FE]
@@ -788,22 +757,19 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Return the  `Cells` (Vector{Vector{Int64}}) datatype """
-function cop2lar(cop::ChainOp)::Cells
-	Print_Organizer("cop2lar")
+cop2lar, 	Print_Organizer("cop2lar")
 	[findnz(cop[k,:])[1] for k=1:size(cop,1)]::Cells
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
-function ord(hinge::Int, bd1::AbstractSparseVector{Int,Int}, V::Points,
-             FV::Cells, EV::Cells, FE::Cells)
+ord,              FV::Cells, EV::Cells, FE::Cells)
 	Print_Organizer("ord")
    
 	cells = SparseArrays.findnz(bd1)[1]
 	triangles = []
 
-	function area(v1,v2,v3)
-		u = V[:,v2]-V[:,v1]
+	area, 		u = V[:,v2]-V[:,v1]
 		v = V[:,v3]-V[:,v1]
 		out = LinearAlgebra.norm(cross(u,v)) # actually, to be divided by two
 		return out
@@ -838,8 +804,7 @@ end
 
 """ Alternate method for buildFV function """
 # REMARK:  what method is used where ??
-function buildFV(copEV::ChainOp, face::Cell)
-	Print_Organizer("buildFV")
+buildFV, 	Print_Organizer("buildFV")
     startv = -1
     nextv = 0
     edge = 0
@@ -860,18 +825,15 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Alternate method for `face_area` function """
-function face_area(V::Points, EV::Cells, face::Cell)
-	Print_Organizer("face_area")
+face_area, 	Print_Organizer("face_area")
     return face_area(V, build_copEV(EV), face)
 end
 
 """ Basic algorithm for polygon area by accumulating signed triangle areas """
-function face_area(V::Points, EV::ChainOp, face::Cell)
-	Print_Organizer("face_area")
+face_area, 	Print_Organizer("face_area")
     
     """ Compute signed triangle area from vertex points """
-    function triangle_area(triangle_points::Points)
-        ret = ones(3,3)
+    triangle_area,         ret = ones(3,3)
         ret[:, 1:2] = triangle_points
         return .5*det(ret)
     end
@@ -891,8 +853,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Predicate to check membership of `vertex` in `vertices_set` array"""
-function vin(vertex, vertices_set)::Bool
-	Print_Organizer("vin")
+vin, 	Print_Organizer("vin")
     for v in vertices_set
         if vequals(vertex, v)
             return true
@@ -903,16 +864,14 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Predicate to check equality of two vertices (only used above) """
-function vequals(v1, v2)
-	Print_Organizer("vequals")
+vequals, 	Print_Organizer("vequals")
     err = 10e-8
     return length(v1) == length(v2) && all(map((x1, x2)->-err < x1-x2 < err, v1, v2))
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ conversion from  `Cells` to  `ChainOp` """
-function lar2cop( CV::Cells )::ChainOp
-	Print_Organizer("lar2cop")
+lar2cop, 	Print_Organizer("lar2cop")
 	I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)	
 	J = vcat( CV...)	
 	X = Int8[1 for k=1:length(I)] 	
@@ -921,15 +880,13 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ conversion from  `ChainOp` to  `Cells` """
-function cop2lar(CV::ChainOp)::Cells
-	Print_Organizer("cop2lar")
+cop2lar, 	Print_Organizer("cop2lar")
 	CV = [findnz(CV[k,:])[1] for k=1:size(CV,1)]
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ conversion from 3D `ChainComplex` to `Vector` of 1-chains in 3D """
-function FV2EVs(copEV::ChainOp, copFE::ChainOp)
-	Print_Organizer("FV2EVs")
+FV2EVs, 	Print_Organizer("FV2EVs")
 	EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
 	FE = [findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
 	EVs = [[EV[e] for e in fe] for fe in FE]
@@ -941,8 +898,7 @@ end
 
 """ Task to iteratively add new local components to the global 2-skeleton """
 # Remark: sensible to `err`; works w `err=1e-6`, "ERROR: no pivot" with `err=1e-7`
-function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
-	Print_Organizer("merge_vertices")
+merge_vertices, 	Print_Organizer("merge_vertices")
    vertsnum = size(V, 1)
    edgenum = size(EV, 1)
    facenum = size(FE, 1)
@@ -1000,8 +956,7 @@ function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
    ] for fi in 1:facenum]
 
    visited = []
-   function filter_fn(face)
-
+   filter_fn, 
        verts = []
        map(e->verts = union(verts, collect(e)), face)
        verts = Set(verts)
@@ -1036,8 +991,7 @@ end
 
 """ Search maximal biconnected components in a graph (no pao) """
 # Hopcroft-Tarjan algorithm. Depth-First-Visit recursive algorithm.
-function DFV_visit( VV::Cells, out::Array, count::Int, visited::Array, parent::Array, d::Array, low::Array, stack::Array, u::Int )::Array
-	Print_Organizer("DFV_visit")
+DFV_visit, 	Print_Organizer("DFV_visit")
 		
     visited[u] = true
     count += 1
@@ -1063,8 +1017,7 @@ function DFV_visit( VV::Cells, out::Array, count::Int, visited::Array, parent::A
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function biconnectedComponent(EV)
-	Print_Organizer("biconnectedComponent")
+biconnectedComponent, 	Print_Organizer("biconnectedComponent")
     V = 1:maximum(EV)
     count = 0
     stack,out = [],[]
@@ -1089,8 +1042,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Algorithm for search of maximal biconnected components in graph (no pao) """
-function biconnected_components(EV::ChainOp)
-	Print_Organizer("biconnected_components")
+biconnected_components, 	Print_Organizer("biconnected_components")
     ps = Array{Tuple{Int, Int, Int}, 1}()
     es = Array{Tuple{Int, Int}, 1}()
     todel = Array{Int, 1}()
@@ -1098,8 +1050,7 @@ function biconnected_components(EV::ChainOp)
     bicon_comps = Array{Array{Int, 1}, 1}()
     hivtx = 1
 
-    function an_edge(point) # TODO: fix bug
-        # error? : BoundsError: attempt to access 0×0 SparseMatrix ...
+    an_edge,         # error? : BoundsError: attempt to access 0×0 SparseMatrix ...
         edges = setdiff(EV[:, point].nzind, todel)
         if length(edges) == 0
             edges = [false]
@@ -1107,12 +1058,10 @@ function biconnected_components(EV::ChainOp)
         edges[1]
     end
 
-    function get_head(edge, tail)
-        setdiff(EV[edge, :].nzind, [tail])[1]
+    get_head,         setdiff(EV[edge, :].nzind, [tail])[1]
     end
 
-    function v_to_vi(v)
-        i = findfirst(t->t[1]==v, ps)
+    v_to_vi,         i = findfirst(t->t[1]==v, ps)
         # seems findfirst changed from 0 to Nothing
         if typeof(i) == Nothing
             return false
@@ -1192,8 +1141,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Merge congruent vertices and edges in `V` and `EV` """
-function merge_vertices!(V::Points, EV::ChainOp, edge_map, err=1e-4)
-	Print_Organizer("merge_vertices!")
+merge_vertices!, 	Print_Organizer("merge_vertices!")
     vertsnum = size(V, 1)
     edgenum = size(EV, 1)
     newverts = zeros(Int, vertsnum)
@@ -1248,11 +1196,9 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Merge a local 2D complex; used in `planar_arrangement_2`, after componentgraph`` """
 # codice incomprensibile, ma funzionante
-function cell_merging(n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
-	Print_Organizer("cell_merging")
+cell_merging, 	Print_Organizer("cell_merging")
 
-   function bboxes(V::Points, indexes::ChainOp)
-   boxes = Array{Tuple{Any, Any}}(undef, indexes.n)
+   bboxes,    boxes = Array{Tuple{Any, Any}}(undef, indexes.n)
    for i in 1:indexes.n
       v_inds = indexes[:, i].nzind
       boxes[i] = bbox(V[v_inds, :])
@@ -1308,8 +1254,7 @@ end
 #///// 10.1.1 Linear operators between linear spaces   /////////////////////
 # //////////////////////////////////////////////////////////////////////////////
 """ Sparse binary matrix constructor for `` d-cells, any `d`. """
-function characteristicMatrix( CV::Cells )::ChainOp
-	Print_Organizer("characteristicMatrix")
+characteristicMatrix, 	Print_Organizer("characteristicMatrix")
 	I,J,V = Int64[],Int64[],Int8[]
 	for f=1:length(CV)
 		for k in CV[f]
@@ -1324,8 +1269,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Alternate method of function `u_coboundary_1` from `Cells` """
-function u_coboundary_1( FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
-	Print_Organizer("u_coboundary_1")
+u_coboundary_1, 	Print_Organizer("u_coboundary_1")
 	copFV = characteristicMatrix(FV)
 	copEV = characteristicMatrix(EV)
 	out = u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex::Bool)
@@ -1334,8 +1278,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Unsigned function `coboundary_1` """
-function u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex=true::Bool)::ChainOp
-	Print_Organizer("u_coboundary_1")
+u_coboundary_1, 	Print_Organizer("u_coboundary_1")
 	temp = copFV * copEV'
 	I,J,Val = Int64[], Int64[], Int8[]
 	for j=1:size(temp,2)
@@ -1357,8 +1300,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Alternate method of function `coboundary_1` from `Cells` """
-function coboundary_1(FV::Cells, EV::Cells) 
-	Print_Organizer("coboundary_1")
+coboundary_1, 	Print_Organizer("coboundary_1")
 	copFV = cop(FV)
 	I,J,Val = findnz(cop(EV))
 	copVE = sparse(J,I,Val)
@@ -1371,8 +1313,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Alternate method of function `coboundary_1` from `ChainOp` """
-function coboundary_1( V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
-	Print_Organizer("coboundary_1")
+coboundary_1, 	Print_Organizer("coboundary_1")
 	# generate unsigned operator's sparse matrix
 	copFV = characteristicMatrix(FV)
 	copEV = characteristicMatrix(EV)
@@ -1383,8 +1324,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Signed `coboundary_1` function, considering the LAR uncompleteness case """
-function coboundary_1( V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool )::ChainOp
-	Print_Organizer("coboundary_1")
+coboundary_1, 	Print_Organizer("coboundary_1")
 
 	copFE = u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex)
 	EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
@@ -1456,8 +1396,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for `coboundary_0` """
-function boundary_1( EV::Cells )::ChainOp
-	Print_Organizer("boundary_1")
+boundary_1, 	Print_Organizer("boundary_1")
 	out = characteristicMatrix(EV)'
 	for e = 1:length(EV)
 		out[EV[e][1],e] = -1
@@ -1471,8 +1410,7 @@ coboundary_0(EV::Cells) = convert(ChainOp, transpose(boundary_1(EV::Cells)))
 
 #///// 10.1.2 C3 space and δ2 :C2 → C3 matrix  /////////////////////
 """ Main function of arrangement pipeline """
-function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
-	Print_Organizer("space_arrangement")
+space_arrangement, 	Print_Organizer("space_arrangement")
    fs_num = size(FE, 1)
    # strange but necessary cycle of computations to get FV::Cells algebraically
    FV = (abs.(FE) * abs.(EV)).÷ 2;
@@ -1508,10 +1446,8 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ TGW algorithm implementation (pao) """
-function build_copFC(rV, rcopEV, rcopFE)
-	Print_Organizer("build_copFC")
-#function build_copFC(V,FV,EV,copFE)
-
+build_copFC, 	Print_Organizer("build_copFC")
+#build_copFC, 
 	# G&F -> Pao data structures
 	V = convert(Points, rV')
 	EV = cop2lar(rcopEV)
@@ -1607,8 +1543,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ Utility function for TGW in 3D """
-function mynext(cycle, pivot)
-	Print_Organizer("mynext")
+mynext, 	Print_Organizer("mynext")
 	len = length(cycle)
 	ind = findall(x -> x==pivot, cycle)[1]
 	nextIndex = ind==len ? 1 : ind+1
@@ -1616,8 +1551,7 @@ function mynext(cycle, pivot)
 end
 
 """ Utility function for TGW in 3D """
-function myprev(cycle, pivot)
-	Print_Organizer("myprev")
+myprev, 	Print_Organizer("myprev")
 	len = length(cycle)
 	ind = findall(x->x==pivot, cycle)[1]
 	nextIndex = ind==1 ? len : ind-1
@@ -1627,8 +1561,7 @@ end
 #///// 10.3.3 Export B-rep to Graphics Files  /////////////////////
 # //////////////////////////////////////////////////////////////////////////////
 """ Correct ordering of triangles (hence faces) about each boundary edge """
-function ordering(triangles,V)
-	Print_Organizer("ordering")
+ordering, 	Print_Organizer("ordering")
 	normals = []
 	v1,v2,v3 = triangles[1]
 	if v1>v2 v1,v2 = v2,v1 end
@@ -1657,8 +1590,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
-function pols2tria(W, copEV, copFE, copCF) # W by columns
-	Print_Organizer("pols2tria")
+pols2tria, 	Print_Organizer("pols2tria")
    V = convert(Points,W')
    #triangulated_faces = mytriangulate(V, [copEV, copFE])
    triangulated_faces = mytriangulate(V, [copEV, copFE])
@@ -1681,8 +1613,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ map 3D faces in z=0 and triangulate them; return a 3D Vector{Cells}  """
-function mytriangulate(V::Points, cc::ChainComplex)   
-	Print_Organizer("mytriangulate")
+mytriangulate, 	Print_Organizer("mytriangulate")
    copEV, copFE = cc[1:2]
 
    triangulated_faces = Vector{Any}(undef, copFE.m)
@@ -1719,15 +1650,13 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Coherently orient the edges of f face """
-function vcycle( copEV::ChainOp, copFE::ChainOp, f::Int )
-	Print_Organizer("vcycle")
+vcycle, 	Print_Organizer("vcycle")
   edges,signs = findnz(copFE[f,:])
   vpairs = [s>0 ? findnz(copEV[e,:])[1] :
               reverse(findnz(copEV[e,:])[1])
            for (e,s) in zip(edges,signs)]
   a = [pair for pair in vpairs if length(pair)==2]
-  function mycat(a::Cells)
-     out=[]
+  mycat,      out=[]
      for cell in a append!(out,cell) end
      return out
   end
@@ -1739,8 +1668,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ CDT Constrained Delaunay Triangulation """
-function triangulate2d(V::Points, EV::Cells)
-	Print_Organizer("triangulate2d")
+triangulate2d, 	Print_Organizer("triangulate2d")
    points = convert(Array{Float64,2}, V')
 	points_map = Array{Int,1}(collect(1:1:size(points)[1]))
    edges_list = convert(Array{Int,2}, hcat(EV...)')
@@ -1762,8 +1690,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ CDT Constrained Delaunay Triangulation """
-function constrained_triangulation2D(V::Points, EV::Cells)
-	Print_Organizer("constrained_triangulation2D")
+constrained_triangulation2D, 	Print_Organizer("constrained_triangulation2D")
 	triin = Triangulate.TriangulateIO()  # object generation
 	triin.pointlist = V
 	triin.segmentlist = hcat(EV...)
@@ -1777,14 +1704,11 @@ end
 #///// 11.1 Point-Polygon Classification   /////////////////////
 # //////////////////////////////////////////////////////////////////////////////
 """ Test of point containment in a polygon face """
-function point_in_face(point, V::Points, copEV::ChainOp)
-	Print_Organizer("point_in_face")
+point_in_face, 	Print_Organizer("point_in_face")
 
-         function pointInPolygonClassification(V,EV)
-
+         pointInPolygonClassification, 
       """ Accumulator of partial increments when halfline crosses vertices """ 
-         function crossingTest(new, old, status, count)
-            if status == 0
+         crossingTest,             if status == 0
                status = new
                return status, (count + 0.5)
             else
@@ -1797,12 +1721,10 @@ function point_in_face(point, V::Points, copEV::ChainOp)
          end
 
       """ Set tile code of boxed point w.r.t nine tiles of 2D plane  """ 
-         function setTile(box)
-           tiles = [[9,1,5],[8,0,4],[10,2,6]]
+         setTile,            tiles = [[9,1,5],[8,0,4],[10,2,6]]
            b1,b2,b3,b4 = box
            """ code point position w.r.t query box using Bitwise OR """
-           function tileCode(point)
-               x,y = point
+           tileCode,                x,y = point
                code = 0
                if y>b1 code=code|1 end
                if y<b2 code=code|2 end
@@ -1814,8 +1736,7 @@ function point_in_face(point, V::Points, copEV::ChainOp)
          end
 
       """ partial function; compute point classification w.r.t polygon edges """
-        function pointInPolygonClassification0(pnt)
-            x,y = pnt
+        pointInPolygonClassification0,             x,y = pnt
             xmin,xmax,ymin,ymax = x,x,y,y
             tilecode = setTile([ymax,ymin,xmax,xmin])
             count,status = 0,0
@@ -1885,8 +1806,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Test the whole arrangement pipeline; return the triangulated geometry """
-function testarrangement(V,FV,EV)
-	Print_Organizer("testarrangement")
+testarrangement, 	Print_Organizer("testarrangement")
 		cop_EV = coboundary_0(EV::Cells)
 		cop_FE = coboundary_1(V, FV::Cells, EV::Cells)
 		W = convert(Points, V');
@@ -1914,7 +1834,7 @@ VIEW(Hpc(V, CV))
 
 V,CVs,FVs,EVs = testarrangement(V,FV,EV);
 
-@show calldict
+#@show calldict
 for key in keys(calldict) 
    println( key, " = ", calldict[key] ) 
 end

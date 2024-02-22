@@ -1,11 +1,7 @@
 
-using Plasm
+export testarrangement, Print_Organizer, show_exploded
 
-export testarrangement, Print_Organizer, show_exploded, FV2EVs,
-
-# ////// To compute the histogram of function calls ///////////////////////////////////////////////////
- using DataStructures
-
+# ////// To compute the histogram of function calls 
 # //// Global variable. Dictionary of  function names /////////////////////////
 calldict = DefaultDict{String}{Int}(0) 
 
@@ -32,15 +28,6 @@ function testarrangement(V,FV,EV)
 		V = convert(Points, V');
 		V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF); 
 end;
-
-# ////// used Julia packages ///////////////////////////////////////////////////
-using DataStructures
-using IntervalTrees
-using Triangulate
-using StaticArrays
-using SparseArrays
-using LinearAlgebra
-using NearestNeighbors
 
 # ///// Types: used for algorithm documentation ////////////////////////////////
 const Points = Matrix
@@ -1520,9 +1507,9 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	rEV = SparseArrays.blockdiag(depot_EV...);
 	rFE = SparseArrays.blockdiag(depot_FE...);
 	#if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
-@show rV;
-@show rEV;
-@show rFE;
+#@show rV;
+#@show rEV;
+#@show rFE;
 
    rV, rcopEV, rcopFE = merge_vertices(rV, rEV, rFE);
    
@@ -1540,9 +1527,9 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ TGW algorithm implementation (pao) """
 function build_copFC(rV, rcopEV, rcopFE)
-@show rV;
-@show rcopEV;
-@show rcopFE;
+#@show rV;
+#@show rcopEV;
+#@show rcopFE;
 	Print_Organizer("build_copFC")
 #function build_copFC(V,FV,EV,copFE)
 
@@ -1577,8 +1564,8 @@ function build_copFC(rV, rcopEV, rcopFE)
 		end
 		# compute boundary cd2 of seed cell
 		cd2 = copEF * cd1
-@show "0: ", cd1;
-@show "1: ", cd2;
+#@show "0: ", cd1;
+#@show "1: ", cd2;
 #if !(cd2 == 1 || !cd2 == -1 || !cd2 == 0) error("cd2 = $(cd2)") end
 		# loop until (boundary) cd2 becomes empty
 		while nnz(cd2)≠0
@@ -1620,7 +1607,7 @@ function build_copFC(rV, rcopEV, rcopFE)
 			end
 			# compute again the boundary of cd1
 			cd2 = copEF * cd1
-@show "2: ",cd2;
+#@show "2: ",cd2;
 		end
 		for σ ∈ SparseArrays.findnz(cd1)[1]
 			# update the counters of used cells

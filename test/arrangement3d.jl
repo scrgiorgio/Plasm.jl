@@ -1,5 +1,4 @@
 # ///////////////////////////////////////////////////////
-using Plasm 
 
 function TestExplode()
    obj = Lar(STRUCT(
@@ -38,7 +37,7 @@ function show_exploded(V,CVs,FVs,EVs)
    end
    VIEW(STRUCT(v))
 
-   exploded=explodecells(V, CVs, sx=5, sy=5, sz=5)
+   exploded=explodecells(V, CVs[2:end], sx=5, sy=5, sz=5)
    v=[]
    for k in 1:length(exploded)
       face_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
@@ -48,13 +47,6 @@ function show_exploded(V,CVs,FVs,EVs)
    VIEW(STRUCT(v))
 end
 
-
-
-
-TestExplode()
-
-# //////////////////////////////////////////////////////////////////////////////
-using DataStructures
 
 # //// Global variable. Dictionary of  function names /////////////////////////
 calldict = DefaultDict{String}{Int}(0) 
