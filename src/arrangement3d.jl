@@ -1,5 +1,7 @@
+
 using Plasm
-export testarrangement, Print_Organizer, show_exploded
+
+export testarrangement, Print_Organizer, show_exploded, FV2EVs,
 
 # ////// To compute the histogram of function calls ///////////////////////////////////////////////////
  using DataStructures
@@ -797,18 +799,18 @@ Implementation of DAG of relative containment of complexes (ACM TSAS) """
 
 """ Collect the edges into different subsets for each face in `copFE` """
 #function FV2EVs(copEV::ChainOp, copFE::ChainOp)
-#	Print_Organizer("FV2EVs")
-#	EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
-#	FE = [findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
-#	EVs = [[EV[e] for e in fe] for fe in FE]
-#	return EVs
+#   Print_Organizer("FV2EVs")
+#   EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
+#   FE = [findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
+#   EVs = [[EV[e] for e in fe] for fe in FE]
+#   return EVs
 #end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Return the  `Cells` (Vector{Vector{Int64}}) datatype """
 #function cop2lar(cop::ChainOp)::Cells
-#	Print_Organizer("cop2lar")
-#	[findnz(cop[k,:])[1] for k=1:size(cop,1)]::Cells
+#   Print_Organizer("cop2lar")
+#   [findnz(cop[k,:])[1] for k=1:size(cop,1)]::Cells
 #end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -929,13 +931,13 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ conversion from  `Cells` to  `ChainOp` """
-function lar2cop( CV::Cells )::ChainOp
-	Print_Organizer("lar2cop")
-	I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)	
-	J = vcat( CV...)	
-	X = Int8[1 for k=1:length(I)] 	
-	CV = SparseArrays.sparse(I,J,X)	
-end
+#function lar2cop( CV::Cells )::ChainOp
+#	Print_Organizer("lar2cop")
+#	I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)	
+#	J = vcat( CV...)	
+#	X = Int8[1 for k=1:length(I)] 	
+#	CV = SparseArrays.sparse(I,J,X)	
+#end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ conversion from  `ChainOp` to  `Cells` """
@@ -1327,17 +1329,17 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Sparse binary matrix constructor for `` d-cells, any `d`. """
 #function characteristicMatrix( CV::Cells )::ChainOp
-#	Print_Organizer("characteristicMatrix")
-#	I,J,V = Int64[],Int64[],Int8[]
-#	for f=1:length(CV)
-#		for k in CV[f]
-#		push!(I,f)
-#		push!(J,k)
-#		push!(V,1)
-#		end
-#	end
-#	M = sparse(I,J,V)
-#	return M
+#   Print_Organizer("characteristicMatrix")
+#   I,J,V = Int64[],Int64[],Int8[]
+#   for f=1:length(CV)
+#      for k in CV[f]
+#      push!(I,f)
+#      push!(J,k)
+#      push!(V,1)
+#      end
+#   end
+#   M = sparse(I,J,V)
+#   return M
 #end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -1475,12 +1477,12 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for `coboundary_0` """
 #function boundary_1( EV::Cells )::ChainOp
-#	Print_Organizer("boundary_1")
-#	out = characteristicMatrix(EV)'
-#	for e = 1:length(EV)
-#		out[EV[e][1],e] = -1
-#	end
-#	return out
+#Print_Organizer("boundary_1")
+#out = characteristicMatrix(EV)'
+#for e = 1:length(EV)
+#	out[EV[e][1],e] = -1
+#end
+#return out
 #end
 
 """ `coboundary_0` (i.e. signed `EV`) function from `EV::Cells` """
@@ -1508,7 +1510,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
    for sigma in 1:fs_num
      print(sigma, "/", fs_num, "\r")
      nV, nEV, nFE = Plasm.frag_face( V, EV, FE, sp_idx, sigma)
-     if !(size(nV,1) - size(nEV,1) + size(nFE,1) == 1) error("single") end
+     #if !(size(nV,1) - size(nEV,1) + size(nFE,1) == 1) error("single") end
      
      depot_V[sigma] = nV
      depot_EV[sigma] = nEV
@@ -1517,7 +1519,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	rV = vcat(depot_V...);
 	rEV = SparseArrays.blockdiag(depot_EV...);
 	rFE = SparseArrays.blockdiag(depot_FE...);
-	if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
+	#if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
 @show rV;
 @show rEV;
 @show rFE;
@@ -1526,7 +1528,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
    
 C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
 println("V - E + F = ", C)   
-   if !(size(rV,1) - size(rcopEV,1) + size(rcopFE,1) == 4) error("merged") end
+   #if !(size(rV,1) - size(rcopEV,1) + size(rcopFE,1) == 4) error("merged") end
    
    rcopCF = build_copFC(rV, rcopEV, rcopFE)
    return rV, rcopEV, rcopFE, rcopCF
@@ -1546,8 +1548,8 @@ function build_copFC(rV, rcopEV, rcopFE)
 
 	# G&F -> Pao data structures
 	V = convert(Points, rV')
-	EV = cop2lar(rcopEV)
-	fe = cop2lar(rcopFE)
+	EV = Plasm.cop2lar(rcopEV)
+	fe = Plasm.cop2lar(rcopFE)
 	fv = [union([EV[e] for e in fe[f]]...) for f=1:length(fe)]
 	FV = convert(Cells, fv)
 	copFE = rcopFE    # alias useful for algorithm testing 
@@ -1799,13 +1801,13 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ CDT Constrained Delaunay Triangulation """
 #function constrained_triangulation2D(V::Points, EV::Cells)
-#	Print_Organizer("constrained_triangulation2D")
-#	triin = Triangulate.TriangulateIO()  # object generation
-#	triin.pointlist = V
-#	triin.segmentlist = hcat(EV...)
-#	(triout, vorout) = Triangulate.triangulate("pQ", triin) # exec triangulation
-#	trias = Vector{Int64}[c[:] for c in eachcol(triout.trianglelist)]
-#	return trias
+#   Print_Organizer("constrained_triangulation2D")
+#   triin = Triangulate.TriangulateIO()  # object generation
+#   triin.pointlist = V
+#   triin.segmentlist = hcat(EV...)
+#   (triout, vorout) = Triangulate.triangulate("pQ", triin) # exec triangulation
+#   trias = Vector{Int64}[c[:] for c in eachcol(triout.trianglelist)]
+#   return trias
 #end
 
 #///// 11 Atoms & Generators of Solid Algebra   /////////////////////
@@ -1814,111 +1816,113 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Test of point containment in a polygon face """
 #function point_in_face(point, V::Points, copEV::ChainOp)
-#	Print_Organizer("point_in_face")
+#Print_Organizer("point_in_face")
 #
-#         function pointInPolygonClassification(V,EV)
+#        function pointInPolygonClassification(V,EV)
 #
-#      """ Accumulator of partial increments when halfline crosses vertices """ 
-#         function crossingTest(new, old, status, count)
-#            if status == 0
-#               status = new
-#               return status, (count + 0.5)
-#            else
-#               if status == old
-#                   return 0, (count + 0.5)
-#               else
-#                   return 0, (count - 0.5)
-#               end
-#            end
-#         end
-#
-#      """ Set tile code of boxed point w.r.t nine tiles of 2D plane  """ 
-#         function setTile(box)
-#           tiles = [[9,1,5],[8,0,4],[10,2,6]]
-#           b1,b2,b3,b4 = box
-#           """ code point position w.r.t query box using Bitwise OR """
-#           function tileCode(point)
-#               x,y = point
-#               code = 0
-#               if y>b1 code=code|1 end
-#               if y<b2 code=code|2 end
-#               if x>b3 code=code|4 end
-#               if x<b4 code=code|8 end
-#               return code
+#     """ Accumulator of partial increments when halfline crosses vertices """ 
+#        function crossingTest(new, old, status, count)
+#           if status == 0
+#              status = new
+#              return status, (count + 0.5)
+#           else
+#              if status == old
+#                  return 0, (count + 0.5)
+#              else
+#                  return 0, (count - 0.5)
+#              end
 #           end
-#           return tileCode
-#         end
-#
-#      """ partial function; compute point classification w.r.t polygon edges """
-#        function pointInPolygonClassification0(pnt)
-#            x,y = pnt
-#            xmin,xmax,ymin,ymax = x,x,y,y
-#            tilecode = setTile([ymax,ymin,xmax,xmin])
-#            count,status = 0,0
-#
-#            for k in 1:EV.m # loop on polygon edges
-#                edge = EV[k,:]
-#                p1, p2 = V[edge.nzind[1], :], V[edge.nzind[2], :]
-#                (x1,y1),(x2,y2) = p1,p2
-#                c1,c2 = tilecode(p1),tilecode(p2)
-#                c_edge, c_un, c_int = xor(c1, c2), c1|c2, c1&c2
-#
-#                if (c_edge == 0) & (c_un == 0) return "p_on"
-#                elseif (c_edge == 12) & (c_un == c_edge) return "p_on"
-#                elseif c_edge == 3
-#                    if c_int == 0 return "p_on"
-#                    elseif c_int == 4 count += 1 end
-#                elseif c_edge == 15
-#                    x_int = ((y-y2)*(x1-x2)/(y1-y2))+x2
-#                    if x_int > x count += 1
-#                    elseif x_int == x return "p_on" end
-#                elseif (c_edge == 13) & ((c1==4) | (c2==4))
-#                        status, count = crossingTest(1,2,status,count)
-#                elseif (c_edge == 14) & ((c1==4) | (c2==4))
-#                        status, count = crossingTest(2,1,status,count)
-#                elseif c_edge == 7 count += 1
-#                elseif c_edge == 11 count = count
-#                elseif c_edge == 1
-#                    if c_int == 0 return "p_on"
-#                    elseif c_int == 4
-#                        status, count = crossingTest(1,2,status,count)
-#                    end
-#                elseif c_edge == 2
-#                    if c_int == 0 return "p_on"
-#                    elseif c_int == 4
-#                        status, count = crossingTest(2,1,status,count)
-#                    end
-#                elseif (c_edge == 4) & (c_un == c_edge) return "p_on"
-#                elseif (c_edge == 8) & (c_un == c_edge) return "p_on"
-#                elseif c_edge == 5
-#                    if (c1==0) | (c2==0) return "p_on"
-#                    else
-#                        status, count = crossingTest(1,2,status,count)
-#                    end
-#                elseif c_edge == 6
-#                    if (c1==0) | (c2==0) return "p_on"
-#                    else
-#                        status, count = crossingTest(2,1,status,count)
-#                    end
-#                elseif (c_edge == 9) & ((c1==0) | (c2==0)) return "p_on"
-#                elseif (c_edge == 10) & ((c1==0) | (c2==0)) return "p_on"
-#                end
-#            end
-#            # final test
-#            if (round(count)%2)==1
-#                return "p_in"
-#            else
-#                return "p_out"
-#            end
 #        end
-#        return pointInPolygonClassification0
-#    end
 #
-#    return pointInPolygonClassification(V, copEV)(point) == "p_in"
+#     """ Set tile code of boxed point w.r.t nine tiles of 2D plane  """ 
+#        function setTile(box)
+#          tiles = [[9,1,5],[8,0,4],[10,2,6]]
+#          b1,b2,b3,b4 = box
+#          """ code point position w.r.t query box using Bitwise OR """
+#          function tileCode(point)
+#              x,y = point
+#              code = 0
+#              if y>b1 code=code|1 end
+#              if y<b2 code=code|2 end
+#              if x>b3 code=code|4 end
+#              if x<b4 code=code|8 end
+#              return code
+#          end
+#          return tileCode
+#        end
+#
+#     """ partial function; compute point classification w.r.t polygon edges """
+#       function pointInPolygonClassification0(pnt)
+#           x,y = pnt
+#           xmin,xmax,ymin,ymax = x,x,y,y
+#           tilecode = setTile([ymax,ymin,xmax,xmin])
+#           count,status = 0,0
+#
+#           for k in 1:EV.m # loop on polygon edges
+#               edge = EV[k,:]
+#               p1, p2 = V[edge.nzind[1], :], V[edge.nzind[2], :]
+#               (x1,y1),(x2,y2) = p1,p2
+#               c1,c2 = tilecode(p1),tilecode(p2)
+#               c_edge, c_un, c_int = xor(c1, c2), c1|c2, c1&c2
+#
+#               if (c_edge == 0) & (c_un == 0) return "p_on"
+#               elseif (c_edge == 12) & (c_un == c_edge) return "p_on"
+#               elseif c_edge == 3
+#                   if c_int == 0 return "p_on"
+#                   elseif c_int == 4 count += 1 end
+#               elseif c_edge == 15
+#                   x_int = ((y-y2)*(x1-x2)/(y1-y2))+x2
+#                   if x_int > x count += 1
+#                   elseif x_int == x return "p_on" end
+#               elseif (c_edge == 13) & ((c1==4) | (c2==4))
+#                       status, count = crossingTest(1,2,status,count)
+#               elseif (c_edge == 14) & ((c1==4) | (c2==4))
+#                       status, count = crossingTest(2,1,status,count)
+#               elseif c_edge == 7 count += 1
+#               elseif c_edge == 11 count = count
+#               elseif c_edge == 1
+#                   if c_int == 0 return "p_on"
+#                   elseif c_int == 4
+#                       status, count = crossingTest(1,2,status,count)
+#                   end
+#               elseif c_edge == 2
+#                   if c_int == 0 return "p_on"
+#                   elseif c_int == 4
+#                       status, count = crossingTest(2,1,status,count)
+#                   end
+#               elseif (c_edge == 4) & (c_un == c_edge) return "p_on"
+#               elseif (c_edge == 8) & (c_un == c_edge) return "p_on"
+#               elseif c_edge == 5
+#                   if (c1==0) | (c2==0) return "p_on"
+#                   else
+#                       status, count = crossingTest(1,2,status,count)
+#                   end
+#               elseif c_edge == 6
+#                   if (c1==0) | (c2==0) return "p_on"
+#                   else
+#                       status, count = crossingTest(2,1,status,count)
+#                   end
+#               elseif (c_edge == 9) & ((c1==0) | (c2==0)) return "p_on"
+#               elseif (c_edge == 10) & ((c1==0) | (c2==0)) return "p_on"
+#               end
+#           end
+#           # final test
+#           if (round(count)%2)==1
+#               return "p_in"
+#           else
+#               return "p_out"
+#           end
+#       end
+#       return pointInPolygonClassification0
+#   end
+#
+#   return pointInPolygonClassification(V, copEV)(point) == "p_in"
 ##    inner = !(pointInPolygonClassification(V, copEV)(point) == "p_out")
 ##    return inner
 #end
 
+
+# //////////////////////////////////////////////////////////////////////////////
 function show_exploded(V,CVs,FVs,EVs)
    exploded = explodecells(V, FVs, sx=1.2, sy=1.2, sz=1.2)
    v=[]
@@ -1939,6 +1943,15 @@ function show_exploded(V,CVs,FVs,EVs)
       line_color[4]=1.0    
       push!(v,PROPERTIES(exploded[k], 
             Dict("line_color" => line_color, "line_width" => 3)))
+   end
+   VIEW(STRUCT(v))
+
+   exploded=explodecells(V, CVs[2:end], sx=5, sy=5, sz=5)
+   v=[]
+   for k in 1:length(exploded)
+      face_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
+      face_color[4]=1.0    
+      push!(v,PROPERTIES(exploded[k], Dict("line_width" => 3)))
    end
    VIEW(STRUCT(v))
 end

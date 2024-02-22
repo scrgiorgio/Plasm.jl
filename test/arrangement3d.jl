@@ -37,6 +37,15 @@ function show_exploded(V,CVs,FVs,EVs)
             Dict("line_color" => line_color, "line_width" => 3)))
    end
    VIEW(STRUCT(v))
+
+   exploded=explodecells(V, CVs, sx=5, sy=5, sz=5)
+   v=[]
+   for k in 1:length(exploded)
+      face_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
+      face_color[4]=1.0    
+      push!(v,PROPERTIES(exploded[k], Dict("line_width" => 3)))
+   end
+   VIEW(STRUCT(v))
 end
 
 

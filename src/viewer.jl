@@ -1553,7 +1553,8 @@ function GLText(
 		EV=nothing, 
 		FV=nothing, 
 		V_color=Point4d(1,1,1,1),
-		EV_color=Point4d(1,0,0,1),
+		#EV_color=Point4d(1,0,0,1),
+		EV_color=Point4d(0,0,1,1),
 		FV_color=Point4d(0,1,0,1),
 		single_w=0.05)
 

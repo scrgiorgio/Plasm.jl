@@ -6,7 +6,8 @@ using Triangulate
 using IntervalTrees
 
 export arrange2D, Points, Cells, Cell, Chain, ChainOp, ChainComplex,
-bbox
+bbox, FV2EVs, cop2lar, lar2cop, characteristicMatrix, boundary_1, coboundary_0,
+constrained_triangulation2D, point_in_face
 
 const Points = Matrix
 const Cells = Vector{Vector{Int}}
@@ -416,17 +417,17 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 
-#function lar2cop(CV::Cells)::ChainOp
-#    lar_print("boxcovering")
-#	I = Int[]; J = Int[]; Value = Int8[];
-#	for k=1:size(CV,1)
-#		n = length(CV[k])
-#		append!(I, k * ones(Int, n))
-#		append!(J, CV[k])
-#		append!(Value, ones(Int, n))
-#	end
-#	return SparseArrays.sparse(I,J,Value)
-#end
+function lar2cop(CV::Cells)::ChainOp
+   lar_print("boxcovering")
+I = Int[]; J = Int[]; Value = Int8[];
+for k=1:size(CV,1)
+	n = length(CV[k])
+	append!(I, k * ones(Int, n))
+	append!(J, CV[k])
+	append!(Value, ones(Int, n))
+end
+return SparseArrays.sparse(I,J,Value)
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -1058,34 +1059,34 @@ model = (convert(Points,V'),cop2lar(copEV))
 bigPI = spaceindex(model)
 
   # multiprocessing of edge fragmentation
-  if (multiproc == true)
-      in_chan = Distributed.RemoteChannel(()->Channel{Int64}(0))
-      out_chan = Distributed.RemoteChannel(()->Channel{Tuple}(0))
-      ordered_dict = SortedDict{Int64,Tuple}()
-      @async begin
-          for i in 1:edgenum
-              put!(in_chan,i)
-          end
-          for p in distributed.workers()
-              put!(in_chan,-1)
-          end
-      end
-      for p in distributed.workers()
-          @async Base.remote_do(frag_edge_channel, p, in_chan, out_chan, V, copEV, bigPI)
-      end
-      for i in 1:edgenum
-          frag_done_job = take!(out_chan)
-          ordered_dict[frag_done_job[1]] = frag_done_job[2]
-      end
-      for (dkey, dval) in ordered_dict
-          i = dkey
-          v, ev = dval
-          newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
-          edge_map[i] = newedges_nums
-          finalcells_num += size(ev, 1)
-          rV, rEV = skel_merge(rV, rEV, v, ev)
-      end
-  else
+#  if (multiproc == true)
+#      in_chan = Distributed.RemoteChannel(()->Channel{Int64}(0))
+#      out_chan = Distributed.RemoteChannel(()->Channel{Tuple}(0))
+#      ordered_dict = SortedDict{Int64,Tuple}()
+#      @async begin
+#          for i in 1:edgenum
+#              put!(in_chan,i)
+#          end
+#          for p in distributed.workers()
+#              put!(in_chan,-1)
+#          end
+#      end
+#      for p in distributed.workers()
+#          @async Base.remote_do(frag_edge_channel, p, in_chan, out_chan, V, copEV, bigPI)
+#      end
+#      for i in 1:edgenum
+#          frag_done_job = take!(out_chan)
+#          ordered_dict[frag_done_job[1]] = frag_done_job[2]
+#      end
+#      for (dkey, dval) in ordered_dict
+#          i = dkey
+#          v, ev = dval
+#          newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
+#          edge_map[i] = newedges_nums
+#          finalcells_num += size(ev, 1)
+#          rV, rEV = skel_merge(rV, rEV, v, ev)
+#      end
+#  else
       # sequential (iterative) processing of edge fragmentation
       for i in 1:edgenum
           v, ev = frag_edge(V, copEV, i, bigPI)
@@ -1095,7 +1096,7 @@ bigPI = spaceindex(model)
           rV = convert(Points, rV)
           rV, rEV = skel_merge(rV, rEV, v, ev)
       end
-  end
+#  end
   # merging of close vertices and edges (2D congruence)
   V, copEV = rV, rEV
   V, copEV = merge_vertices!(V, copEV, edge_map)

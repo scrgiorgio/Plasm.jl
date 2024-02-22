@@ -242,6 +242,7 @@ end
 """
     SPHERE(radius=1.0::Number)(subds=[16,32]::Vector{Int})
 Generate a polyhedral approximation of a spherical surface in 3D.
+Maximum correct refinemet is LAR(SPHERE(2)([73,40]))
 
 # Examples
 ```jldoctest
