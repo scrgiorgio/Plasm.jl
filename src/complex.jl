@@ -1,7 +1,7 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING
+export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING,VIEWCOMPLEX2
 
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
@@ -212,6 +212,34 @@ function VIEWCOMPLEX(mesh::Lar)
    end
    View(batches)
 end
+
+
+
+# display vertices and edges with custom text
+function VIEWCOMPLEX2(V, Vtext, EV, EVtext)
+
+   W = [V[:,k] for k=1:size(V,2)]
+
+   obj = Hpc(V,EV)
+   batches=Vector{GLBatch}()
+   append!(batches,GetBatchesForHpc(obj))
+
+	for I in 1:length(W)
+		append!(batches, GLText(Vtext[I],center=ComputeCentroid([W[it] for it in [I]]), color=Point4d(1,1,1,1)) )
+	end
+
+	if EV!=nothing
+		for I in 1:length(EV)
+			append!(batches, GLText(EVtext[I],center=ComputeCentroid([W[it] for it in EV[I]]), color=Point4d(1,0,1,1)) )
+		end
+	end
+
+
+   View(batches)
+
+end
+
+
 
 # //////////////////////////////////////////////////////////////////////////////
 """

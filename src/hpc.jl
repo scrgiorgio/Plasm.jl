@@ -6,7 +6,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
 	View,View2D,
-	GetBatchesForHpc,GetBatchesForGeometry
+	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid
 
 import Base.:(==)
 import Base.:*
