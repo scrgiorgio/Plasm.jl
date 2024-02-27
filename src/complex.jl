@@ -241,7 +241,7 @@ function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
    # show faces
    if FV!=nothing
       for I in 1:length(FV)
-         append!(batches,GLText(string(I),center=ComputeCentroid([W[it] for it in FV[I]]), color=Point4d(0,1,1,1)))
+         append!(batches,GLText(FVtext[I],center=ComputeCentroid([W[it] for it in FV[I]]), color=Point4d(0,1,1,1)))
       end
    end
 
