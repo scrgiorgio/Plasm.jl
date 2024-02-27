@@ -216,24 +216,34 @@ end
 
 
 # display vertices and edges with custom text
-function VIEWCOMPLEX2(V, Vtext, EV, EVtext)
 
-   W = [V[:,k] for k=1:size(V,2)]
+# ///////////////////////////////////////////////////
+function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
 
    obj = Hpc(V,EV)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
 
-	for I in 1:length(W)
-		append!(batches, GLText(Vtext[I],center=ComputeCentroid([W[it] for it in [I]]), color=Point4d(1,1,1,1)) )
-	end
+   # show vertices
+   W = [V[:,k] for k=1:size(V,2)]
+   for I in 1:length(W)
+      append!(batches, GLText(Vtext[I],center=ComputeCentroid([W[it] for it in [I]]), color=Point4d(1,1,1,1)) )
+   end
 
-	if EV!=nothing
-		for I in 1:length(EV)
-			append!(batches, GLText(EVtext[I],center=ComputeCentroid([W[it] for it in EV[I]]), color=Point4d(1,0,1,1)) )
-		end
-	end
 
+   # show edges
+   if EV!=nothing
+      for I in 1:length(EV)
+         append!(batches, GLText(EVtext[I],center=ComputeCentroid([W[it] for it in EV[I]]), color=Point4d(1,0,1,1)) )
+      end
+   end
+
+   # show faces
+   if FV!=nothing
+      for I in 1:length(FV)
+         append!(batches,GLText(string(I),center=ComputeCentroid([W[it] for it in FV[I]]), color=Point4d(0,1,1,1)))
+      end
+   end
 
    View(batches)
 
