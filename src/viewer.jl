@@ -1502,6 +1502,12 @@ SINGLE_H=6.0
 # ////////////////////////////////////////////////////////////////////////////
 function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=0.05, color=Point4d(0,0,0,1))
 
+	ret=Vector{GLBatch}()
+
+	if mystring==""
+		return ret;
+	end
+
 	sx=single_w/SINGLE_W
 	sy=sx*(SINGLE_H/SINGLE_W)
 
@@ -1541,7 +1547,7 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=
 	batch.vertices=GLVertexBuffer(vertices)
 	batch.colors  =GLVertexBuffer(colors)
 
-	ret=Vector{GLBatch}()
+	
 	push!(ret,batch)
 	return ret
 end

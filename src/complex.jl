@@ -220,6 +220,10 @@ end
 # ///////////////////////////////////////////////////
 function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
 
+   used_vertices=[]
+   for v in EV append!(used_vertices,v) end
+   for v in FV append!(used_vertices,v) end
+
    obj = Hpc(V,EV)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
@@ -227,7 +231,7 @@ function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
    # show vertices
    W = [V[:,k] for k=1:size(V,2)]
    for I in 1:length(W)
-      append!(batches, GLText(Vtext[I],center=ComputeCentroid([W[it] for it in [I]]), color=Point4d(1,1,1,1)) )
+      append!(batches, GLText( (I in used_vertices ? Vtext[I] : ""),center=ComputeCentroid([W[it] for it in [I]]), color=Point4d(1,1,1,1)) )
    end
 
 
