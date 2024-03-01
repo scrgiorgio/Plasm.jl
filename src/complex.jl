@@ -186,36 +186,33 @@ Remark: Any `Hpc` object may by visualized with numbered cells of its 2D or boun
 	VIEWCOMPLEX(LAR(MAP(mapping)(domain)))
 ```
 """
-function VIEWCOMPLEX(mesh::Lar)
+function VIEWCOMPLEX(mesh::Lar; properties::Dict=Dict())
+
+   # set defaultx for alberto
+   properties["background_color"] = get(properties,"background_color", Point4d(1.0,1.0,1.0, 1.0))
+   properties["line_color"]       = get(properties,"line_color"      , Point4d(0.0,0.0,0.0, 1.0))
+   properties["text_v_color" ]    = get(properties,"text_v_color"    , Point4d(0.0,0.0,0.0, 1.0))
+   properties["text_ev_color"]    = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
+   properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
+
    V = mesh.V; EV = mesh.C[:EV]
-   obj = Hpc(V,EV)
+   obj =PROPERTIES(Hpc(V,EV),properties)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
-   if :FV in keys(mesh.C)
-      FV = mesh.C[:FV]
-      append!(batches,GLText(
-         [V[:,k] for k=1:size(V,2)],
-         EV=[it for it in EV],
-         FV=FV,
-         V_color=Point4d(1,1,1,1),
-         EV_color=Point4d(1,0,1,1),
-         FV_color=Point4d(0,1,0,1)
-      ))
-   else
-      append!(batches,GLText(
-         [V[:,k] for k=1:size(V,2)],
-         EV=[it for it in EV],
-         V_color=Point4d(1,1,1,1),
-         EV_color=Point4d(1,0,1,1),
-         FV_color=Point4d(0,1,0,1)
-      ))
-   end
-   View(batches)
+
+   # draw TEXT for vertices, edges, faces
+   append!(batches,GLText(
+      [V[:,k] for k=1:size(V,2)],
+      EV=[it for it in EV],
+      FV=:FV in keys(mesh.C) ? mesh.C[:FV] : nothing,
+      V_color =properties["text_v_color"] ,
+      EV_color=properties["text_ev_color"],
+      FV_color=properties["text_fv_color"]
+   ))
+   
+   View(batches,properties)
 end
 
-
-
-# display vertices and edges with custom text
 
 # ///////////////////////////////////////////////////
 function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
