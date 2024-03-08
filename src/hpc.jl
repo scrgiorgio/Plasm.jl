@@ -6,7 +6,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
 	View,View2D,
-	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid
+	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup
 
 import Base.:(==)
 import Base.:*
@@ -542,10 +542,15 @@ function dim(self::Hpc)
 	return dim(self.T) - 1
 end
 
-function toList(self::Hpc)
+HpcGroup=Vector{Tuple{MatrixNd,Dict,Union{Hpc,Geometry}}}
+
+function toList(Tdim::Int64, T::MatrixNd, properties::Dict, node::Hpc)::HpcGroup
 	ret = []
-	Tdim = dim(self) + 1
-	stack = [[MatrixNd(Tdim), Dict(), self]]
+
+	# to visit
+	stack = HpcGroup()
+	push!(stack, (T, properties, node))
+
 	while !isempty(stack)
 		T, properties, node = pop!(stack)
 		if isa(node, Hpc)
@@ -557,13 +562,18 @@ function toList(self::Hpc)
 					end
 				end
 				for child in node.childs
-					push!(stack, [T, properties, child])
+					push!(stack, (T, properties, child))
 				end
 		else
-				push!(ret, [T, properties, node])
+				push!(ret, (T, properties, node))
 		end
 	end
 	return ret
+end
+
+function toList(node::Hpc)::HpcGroup
+	Tdim = dim(node) + 1
+	return toList(Tdim, MatrixNd(Tdim),Dict(), node)
 end
 
 function box(self::Hpc)
