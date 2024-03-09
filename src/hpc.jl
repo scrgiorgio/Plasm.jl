@@ -6,7 +6,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
 	View,View2D,
-	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry
+	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
 
 import Base.:(==)
 import Base.:*
@@ -621,6 +621,43 @@ function ToMultiGeometry(T1::MatrixNd, self::Hpc)::Vector{Geometry}
 	return ret
 end
 
+
+
+# ///////////////////////////////////////////////////////
+function TOPOS(ret::Vector{Hpc}, target_dim::Int64, T::MatrixNd, properties::Dict, node::Union{Hpc, Geometry}, stop_key::String, stop_value::String, multi_geometry::Bool)
+
+	# need to STOP anyway
+	if isa(node,Geometry)
+		push!(ret,Hpc(T, [node], properties))
+		return 
+	end
+
+	# STOP , aggregate childs (need two levels)
+	if get!(node.properties, stop_key, nothing)==stop_value
+		push!(ret,Hpc(multi_geometry ? ToMultiGeometry(T, node) : ToSingleGeometry(T, node)))
+		return
+	end
+
+	for child in node.childs
+		Tchild=embed(T,target_dim) * embed(node.T, target_dim)
+		Pchild=merge(properties,node.properties)
+		TOPOS(ret, target_dim, Tchild, Pchild, child, stop_key, stop_value, multi_geometry)
+	end
+	
+end
+
+ # ///////////////////////////////////////////////////////
+ function TOPOS(node::Hpc; label::String="solid", multi_geometry::Bool=false)::Vector{Hpc}
+	target_dim=dim(node) + 1
+	ret=Vector{Hpc}()
+	TOPOS(ret,target_dim, MatrixNd(target_dim), Dict(), node, "node_type", label, multi_geometry)
+	return ret
+ end
+
+# ///////////////////////////////////////////////////////
+function TYPE(node::Hpc, label::String)::Hpc
+	return PROPERTIES(node,Dict("node_type"=>label))
+end
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 function box(self::Hpc)
