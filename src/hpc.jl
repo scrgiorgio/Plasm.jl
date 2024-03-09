@@ -6,7 +6,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
 	View,View2D,
-	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup
+	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry
 
 import Base.:(==)
 import Base.:*
@@ -522,13 +522,23 @@ mutable struct Hpc
 	 end
 end
 	 
+function Hpc(g::Geometry; properties=Dict())
+	return Hpc(MatrixNd(0),[g], properties)
+end
+
+	 
+function Hpc(gs::Vector{Geometry}; properties=Dict())
+	return Hpc(MatrixNd(0),gs, properties)
+end
+
 
 function Base.show(io::IO, self::Hpc)
 	print(io, "Hpc(")
 	print(io, self.T)
 
-	if length(self.childs)>0
-		print(io, ", ", self.childs)
+	nchilds=length(self.childs)
+	if nchilds>0
+		print(io, ", ", nchilds==1 ? self.childs[1] : self.childs)
 	end
 
 	if length(self.properties)>0
@@ -576,6 +586,43 @@ function toList(node::Hpc)::HpcGroup
 	return toList(Tdim, MatrixNd(Tdim),Dict(), node)
 end
 
+
+# ////////////////////////////////////////////////////////////////////////////////////////
+function ToSingleGeometry(T1::MatrixNd, self::Hpc)::Geometry
+	ret=Geometry()
+	for (T2, properties, obj) in toList(self)
+		@assert isa(obj,Geometry)
+		hulls=[hull for hull in obj.hulls if length(hull)>0]
+		Tdim=max(dim(T1),dim(T2))
+		T=embed(T1,Tdim) * embed(T2,Tdim)
+		for hull in hulls
+			points=[transformPoint(T, obj.points[idx]) for idx in hull]
+			addHull(ret, points)
+		end
+	end
+	return ret
+end
+
+# ////////////////////////////////////////////////////////////////////////////////////////
+function ToMultiGeometry(T1::MatrixNd, self::Hpc)::Vector{Geometry}
+	ret=Vector{Geometry}()
+	for (T2, properties, obj) in toList(self)
+		@assert isa(obj,Geometry)
+		sub=Geometry()
+		hulls=[hull for hull in obj.hulls if length(hull)>0]
+		Tdim=max(dim(T1),dim(T2))
+		T=embed(T1,Tdim) * embed(T2,Tdim)
+		for hull in hulls
+			points=[transformPoint(T, obj.points[idx]) for idx in hull]
+			addHull(sub, points)
+		end
+		push!(ret,sub)
+	end
+	return ret
+end
+
+
+# ////////////////////////////////////////////////////////////////////////////////////////
 function box(self::Hpc)
 	box = BoxNd(dim(self))
 	for (T, properties, obj) in toList(self)
