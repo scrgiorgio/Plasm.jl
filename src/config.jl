@@ -15,3 +15,5 @@ function set_config(key,value)
   __config[key]=value
 end
 
+using DataStructures
+global calldict = DefaultDict{String}{Int}(0) 

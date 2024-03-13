@@ -5,9 +5,9 @@ include("./viewer.jl")
 include("./hpc.jl")
 include("./fenvs.jl")
 include("./hpc2lar.jl")
-include("./arrangement2d.jl")
-include("./arrangement3d.jl")
+include("./arrange.jl")
 include("./complex.jl")
+include("./boolean.jl")
 
 # module init
 function __init__()
