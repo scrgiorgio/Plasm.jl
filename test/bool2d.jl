@@ -3,6 +3,58 @@ Lar = LinearAlgebraicRepresentation;
 using IntervalTrees,LinearAlgebra
 # using Revise, OhMyREPL
 
+using DataStructures, Base
+
+function LAR(obj::Hpc)::Lar
+   V = ToLAR(obj).childs[1].points;
+   EV = ToLAR(obj).childs[1].edges;
+   FV = ToLAR(obj).childs[1].facets;
+   V,FV,EV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
+   if !(FV == [])
+      FV = union(FV)
+      FF = CSC(FV) * CSC(FV)'
+      edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
+      EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
+   elseif all(length(x)==2 for x in EV) 
+      return Plasm.Lar(1,V, Dict(:EV=>EV))
+   end
+   return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
+end
+
+
+function simplifyCells(V,CV)
+	PRECISION = 14
+	vertDict = DefaultOrderedDict{Vector{Float64}, Int64}(0)
+	index = 0
+	W = Vector{Float64}[]
+	FW = Vector{Int64}[]
+
+	for incell in CV
+		outcell = Int64[]
+		for v in incell
+			vert = V[:,v]
+			key = map(Base.truncate(PRECISION), vert)
+			if vertDict[key]==0
+				index += 1
+				vertDict[key] = index
+				push!(outcell, index)
+				push!(W,key)
+			else
+				push!(outcell, vertDict[key])
+			end
+		end
+		append!(FW, [[Set(outcell)...]])
+	end
+	return hcat(W...), filter(x->!(LEN(x)<2), FW)
+end
+
+function simplifyCells(V,FV,EV)
+   V,FV = simplifyCells(V,CV)
+   V,EV = simplifyCells(V,EV)
+   return V,FV,EV
+end
+
+
 # //////////////////////////////////////////////////////////////////////////////
 function settestpoints2d(W,EV,FV,f, copEV,copFE) # W by rows
 	e = findnz(copFE[f,:])[1][1] # first edge of face f
@@ -96,6 +148,9 @@ end
 
 function bool2d(assembly::Hpc)
 	# input of affine assembly
+	# input of affine assembly
+   ensemble = LAR(assembly)
+   V,FV,EV = new2old(ensemble)
 	#----------------------------------------------------------------------------
 	# V,EV = Lar.struct2lar(assembly) #TODO proper different method
 	V,EV = Lar.struct2lar(assembly)
@@ -125,19 +180,6 @@ function bool2d(assembly::Hpc)
 end
 
 
-using Plasm
-
-# //////////////////////////////////////////////////////////////////////////////
-# 3D Boolean example generation (see CAD23 paper)
-n,m,p = 1,1,1
-cube = TYPE(Hpc(CUBOIDGRID([n,m,p])), "solid")
-
-# three cubes in "assembly"
-assembly = STRUCT( cube,
-   T(1,2,3)(.3,.4,.25), R(2,3)(pi/5), R(1,2)(pi/12), cube,
-   T(1,2,3)(-.2,.4,-.2), R(1,3)(pi/5), R(1,3)(pi/12), cube );
-
-################################################################################
 """
 	boolops( assembly::Hpc, op::Symbol )
 
@@ -164,3 +206,22 @@ function boolops(assembly::Lar.Struct, op::Symbol)
     V = convert(Lar.Points,W')
     return V,EVop
 end
+
+
+
+
+################################################################################
+
+using Plasm
+
+# //////////////////////////////////////////////////////////////////////////////
+# 2D Boolean example generation (see CAD23 paper)
+n,m = 1,1
+square = TYPE(Hpc(CUBOIDGRID([n,m])), "solid")
+
+assembly = STRUCT( 
+    STRUCT( T(1,2)(-√2/4, -√2/2 ), R(1,2)(π/4), square ),
+    STRUCT( T(1,2)( √2/4, -√2/2 ), R(1,2)(π/4), square ))
+    
+VIEW(assembly)
+
