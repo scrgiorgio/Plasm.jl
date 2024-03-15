@@ -25,12 +25,11 @@ julia test/manhattan.jl
 julia test/properties.jl
 julia test/fenvs.jl
 julia test/lar.jl
-julia test/arrangement2d.jl
-julia test/arrangement3d.jl
-julia test/arrangement.jl
+julia test/arrange2d.jl
+julia test/arrange3d.jl
+julia test/arrange.jl
 julia test/complex.jl
-# julia test/organizer.jl
-# import Pkg; Pkg.add("ViewerGL")` to install the ViewerGL package.
+julia test/boolean.jl
 ```
 
 # View properties
