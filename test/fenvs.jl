@@ -645,17 +645,17 @@ function MyMain()
 	
 
 
-	# example of VIEW2D
+	# example 2d
 	begin
-		VIEW2D(STRUCT([
+		VIEW(STRUCT([
 			CUBOID([1,1]),
 			FRAME2([0.0,0.0],[1.5,1.5]),
 	]))
 	end
 
-	# example of VIEW2D
+	# example 2d
 	begin
-		VIEW2D(STRUCT([
+		VIEW(STRUCT([
 			CUBOID([1,1,1]),
 			FRAME3([0.0,0.0,0.0],[1.5,1.5,1.5]),
 	])

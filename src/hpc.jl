@@ -5,7 +5,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToLAR,
-	View,View2D,
+	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
 
 import Base.:(==)
@@ -969,57 +969,57 @@ function View(batches::Vector{GLBatch}, properties::Dict=Dict())
 	GLView(batches, properties)
 end
 
-# backward compatible
 function View(batches::Vector{GLBatch}, title::String)
-	properties=Dict( "title" => title)
-	GLView(batches, properties)
+	GLView(batches, Dict( "title" => title))
 end
-
-function View(hpc::Hpc, properties::Dict=Dict())
-	batches=GetBatchesForHpc(hpc)
-	return View(batches, properties)
-end
-
-# backward compatible
-function View(hpc::Hpc, title::String)
-	batches=GetBatchesForHpc(hpc)
-	properties=Dict( "title" => title)
-	return View(batches, properties)
-end
-
 
 # //////////////////////////////////////////////////////////
-function View2D(hpc::Hpc; properties::Dict=Dict())
+function View(hpc::Hpc, properties::Dict=Dict())
 
-	BOX=box(hpc)
-	Size=BOX.p2-BOX.p1
-	Center=center(BOX)
+	pdim=dim(hpc)
 
-  if length(Center)==2 Center=Point3d(Center[1],Center[2], 0.0) end
-  if length(Size)==2 Size=Point3d(Size[1],Size[2], 0.0) end
+	# special case for 2D (i.e. use ortho)
+	if pdim==2
 
-  if Size[3]==0.0
-    Size[3]=1.0
-  end
+		BOX=box(hpc)
+		Size=BOX.p2-BOX.p1
+		Center=center(BOX)
+	
+		if length(Center)==2 Center=Point3d(Center[1],Center[2], 0.0) end
+		if length(Size)==2 Size=Point3d(Size[1],Size[2], 0.0) end
+	
+		if Size[3]==0.0
+			Size[3]=1.0
+		end
+	
+		pos=Point3d(Center[1],Center[2],Center[3]+1.0*Size[3])
+		dir=Point3d(0,0,-1)
+		vup=Point3d(0,1,0)
+	
+		# default properties if not specified
+		properties["background_color"] =           get(properties,"background_color", WHITE)
+		properties["use_ortho"]        =           get(properties,"use_ortho",   true)
+		properties["pos"]              =           get(properties,"pos",         pos)
+		properties["dir"]              =           get(properties,"dir",         dir)
+		properties["vup"]              =           get(properties,"vup",         vup)
+		properties["znear"]            =           get(properties,"znear"      , 0.1) 
+		properties["zfar"]             =           get(properties,"zfar"       , 3.0*Size[3]) 
+		properties["lighting_enabled"] =           get(properties,"lighting_enabled", false)
+		properties["line_color"]       =           get(properties,"line_color", BLACK)
+		properties["line_width"]       =           get(properties,"line_width", 2)
+		properties["show_axis"]        =           get(properties,"show_axis", false)
+	
+	end
 
-  pos=Point3d(Center[1],Center[2],Center[3]+1.0*Size[3])
-  dir=Point3d(0,0,-1)
-  vup=Point3d(0,1,0)
-
-	properties["background_color"] =           get(properties,"background_color", WHITE)
-	properties["use_ortho"]        =           get(properties,"use_ortho",   true)
-	properties["pos"]              =           get(properties,"pos",         pos)
-	properties["dir"]              =           get(properties,"dir",         dir)
-	properties["vup"]              =           get(properties,"vup",         vup)
-	properties["znear"]            =           get(properties,"znear"      , 0.1) 
-	properties["zfar"]             =           get(properties,"zfar"       , 3.0*Size[3]) 
-	properties["lighting_enabled"] =           get(properties,"lighting_enabled", false)
-	properties["line_color"]       =           get(properties,"line_color", BLACK)
-	properties["show_axis"]        =           get(properties,"show_axis", false)
-
-  hpc=PROPERTIES(hpc, Dict("line_color"=>BLACK, "line_width"=>2))
-	VIEW(hpc, properties)
+	batches=GetBatchesForHpc(hpc)
+	return View(batches, properties)
 end
+
+
+function View(hpc::Hpc, title::String)
+	return View(hpc, Dict( "title" => title))
+end
+
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function MapFn(self::Hpc, fn)

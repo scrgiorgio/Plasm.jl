@@ -38,7 +38,7 @@ julia test/complex.jl
 Important: use String as Dict keys, not symbols
 
 ```julia
-View(batches,properties=Dict(
+View(batches, properties=Dict(
   "background_color" => Point4d(1,1,1,1))
   "title"            => "my title")
   "use_ortho"        => false)
