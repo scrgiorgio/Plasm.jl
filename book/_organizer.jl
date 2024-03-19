@@ -2146,7 +2146,7 @@ function simplexfacets(simplices)
 			push!(out, facet)
 		end
 	end
-	# remove duplicate facets
+	# remove duplicate faces
 	return sort(collect(Set(out)))
 end
 

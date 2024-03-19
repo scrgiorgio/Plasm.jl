@@ -9,7 +9,7 @@ function LAR(obj::Hpc)::Lar
 	 obj=ToGeometry(obj)
    V  = obj.points;
    EV = obj.edges;
-   FV = obj.facets;
+   FV = obj.faces;
    V,FV,EV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
    if !(FV == [])
       FV = union(FV)

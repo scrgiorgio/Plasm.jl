@@ -247,7 +247,7 @@ mutable struct Geometry
 	 db::Dict{Vector{Float64}, Int}
 	 points::Vector{Vector{Float64}}
 	 edges::Vector{Vector{Int}}
-	 facets::Vector{Vector{Int}}
+	 faces::Vector{Vector{Int}}
 	 hulls::Vector{Vector{Int}}
 
 	# constructor
@@ -262,7 +262,7 @@ mutable struct Geometry
 			# edges
 			Vector{Vector{Int}}(),
 
-			# facets (for LAR)
+			# faces
 			Vector{Vector{Int}}(),
 
 			# hulls
@@ -320,15 +320,15 @@ function Base.show(io::IO, self::Geometry)
 	print(io, repr(self.points))
 
 	if length(self.hulls)>0
-					print(io, ", hulls=", repr(self.hulls))
+		print(io, ", hulls=", repr(self.hulls))
 	end
 
 	if length(self.edges)>0
-					print(io, ", edges=",repr(self.edges))
+		print(io, ", edges=",repr(self.edges))
 	end
 
-	if length(self.facets)>0
-					print(io, ", facets=",repr(self.facets))
+	if length(self.faces)>0
+		print(io, ", faces=",repr(self.faces))
 	end
 
 	print(io,")")   
@@ -1136,7 +1136,7 @@ function InitToLAR()
 			self.pdim=len(user_points[0])
 	
 			self.points=self._points
-			self.facets,self.normals=qhull.get_hull_facets()
+			self.qhull_facets,self.normals=qhull.get_hull_facets()
 			self.close()
 	
 			# in 2d the normal is pointing up (i.e Z>=0)
@@ -1153,9 +1153,9 @@ function InitToLAR()
 				for P, point in enumerate(self.points): 
 					print(P,point)
 	
-				print("Facets", len(self.facets))
-				for F,facet in enumerate(self.facets): 
-					print(facet, self.normals[F])
+				print("Facets", len(self.qhull_facets))
+				for F,qhull_facet in enumerate(self.qhull_facets): 
+					print(qhull_facet, self.normals[F])
 	
 		# GetPlane
 		@staticmethod
@@ -1180,13 +1180,13 @@ function InitToLAR()
 		#  removeUnusedPoints
 		def removeUnusedPoints(self):
 			reindex,new_points={},[]
-			for F,facet in enumerate(self.facets):
-				for idx in facet:
+			for F,qhull_facet in enumerate(self.qhull_facets):
+				for idx in qhull_facet:
 					if not idx in reindex:
 						new_index=len(reindex)
 						reindex[idx]=new_index
 						new_points.append(self.points[idx])
-				self.facets[F]=[reindex[idx] for idx in facet]
+				self.qhull_facets[F]=[reindex[idx] for idx in qhull_facet]
 			self.points=new_points
 	
 		# findEdges
@@ -1194,17 +1194,17 @@ function InitToLAR()
 			if self.pdim==2:
 	
 				# only one face
-				self.edges={0: self.facets} 
+				self.edges={0: self.qhull_facets} 
 	
 			elif self.pdim==3:
 	
 				# find edges as the intersection of faces
 				if True:
-					nfaces=len(self.facets)
+					nfaces=len(self.qhull_facets)
 					self.edges={I:[] for I in range(nfaces)}
 					for A in range(nfaces):
 						for B in range(A+1,nfaces):
-							edge=list(set.intersection(set(self.facets[A]),set(self.facets[B])))
+							edge=list(set.intersection(set(self.qhull_facets[A]),set(self.qhull_facets[B])))
 							if edge:
 								self.edges[A].append(edge)
 								self.edges[B].append(edge)
@@ -1213,7 +1213,7 @@ function InitToLAR()
 		def findFacetLoops(self):
 			new_facets=[]
 			for F in self.edges:
-				faces=self.facets[F]
+				faces=self.qhull_facets[F]
 				todo=self.edges[F]
 				loop=[]
 				(A,B),todo=todo[0],todo[1:]
@@ -1229,7 +1229,7 @@ function InitToLAR()
 							break
 					assert(found)
 				new_facets.append(loop)
-			self.facets=new_facets
+			self.qhull_facets=new_facets
 	
 		# DotProduct
 		@staticmethod
@@ -1238,19 +1238,19 @@ function InitToLAR()
 	
 		# correctOrientation
 		def correctOrientation(self):
-			for F,face in enumerate(self.facets):
-				p1,p2,p3=[self.points[idx] for idx in self.facets[F][0:3]]
+			for F,face in enumerate(self.qhull_facets):
+				p1,p2,p3=[self.points[idx] for idx in self.qhull_facets[F][0:3]]
 				if self.pdim==2:
 					p1,p2,p3=list(p1)+[0.0],list(p2)+[0.0],list(p3)+[0.0]
 				plane=MyConvexHull.GetPlane(p1,p2,p3)
 				if MyConvexHull.DotProduct(plane,self.normals[F])<0:
-					self.facets[F].reverse()
+					self.qhull_facets[F].reverse()
 	
 	def GetLARConvexHull(user_points, verbose=False):
 		lar=MyConvexHull(user_points,verbose=False)
 		return [
 			lar.points, 
-			[[int(it+1) for it in facet] for facet in lar.facets] # 0->1 index
+			[[int(it+1) for it in qhull_facet] for qhull_facet in lar.qhull_facets] # 0->1 index
 		]
 	
 	"""
@@ -1280,40 +1280,31 @@ function ToGeometry(self::Hpc)
 			if pdim>=length(hull)
 				points = [transformPoint(T,p) for p in points]
 				mapped = addPoints(ret, points)
-				facet=mapped
-				#println("hull",hull)
-				#println("points",points)
-				#println("mapped",mapped)
-				#println("POINTS",ret.points)
-				#println("facet",facet)
-				push!(ret.facets, facet)
+				push!(ret.faces, mapped)
 			else
 			
 				# can fail because it's not fully dimensional (e.g. MAP with a pole which collapse points, such as CIRCLE)
 				try
-					points, facets = py"GetLARConvexHull"(points)
+					points, qhull_facets = py"GetLARConvexHull"(points)
 				catch e
 					points = [transformPoint(T,p) for p in points]
 					mapped = addPoints(ret, points)
-					facet=mapped
-					push!(ret.facets, facet)
+					push!(ret.faces, mapped)
 					continue
 				end
 
-				#println(typeof(points),points)
-				#println(typeof(facets),facets)
 
-				if facets isa Matrix{Int64}
-					nrows,ncols=size(facets)
+				if qhull_facets isa Matrix{Int64}
+					nrows,ncols=size(qhull_facets)
 					converted=Vector{Vector{Int64}}()
 					for R in 1:nrows
-						push!(converted, facets[R,:])
+						push!(converted, qhull_facets[R,:])
 					end
-					facets=converted
+					qhull_facets=converted
 				end
 
 				@assert points isa Vector{Vector{Float64}}
-				@assert facets isa Vector{Vector{Int64}}
+				@assert qhull_facets isa Vector{Vector{Int64}}
 				
 				# add the transformed points
 				points = [transformPoint(T,p) for p in points]
@@ -1322,9 +1313,9 @@ function ToGeometry(self::Hpc)
 				# add the hull
 				push!(ret.hulls, [mapped[P] for P in 1:length(points)])
 
-				# add the facets
-				for facet in facets
-					push!(ret.facets, [mapped[P] for P in facet])
+				# add the faces
+				for qhull_facet in qhull_facets
+					push!(ret.faces, [mapped[P] for P in qhull_facet])
 				end
 			end
 		end
@@ -1332,11 +1323,11 @@ function ToGeometry(self::Hpc)
 	
 	# compute edges
 	edges_set=Set()
-	for facet in ret.facets
-		N=length(facet)
+	for face in ret.faces
+		N=length(face)
 		for I in 1:N
-			a = facet[I             ]
-			b = facet[I==N ? 1 : I+1]
+			a = face[I             ]
+			b = face[I==N ? 1 : I+1]
 			a,b=min(a,b),max(a,b)
 			edge=Vector{Int}([a,b])
 			if !(edge in edges_set)

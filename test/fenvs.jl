@@ -314,7 +314,7 @@ function TestViewText()
 		geometry=ToGeometry(CUBOID([1.0, 1.0]))
 		batches=Vector{GLBatch}()
 		append!(batches,GetBatchesForGeometry(geometry))
-		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.facets))
+		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.faces))
 		View(batches)
 	end
 	
@@ -322,7 +322,7 @@ function TestViewText()
 		geometry=ToGeometry(CUBOID([1.0, 1.0, 1.0]))
 		batches=Vector{GLBatch}()
 		append!(batches,GetBatchesForGeometry(geometry))
-		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.facets))
+		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.faces))
 		View(batches)
 	end
 end

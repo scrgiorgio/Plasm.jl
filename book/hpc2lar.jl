@@ -29,11 +29,11 @@ mutable struct Lar
   Lar(d,m,n, V,C) = new( d,m,n, V,C )
 end
 
-""" Remove possible duplicates from ToLAR facets """
+""" Remove possible duplicates from ToLAR faces """
 function removedups(obj::Hpc)::Cells
    # initializations
    geo=ToGeometry(obj)
-   hulls = geo.facets
+   hulls = geo.faces
    dict  = geo.db
    inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
    [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) in dict]  
@@ -52,7 +52,7 @@ end
 function removedups(obj::Hpc)::Cells
    # initializations
    geo=ToGeometry(obj)
-   hulls = geo.facets
+   hulls = geo.faces
    dict  = geo.db
    inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
    [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) ∈ dict]  
@@ -67,7 +67,7 @@ function Lar(obj::Hpc)::Lar
    geo=ToGeometry(obj)
     V  = geo.points
     CV = geo.hulls
-    facets = geo.facets
+    faces = geo.faces
     FV = removedups(obj)
     FF = CSC(FV) * CSC(FV)'
     edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))

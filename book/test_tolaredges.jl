@@ -6,7 +6,7 @@ twocubes = STRUCT([ CUBE(1), T([1,2,3])([.5,.5,.5]), CUBE(1)])
 
 geo=ToGeometry(twocubes)
 V  = geo.points
-FV = geo.facets
+FV = geo.faces
 CV = geo.hulls
 EV = tolaredges(twocubes::Hpc)
 

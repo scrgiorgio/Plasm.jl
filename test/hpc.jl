@@ -225,7 +225,7 @@ function TestToLAR()
     geo = ToGeometry(hpc)
     @assert length(geo.points)==5 
     @assert length(geo.hulls)==1
-    @assert length(geo.facets)==1
+    @assert length(geo.faces)==1
   end
 
 	# test3D
@@ -241,7 +241,7 @@ function TestToLAR()
     geo = ToGeometry(hpc)
     @assert length(geo.points)==10 
     @assert length(geo.hulls)==1
-    @assert length(geo.facets)==7
+    @assert length(geo.faces)==7
   end
 
   # test two 3d cubes
@@ -255,20 +255,20 @@ function TestToLAR()
     geo = ToGeometry(hpc)
     @assert(length(geo.points)==8*2)    # each cube is 8 vertices
     @assert(length(geo.hulls )==2)       # each cube is 1 hull
-    @assert(length(geo.facets)==6*2)    # each cube has 6 boundary faces
+    @assert(length(geo.faces)==6*2)    # each cube has 6 boundary faces
   end
 
   # 2D b-rep
   geo=ToGeometry(CIRCUMFERENCE(1.0)(8))
   @assert(length(geo.hulls)==0)
-  @assert(length(geo.facets)==8)
+  @assert(length(geo.faces)==8)
   @assert(length(geo.points[1])==2)
 
   # 3D brep
   obj=SPHERE(1.0)([4,8])
   @assert(length(obj.childs[1].childs[1].points)==5*9)
   @assert(length(obj.childs[1].childs[1].hulls)==4*8)
-  @assert(length(obj.childs[1].childs[1].facets)==0)
+  @assert(length(obj.childs[1].childs[1].faces)==0)
 end
 
 # ///////////////////////////////////////////////////////

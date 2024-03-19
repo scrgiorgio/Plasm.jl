@@ -104,8 +104,8 @@ function Lar(obj::Hpc)::Lar
    geo=ToGeometry(obj)
    V = geo.points
    #CV = geo.hulls
-   facets = geo.facets
-   V,FV = simplifyCells( hcat(V...), facets )
+   faces = geo.faces
+   V,FV = simplifyCells( hcat(V...), faces )
    FF = CSC(FV) * CSC(FV)'
    edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
    EV = sort!(collect(Set([ FV[i] ∩ FV[j] for (i,j) in edges ]))) # ∩ intersect
@@ -137,7 +137,7 @@ end
 function removedups(obj)::Cells
    # initializations
    geo=ToGeometry(obj)
-   hulls = geo.facets
+   hulls = geo.faces
    dict  = geo.db
    #@show(geo.db)
    inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
@@ -163,7 +163,7 @@ function LAR(obj::Hpc)::Lar
    geo = ToGeometry(obj)
    V  = geo.points;
    EV = geo.edges;
-   FV = geo.facets;
+   FV = geo.faces;
    V,FV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
    if !(FV == [])
       FV = union(FV)

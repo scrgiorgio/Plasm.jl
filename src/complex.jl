@@ -73,7 +73,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """
     simplexfacets(simplices::Vector{Vector{Int}})::Vector{Vector{Int64}}
-Generate the set of all facets of `simplices` vector.
+Generate the set of all faces of `simplices` vector.
 
 See also [`simplex`](@ref)
 
@@ -101,7 +101,7 @@ function simplexfacets(simplices)
 			push!(out, facet)
 		end
 	end
-	# remove duplicate facets
+	# remove duplicate faces
 	return sort(union(out))
 end
 
