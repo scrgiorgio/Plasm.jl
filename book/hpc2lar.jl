@@ -32,8 +32,9 @@ end
 """ Remove possible duplicates from ToLAR facets """
 function removedups(obj::Hpc)::Cells
    # initializations
-   hulls = ToLAR(obj).childs[1].facets
-   dict = ToLAR(obj).childs[1].db
+   geo=ToGeometry(obj)
+   hulls = geo.facets
+   dict  = geo.db
    inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
    [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) in dict]  
    DB = []  # convert arrays of indices to arrays of points
@@ -50,8 +51,9 @@ end
 """ Alternate implementation: Remove possible duplicates """
 function removedups(obj::Hpc)::Cells
    # initializations
-   hulls = ToLAR(obj).childs[1].facets
-   dict = ToLAR(obj).childs[1].db
+   geo=ToGeometry(obj)
+   hulls = geo.facets
+   dict  = geo.db
    inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
    [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) ∈ dict]  
    # convert arrays of indices to arrays of points
@@ -62,9 +64,10 @@ function removedups(obj::Hpc)::Cells
 end
 
 function Lar(obj::Hpc)::Lar
-    V = ToLAR(obj).childs[1].points
-    CV = ToLAR(obj).childs[1].hulls
-    facets = ToLAR(obj).childs[1].facets
+   geo=ToGeometry(obj)
+    V  = geo.points
+    CV = geo.hulls
+    facets = geo.facets
     FV = removedups(obj)
     FF = CSC(FV) * CSC(FV)'
     edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))

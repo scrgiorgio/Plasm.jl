@@ -6,9 +6,10 @@ using IntervalTrees,LinearAlgebra
 using DataStructures, Base
 
 function LAR(obj::Hpc)::Lar
-   V = ToLAR(obj).childs[1].points;
-   EV = ToLAR(obj).childs[1].edges;
-   FV = ToLAR(obj).childs[1].facets;
+	 obj=ToGeometry(obj)
+   V  = obj.points;
+   EV = obj.edges;
+   FV = obj.facets;
    V,FV,EV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
    if !(FV == [])
       FV = union(FV)

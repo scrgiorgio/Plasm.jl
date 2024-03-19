@@ -5,7 +5,7 @@ VIEW(CUBE(1), "normal cube (1)")
 
 # example: how to set the overall background color
 VIEW(CUBE(1),
-   Dict(
+   Dict{String, Any}(
       "background_color" => [0.8,0.1,0.5],
       "title" => "cube with background color"
    ))
@@ -14,14 +14,14 @@ VIEW(CUBE(1),
 VIEW(
    PROPERTIES(
       CUBE(1),
-      Dict("line_width"=>10)),
+      Dict{String, Any}("line_width"=>10)),
    "line_width")
 
 # line_color property
 VIEW(
   PROPERTIES(
      CUBE(1),
-     Dict("line_color"=>Point4d(1.0,0.0,0.0,1.0))),
+     Dict{String, Any}("line_color"=>Point4d(1.0,0.0,0.0,1.0))),
   "line_color"
 )
 
@@ -29,7 +29,7 @@ VIEW(
 VIEW(
    PROPERTIES(
      CUBE(1),
-     Dict("face_color"=>Point4d(0.0,1.0,0.0,1.0))),
+     Dict{String, Any}("face_color"=>Point4d(0.0,1.0,0.0,1.0))),
    "face_color"
 )
 
@@ -37,7 +37,7 @@ VIEW(
 VIEW(STRUCT(
    PROPERTIES(
       STRUCT(T(1)(0.0),CUBE(1)), 
-      Dict(
+      Dict{String, Any}(
          "face_color"=>Point4d(0.0,1.0,0.0,1.0),
          "line_color"=>Point4d(1.0,1.0,0.0,1.0),
          "line_width"=>3
@@ -45,14 +45,14 @@ VIEW(STRUCT(
    ),
    PROPERTIES(
       STRUCT(T(1)(1.0),CUBE(1)), 
-      Dict(
+      Dict{String, Any}(
          "face_color"=>Point4d(1.0,0.0,0.0,1.0),
          "line_color"=>Point4d(0.0,1.0,1.0,1.0),
          "line_width"=>3
       )
    )),
 
-   Dict(
+   Dict{String, Any}(
       "title" => "2 colored cubes",
       "background_color" => [0.0,0.0,0.0]
    )
@@ -69,7 +69,7 @@ begin
      # show points
      PROPERTIES(
        MKPOINTS(points),
-       Dict(
+       Dict{String, Any}(
          "point_color"=>YELLOW, 
          "point_size"=>3
        )
@@ -81,7 +81,7 @@ begin
          points,
          [[it for it in 1:length(points)]]
        ),
-       Dict(
+       Dict{String, Any}(
          "face_color"=>TRANSPARENT,
          "line_color"=>GREEN, 
          "line_width"=>2
@@ -91,7 +91,7 @@ begin
      FRAME2([0.0,0.0],[1.0,1.0]),
    )
  
-   VIEW(obj, Dict("show-axis" => false))
+   VIEW(obj, Dict{String, Any}("show-axis" => false))
 end
  
 # //////////////////////////////////////////////////////
@@ -105,7 +105,7 @@ begin
       # show points
       PROPERTIES(
          MKPOINTS(points),
-         Dict(
+         Dict{String, Any}(
          "point_color"=>YELLOW, 
          "point_size"=>3
          )
@@ -116,7 +116,7 @@ begin
          points,
          [[it for it in 1:length(points)]]
          ),
-         Dict(
+         Dict{String, Any}(
          "face_color"=>GRAY,
          "line_color"=>GREEN, 
          "line_width"=>2
@@ -126,6 +126,6 @@ begin
       FRAME3(Point3d(0,0,0),Point3d(1,1,1)),
    )
 
-   VIEW(obj, Dict("show_axis" => false) )
+   VIEW(obj, Dict{String, Any}("show_axis" => false) )
 
 end

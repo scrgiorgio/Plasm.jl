@@ -4,9 +4,10 @@ include("./tolaredges.jl")
 
 twocubes = STRUCT([ CUBE(1), T([1,2,3])([.5,.5,.5]), CUBE(1)])
 
-V  = ToLAR(twocubes).childs[1].points
-FV = ToLAR(twocubes).childs[1].facets
-CV = ToLAR(twocubes).childs[1].hulls
+geo=ToGeometry(twocubes)
+V  = geo.points
+FV = geo.facets
+CV = geo.hulls
 EV = tolaredges(twocubes::Hpc)
 
 Plasm.VIEW( MKPOL(V, CV) ); 

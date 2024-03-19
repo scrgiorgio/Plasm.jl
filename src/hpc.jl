@@ -4,7 +4,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	BoxNd,MatrixNd,Hpc,Geometry,
 	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
-	ToSimplicialForm,ToBoundaryForm,ToLAR,
+	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
 
@@ -970,7 +970,7 @@ function View(batches::Vector{GLBatch}, properties::Dict=Dict())
 end
 
 function View(batches::Vector{GLBatch}, title::String)
-	GLView(batches, Dict( "title" => title))
+	GLView(batches, Dict{String,Any}( "title" => title))
 end
 
 # //////////////////////////////////////////////////////////
@@ -997,6 +997,7 @@ function View(hpc::Hpc, properties::Dict=Dict())
 		vup=Point3d(0,1,0)
 	
 		# default properties if not specified
+		properties=Dict{String,Any}(properties)
 		properties["background_color"] =           get(properties,"background_color", WHITE)
 		properties["use_ortho"]        =           get(properties,"use_ortho",   true)
 		properties["pos"]              =           get(properties,"pos",         pos)
@@ -1256,7 +1257,7 @@ function InitToLAR()
 end
 
 # ///////////////////////////////////////////////////////////////////
-function ToLAR(self::Hpc)
+function ToGeometry(self::Hpc)
 
 	# returning always an unique cell
 	ret=Geometry()
@@ -1345,7 +1346,7 @@ function ToLAR(self::Hpc)
 		end
 	end
 
-	return Hpc(MatrixNd(), [ret])
+	return ret
 end
 
 

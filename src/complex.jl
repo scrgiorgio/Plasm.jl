@@ -163,9 +163,10 @@ julia> VIEWCOMPLEX(CUBOIDGRID([2,1,1]))
 function CUBOIDGRID(shape::Vector{Int})
    obj = INSL(POWER)(AA(GRID1)(shape))
    if RN(obj) == 2
-      V = ToLAR(obj).childs[1].points
-      FV = ToLAR(obj).childs[1].hulls
-      EV = ToLAR(obj).childs[1].edges
+      geo=ToGeometry(obj)
+      V  = geo.points
+      FV = geo.hulls
+      EV = geo.edges
       return Plasm.Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
    else 
       return LAR(obj)
@@ -350,10 +351,10 @@ function RING(rmin=1., rmax=2., angle=2*pi)
       W = [V[:, k] for k=1:size(V, 2)]
       V = hcat( map(p->let(u, v)=p; [v*cos(u);v*sin(u)] end, W)...)
       obj = Hpc(simplifyCells(V, CV)...)
-      out = ToLAR(obj)
-      V = out.childs[1].points
-      FV = out.childs[1].hulls
-      EV = out.childs[1].edges
+      geo = ToGeometry(obj)
+      V  = geo.points
+      FV = geo.hulls
+      EV = geo.edges
       return Lar(hcat(V...), Dict(:EV=>EV,:FV=>FV))
    end
     return ring0

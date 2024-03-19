@@ -311,7 +311,7 @@ end
 
 function TestViewText()
 	if true
-		geometry=ToLAR(CUBOID([1.0, 1.0])).childs[1]
+		geometry=ToGeometry(CUBOID([1.0, 1.0]))
 		batches=Vector{GLBatch}()
 		append!(batches,GetBatchesForGeometry(geometry))
 		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.facets))
@@ -319,7 +319,7 @@ function TestViewText()
 	end
 	
 	if true
-		geometry=ToLAR(CUBOID([1.0, 1.0, 1.0])).childs[1]
+		geometry=ToGeometry(CUBOID([1.0, 1.0, 1.0]))
 		batches=Vector{GLBatch}()
 		append!(batches,GetBatchesForGeometry(geometry))
 		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.facets))
@@ -594,7 +594,7 @@ function MyMain()
 			Translate(Cube(2)     , [1.0, 1.0, 0.0]),
 			Translate(Cube(3)     , [2.0, 1.0, 0.0]),
 		])
-		View(obj, Dict("title" => "Example" ))
+		View(obj, Dict{String,Any}("title" => "Example" ))
 
 		TestArguments()
 		TestCube()

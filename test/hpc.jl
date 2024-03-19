@@ -222,12 +222,10 @@ function TestToLAR()
       [0.9,0.2]
     ]
     hpc=MkPol(points)
-    lar = ToLAR(hpc)
-    @assert length(lar.childs)==1
-    obj=lar.childs[1]
-    @assert length(obj.points)==5 
-    @assert length(obj.hulls)==1
-    @assert length(obj.facets)==1
+    geo = ToGeometry(hpc)
+    @assert length(geo.points)==5 
+    @assert length(geo.hulls)==1
+    @assert length(geo.facets)==1
   end
 
 	# test3D
@@ -240,15 +238,10 @@ function TestToLAR()
       [0.9,0.2,0.3]
     ]
     hpc=MkPol(points)
-    lar = ToLAR(hpc)
-    @assert length(lar.childs)==1
-    obj=lar.childs[1]
-    #println("points ",obj.points)
-    #println("hulls  ",obj.hulls)
-    #println("facets ",obj.facets)
-    @assert length(obj.points)==10 
-    @assert length(obj.hulls)==1
-    @assert length(obj.facets)==7
+    geo = ToGeometry(hpc)
+    @assert length(geo.points)==10 
+    @assert length(geo.hulls)==1
+    @assert length(geo.facets)==7
   end
 
   # test two 3d cubes
@@ -259,22 +252,17 @@ function TestToLAR()
       CUBOID([1,1,1])
     ])
 
-    lar = ToLAR(hpc)
-    @assert length(lar.childs)==1
-    obj=lar.childs[1]
-    #println("points ",obj.points)
-    #println("hulls  ",obj.hulls)
-    #println("facets ",obj.facets)
-    @assert(length(obj.points)==8*2)    # each cube is 8 vertices
-    @assert(length(obj.hulls )==2)       # each cube is 1 hull
-    @assert(length(obj.facets)==6*2)    # each cube has 6 boundary faces
+    geo = ToGeometry(hpc)
+    @assert(length(geo.points)==8*2)    # each cube is 8 vertices
+    @assert(length(geo.hulls )==2)       # each cube is 1 hull
+    @assert(length(geo.facets)==6*2)    # each cube has 6 boundary faces
   end
 
   # 2D b-rep
-  obj=ToLAR(CIRCUMFERENCE(1.0)(8))
-  @assert(length(obj.childs[1].hulls)==0)
-  @assert(length(obj.childs[1].facets)==8)
-  @assert(length(obj.childs[1].points[1])==2)
+  geo=ToGeometry(CIRCUMFERENCE(1.0)(8))
+  @assert(length(geo.hulls)==0)
+  @assert(length(geo.facets)==8)
+  @assert(length(geo.points[1])==2)
 
   # 3D brep
   obj=SPHERE(1.0)([4,8])

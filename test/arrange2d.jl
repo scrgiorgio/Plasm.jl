@@ -3,14 +3,14 @@
 using Plasm 
 
 function TestExplode()
-   obj=ToLAR(STRUCT(
+   geo=ToGeometry(STRUCT(
       Plasm.SQUARE(1), 
       T(1,2)(0.5,0.25), 
       Plasm.SQUARE(1)
    ))
 
-   V = hcat(obj.childs[1].points...)
-   EV = obj.childs[1].edges
+   V = hcat(geo.points...)
+   EV = geo.edges
    V,FVs,EVs = Plasm.arrange2D(V,EV)
   
    begin
