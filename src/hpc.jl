@@ -1,12 +1,15 @@
 using Test,LinearAlgebra,PyCall
 
+using DataStructures, SparseArrays
+
 export ComputeTriangleNormal,GoodTetOrientation,
 	BoxNd,MatrixNd,Hpc,Geometry,
 	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
-	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
+	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE,
+	truncate, Lar, Hpc, LAR
 
 import Base.:(==)
 import Base.:*
@@ -14,7 +17,7 @@ import Base.size
 import Base.transpose
 
 DEFAULT_POINT_COLOR= Point4d(1.0,1.0,1.0,1.0)
-DEFAULT_LINE_COLOR = Point4d(1.0,1.0,1.0,1.0)
+DEFAULT_LINE_COLOR = Point4d(0.0,1.0,1.0,1.0)
 DEFAULT_FACE_COLOR = Point4d(0.8,0.8,0.8,1.0)
 
 # /////////////////////////////////////////////////////////////
@@ -253,31 +256,18 @@ mutable struct Geometry
 	# constructor
 	function Geometry()
 		self=new(
-			# db
-			Dict{Vector{Float64}, Int}(),
-
-			# points
-			Vector{Vector{Float64}}(),
-
-			# edges
-			Vector{Vector{Int}}(),
-
-			# faces
-			Vector{Vector{Int}}(),
-
-			# hulls
-			Vector{Vector{Int}}(),
-
+			Dict{Vector{Float64}, Int}(), # db
+			Vector{Vector{Float64}}(), # points
+			Vector{Vector{Int}}(), # edges
+			Vector{Vector{Int}}(),# faces
+			Vector{Vector{Int}}(), # hulls
 		)
 		return self
 	end
 
-
 end
 
-
-
-
+# /////////////////////////////////////////////////////////////
 function addPoint(self::Geometry, p::Vector{Float64})::Int
 	 idx = get(self.db, p, 0)
 	 if idx>=1
@@ -1256,90 +1246,6 @@ function InitToLAR()
 	"""
 end
 
-# ///////////////////////////////////////////////////////////////////
-function ToGeometry(self::Hpc)
-
-	# returning always an unique cell
-	ret=Geometry()
-
-	for (T, properties, obj) in toList(self)
-
-		@assert obj isa Geometry
-
-		# automatic filter useless obj
-		if isempty(obj.points) || isempty(obj.hulls) || dim(obj) <= 1
-			continue
-		end
-
-		# for each hull create a LAR hull (i.e. polygonal faces)
-		for hull in obj.hulls
-			points=[obj.points[idx] for idx in hull]
-			pdim=length(points[1])
-
-			# special case for boundary rep (e.g. 2 points in 2dim)
-			if pdim>=length(hull)
-				points = [transformPoint(T,p) for p in points]
-				mapped = addPoints(ret, points)
-				push!(ret.faces, mapped)
-			else
-			
-				# can fail because it's not fully dimensional (e.g. MAP with a pole which collapse points, such as CIRCLE)
-				try
-					points, qhull_facets = py"GetLARConvexHull"(points)
-				catch e
-					points = [transformPoint(T,p) for p in points]
-					mapped = addPoints(ret, points)
-					push!(ret.faces, mapped)
-					continue
-				end
-
-
-				if qhull_facets isa Matrix{Int64}
-					nrows,ncols=size(qhull_facets)
-					converted=Vector{Vector{Int64}}()
-					for R in 1:nrows
-						push!(converted, qhull_facets[R,:])
-					end
-					qhull_facets=converted
-				end
-
-				@assert points isa Vector{Vector{Float64}}
-				@assert qhull_facets isa Vector{Vector{Int64}}
-				
-				# add the transformed points
-				points = [transformPoint(T,p) for p in points]
-				mapped = addPoints(ret, points)
-
-				# add the hull
-				push!(ret.hulls, [mapped[P] for P in 1:length(points)])
-
-				# add the faces
-				for qhull_facet in qhull_facets
-					push!(ret.faces, [mapped[P] for P in qhull_facet])
-				end
-			end
-		end
-	end
-	
-	# compute edges
-	edges_set=Set()
-	for face in ret.faces
-		N=length(face)
-		for I in 1:N
-			a = face[I             ]
-			b = face[I==N ? 1 : I+1]
-			a,b=min(a,b),max(a,b)
-			edge=Vector{Int}([a,b])
-			if !(edge in edges_set)
-				push!(edges_set, edge)
-				push!(ret.edges,edge)
-			end
-		end
-	end
-
-	return ret
-end
-
 
 # ///////////////////////////////////////////////////////////////////
 function ComputeCentroid(points)
@@ -1351,4 +1257,154 @@ function ComputeCentroid(points)
 	end
 	return ret
 end
+
+# ///////////////////////////////////////////////////////////////////
+function UniqueCells(value)
+	ret=Vector{Vector{Int}}()
+	already_exists=Set() 
+	for it in value
+		v=sort!(it)
+		if !(v in already_exists)
+			push!(already_exists, v)
+			push!(ret,it)
+		end
+	end
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////
+function ConvertFacets(value)
+	if value isa Matrix{Int64}
+		nrows,ncols=size(value)
+		ret=Vector{Vector{Int64}}()
+		for R in 1:nrows
+			push!(ret, value[R,:])
+		end
+	else
+		ret=value
+	end
+	@assert ret isa Vector{Vector{Int64}}
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////
+function ToGeometry(self::Hpc)
+
+	# returning always an unique cell
+	ret=Geometry()
+	pdim=0
+	for (T, properties, obj) in toList(self)
+
+		@assert obj isa Geometry
+
+		# automatic filter useless obj
+		if isempty(obj.points) || isempty(obj.hulls) || dim(obj) <= 1
+			continue
+		end
+
+		# for each hull create a LAR hull (i.e. polygonal faces)
+		for hull in obj.hulls
+
+			points=[obj.points[idx] for idx in hull]
+			# println(points)
+
+			# *** QHuLL ALGORITHM ***
+			# can fail because it's not fully dimensional (e.g. MAP with a pole which collapse points, such as CIRCLE)
+			qhull_facets=nothing
+			try
+				points, qhull_facets = py"GetLARConvexHull"(points)
+			catch e
+			end
+
+			points = [transformPoint(T,p) for p in points]
+			mapped  = addPoints(ret, points)
+
+			# point dim
+			@assert(pdim==0 || pdim==length(points[1]))
+			pdim=length(points[1])
+			@assert(pdim==2 || pdim==3)
+
+			if qhull_facets==nothing
+				push!(length(mapped)==2 ? ret.edges : ret.hulls, mapped) # goes automatically in hulls unless is an edge
+				continue
+			end
+
+			qhull_facets=ConvertFacets(qhull_facets)
+			for qhull_facet in qhull_facets
+
+				# add face (FV)
+				face=[mapped[P] for P in qhull_facet]
+				push!(ret.faces, face)
+
+				# add edges (EV)
+				for I in 1:length(face)
+					A,B = face[I], face[I==length(face) ? 1 : I+1]
+					push!(ret.edges,Vector{Int}([A,B]))
+				end
+			end
+
+			# add the hull (CV)
+			hull=[mapped[P] for P in 1:length(points)]
+			push!(ret.hulls, hull)
+
+		end
+	end
+
+	ret.edges=UniqueCells(ret.edges)
+	ret.faces=UniqueCells(ret.faces)
+	ret.hulls=UniqueCells(ret.hulls)
+
+	return ret
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+Transform the float `value` to get a `PRECISION` number of significant digits.
+"""
+truncate = PRECISION -> value -> begin
+   approx = round(value,digits=PRECISION)
+   abs(approx)==0.0 ? 0.0 : approx
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+Linear Algebraic Representation (LAR). Data type for Cellular and Chain Complex.
+"""
+mutable struct Lar
+  d::Int # intrinsic dimension
+  m::Int # embedding dimension (rows of V)
+  n::Int # number of vertices  (columns of V)
+  V::Matrix{Float64} # object geometry
+  C::Dict{Symbol, AbstractArray} # object topology (C for cells)
+	
+  # inner constructors
+  Lar() = new( -1, 0, 0, Matrix{Float64}(undef,0,0), Dict{Symbol, AbstractArray}() )
+  Lar(m::Int,n::Int) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() )
+  Lar(d::Int,m::Int,n::Int) = new( d,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() ) 
+  Lar(V::Matrix) = begin m, n = size(V); new( m,m,n, V, Dict{Symbol,AbstractArray}() ) end
+  Lar(V::Matrix,C::Dict) = begin m,n = size(V); new( m,m,n, V, C )  end
+  Lar(d::Int,V::Matrix,C::Dict) = begin m,n = size(V); new( d,m,n, V, C )  end
+  Lar(d,m,n, V,C) = new( d,m,n, V,C )
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+Constructor of object of Hierarchical Polyhedral Complex (Hpc) type, starting from a pair V,CV of LAR kind. 
+V is of type Matrix{Float64}; CV is any ::Vector{Vector{Int}} dataset.
+"""
+function Hpc(V::Matrix{Float64}, CV::Vector{Vector{Int}}) 
+   W = [V[:,k] for k=1:size(V,2)]
+   out = STRUCT(AA(MKPOL)(DISTL(W, AA(LIST)(CV)))) 
+   return out 
+end
+
+function Hpc(obj::Lar) 
+   V = obj.V;  FV = obj.C[:FV]
+   return Hpc(V,FV) 
+end
+
+
 

@@ -24,7 +24,7 @@ julia test/temple.jl
 julia test/manhattan.jl
 julia test/properties.jl
 julia test/fenvs.jl
-julia test/lar.jl
+julia test/lar.jl         BROKEN
 julia test/arrange2d.jl
 julia test/arrange3d.jl
 julia test/arrange.jl

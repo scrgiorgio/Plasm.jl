@@ -29,53 +29,6 @@ mutable struct Lar
   Lar(d,m,n, V,C) = new( d,m,n, V,C )
 end
 
-""" Remove possible duplicates from ToLAR faces """
-function removedups(obj::Hpc)::Cells
-   # initializations
-   geo=ToGeometry(obj)
-   hulls = geo.faces
-   dict  = geo.db
-   inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
-   [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) in dict]  
-   DB = []  # convert arrays of indices to arrays of points
-   for hull in hulls
-      points = []
-      [ append!(points, inverted_dict[k]) for k in hull ]
-      push!(DB, Set(points))
-   end 
-   DB = Set(DB) # eliminate duplicates
-   faces = [[dict[point] for point in set] for set in DB]
-   faces = sort!(AA(sort!)(faces))
-end
-
-""" Alternate implementation: Remove possible duplicates """
-function removedups(obj::Hpc)::Cells
-   # initializations
-   geo=ToGeometry(obj)
-   hulls = geo.faces
-   dict  = geo.db
-   inverted_dict = Dict{valtype(dict), Vector{keytype(dict)}}()
-   [push!(get!(() -> valtype(inverted_dict)[], inverted_dict, v), k) for (k, v) ∈ dict]  
-   # convert arrays of indices to arrays of points
-   DB = [Set([inverted_dict[k] for k ∈ hull]) for hull ∈ hulls]
-   DB = Set(DB) # eliminate duplicates
-   faces = [[dict[point...] for point in set] for set ∈ DB]
-   faces = sort!(AA(sort!)(faces))
-end
-
-function Lar(obj::Hpc)::Lar
-   geo=ToGeometry(obj)
-    V  = geo.points
-    CV = geo.hulls
-    faces = geo.faces
-    FV = removedups(obj)
-    FF = CSC(FV) * CSC(FV)'
-    edges = filter(x->x[1]<x[2] && FF[x...]==2,collect(zip(findnz(FF)[1:2]...)))
-    EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
-    out = Lar(hcat(V...), Dict(:CV=>CV, :FV=>FV, :EV=>EV))
-end
-
-
 function update(obj::Lar, (a,b))::Lar
    obj.C[a] = b
    return obj

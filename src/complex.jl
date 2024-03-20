@@ -343,19 +343,14 @@ Lar(2, 2, 32, [1.84775906502257 0.92387953251129 … 1.84775906502257 0.92387953
 VIEWCOMPLEX(RING()([16, 1]))
 ```
 """
+
+# ///////////////////////////////////////////////////////////
 function RING(rmin=1., rmax=2., angle=2*pi)
-    function ring0(shape=[16, 1])
-		obj = CUBOIDGRID(shape)
-		V, CV = obj.V, obj.C[:FV]
-      V = [angle/shape[1] 0;0 (rmax-rmin)/shape[2]]*V .+ [0, rmin]
-      W = [V[:, k] for k=1:size(V, 2)]
-      V = hcat( map(p->let(u, v)=p; [v*cos(u);v*sin(u)] end, W)...)
-      obj = Hpc(simplifyCells(V, CV)...)
-      geo = ToGeometry(obj)
-      V  = geo.points
-      FV = geo.hulls
-      EV = geo.edges
-      return Lar(hcat(V...), Dict(:EV=>EV,:FV=>FV))
-   end
-    return ring0
+	function RING0(shape)
+		N, M = shape
+		domain = Translate(POWER([INTERVALS(angle)(N), INTERVALS(rmax-rmin)(M)]),[0.0, rmin])
+		fun = p -> [p[2]*cos(p[1]), p[2]*sin(p[1])]
+		return MAP(fun)(domain)
+	end
+	return RING0
 end

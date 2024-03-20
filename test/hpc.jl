@@ -213,7 +213,7 @@ end
 function TestToLAR()
 
 	# test2D
-  if true
+  begin
     points=[
       [0.5,0.5],
       [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
@@ -224,12 +224,13 @@ function TestToLAR()
     hpc=MkPol(points)
     geo = ToGeometry(hpc)
     @assert length(geo.points)==5 
-    @assert length(geo.hulls)==1
-    @assert length(geo.faces)==1
+    @assert length(geo.edges )==5
+    @assert length(geo.faces )==1
+    @assert length(geo.hulls )==1
   end
 
 	# test3D
-  if true
+  begin
     points=[
       [0.5,0.5,0.5],
       [0.0,0.0,0.0],[1.0,0.0,0.0],[1.0,1.0,0.0], [0.5,2.0,0.0], [0.0,1.0,0.0],
@@ -239,18 +240,18 @@ function TestToLAR()
     ]
     hpc=MkPol(points)
     geo = ToGeometry(hpc)
+    
     @assert length(geo.points)==10 
-    @assert length(geo.hulls)==1
     @assert length(geo.faces)==7
+    @assert length(geo.hulls)==1
   end
 
   # test two 3d cubes
   if true
     hpc=STRUCT([
-      CUBOID([1,1,1]),
-      T([1])([3]),
-      CUBOID([1,1,1])
-    ])
+      CUBOID([1,1,1]), 
+      T([1])([3]), 
+      CUBOID([1,1,1])])
 
     geo = ToGeometry(hpc)
     @assert(length(geo.points)==8*2)    # each cube is 8 vertices
@@ -259,16 +260,22 @@ function TestToLAR()
   end
 
   # 2D b-rep
-  geo=ToGeometry(CIRCUMFERENCE(1.0)(8))
-  @assert(length(geo.hulls)==0)
-  @assert(length(geo.faces)==8)
-  @assert(length(geo.points[1])==2)
+  begin
+    geo=ToGeometry(CIRCUMFERENCE(1.0)(8))
+    @assert(length(geo.points)==8 && length(geo.points[1])==2)
+    @assert(length(geo.edges)==8)
+    @assert(length(geo.hulls)==0)
+    @assert(length(geo.faces)==0)
+  end
 
   # 3D brep
-  obj=SPHERE(1.0)([4,8])
-  @assert(length(obj.childs[1].childs[1].points)==5*9)
-  @assert(length(obj.childs[1].childs[1].hulls)==4*8)
-  @assert(length(obj.childs[1].childs[1].faces)==0)
+  begin
+    geo=ToGeometry(SPHERE(1.0)([4,8]))
+    @assert(length(geo.points)==(4+1)*(8+1))
+    @assert(length(geo.edges)==0)
+    @assert(length(geo.faces)==0)
+    @assert(length(geo.hulls)==(4*8))
+  end
 end
 
 # ///////////////////////////////////////////////////////

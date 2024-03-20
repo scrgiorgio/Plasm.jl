@@ -10,7 +10,7 @@ function TestExplode()
       T(1,2)(0.5,0.25), 
       Plasm.CUBE(1)
    ))
-   V = obj.V
+   V  = obj.V
    EV = obj.C[:EV]
    FV = obj.C[:FV]
 
