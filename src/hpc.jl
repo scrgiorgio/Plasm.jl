@@ -17,7 +17,7 @@ import Base.size
 import Base.transpose
 
 DEFAULT_POINT_COLOR= Point4d(1.0,1.0,1.0,1.0)
-DEFAULT_LINE_COLOR = Point4d(0.0,1.0,1.0,1.0)
+DEFAULT_LINE_COLOR = Point4d(0.3,0.3,0.3,1.0)
 DEFAULT_FACE_COLOR = Point4d(0.8,0.8,0.8,1.0)
 
 # /////////////////////////////////////////////////////////////
@@ -1378,7 +1378,7 @@ mutable struct Lar
   n::Int # number of vertices  (columns of V)
   V::Matrix{Float64} # object geometry
   C::Dict{Symbol, AbstractArray} # object topology (C for cells)
-	
+
   # inner constructors
   Lar() = new( -1, 0, 0, Matrix{Float64}(undef,0,0), Dict{Symbol, AbstractArray}() )
   Lar(m::Int,n::Int) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() )
@@ -1402,7 +1402,8 @@ function Hpc(V::Matrix{Float64}, CV::Vector{Vector{Int}})
 end
 
 function Hpc(obj::Lar) 
-   V = obj.V;  FV = obj.C[:FV]
+   V  = obj.V
+	 FV = obj.C[:FV]
    return Hpc(V,FV) 
 end
 
