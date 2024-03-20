@@ -1903,7 +1903,7 @@ using Plasm
 
 obj = CIRCLE(1)([6,12]);
 double = STRUCT(obj, T(1,2)(.5,.5), obj);
-lardouble = HpcToLar(double);
+lardouble = ToLar(double);
 V,FV,EV = lardouble.V, lardouble.C[:FV], lardouble.C[:EV]
 V,CVs,FVs,EVs = testarrangement(V,FV,EV)
 

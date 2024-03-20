@@ -144,15 +144,7 @@ julia> VIEWCOMPLEX(CUBOIDGRID([2,1,1]))
 """
 function CUBOIDGRID(shape::Vector{Int})::Lar
    obj = INSL(POWER)(AA(GRID1)(shape))
-   if RN(obj) == 2
-      geo=ToGeometry(obj)
-      V  = geo.points
-      FV = geo.hulls
-      EV = geo.edges
-      return Plasm.Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
-   else 
-      return HpcToLar(obj)
-   end
+   return ToLar(obj)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -166,7 +158,7 @@ Remark: Any `Hpc` object may by visualized with numbered cells of its 2D or boun
 	controlpoints = [[[ 0,0,0],[0 ,3  ,4],[0,6,3],[0,10,0]],[[ 3,0,2], [2 ,2.5,5],[3,6,5],[4,8,2]], [[ 6,0,2],[8 ,3 , 5],[7,6,4.5],[6,10,2.5]], [[10,0,0],[11,3,4],[11,6,3],[10,9,0]]]
 	domain = Power(INTERVALS(1.0)(10),INTERVALS(1.0)(10))
 	mapping = BEZIERSURFACE(controlpoints)
-	VIEWCOMPLEX(HpcToLar(MAP(mapping)(domain)))
+	VIEWCOMPLEX(ToLar(MAP(mapping)(domain)))
 ```
 """
 function VIEWCOMPLEX(mesh::Lar; properties::Dict=Dict())
@@ -262,13 +254,13 @@ end
 """
     SPHERE(radius=1.0::Number)(subds=[16,32]::Vector{Int})
 Generate a polyhedral approximation of a spherical surface in 3D.
-Maximum correct refinemet is HpcToLar(SPHERE(2)([73,40]))
+Maximum correct refinemet is ToLar(SPHERE(2)([73,40]))
 
 # Examples
 ```jldoctest
 julia> VIEW(SPHERE()())
 
-julia> VIEWCOMPLEX(HpcToLar(SPHERE(2)([4,8])))
+julia> VIEWCOMPLEX(ToLar(SPHERE(2)([4,8])))
 ```
 """
 function SPHERE(radius=1.0::Number)
@@ -292,7 +284,7 @@ Generate polyhedral approximations of a torus surface in 3D.
 ```jldoctest
 julia> VIEW(TORUS()())
 
-julia> VIEWCOMPLEX(HpcToLar(TORUS([1,2.])([4,8])))
+julia> VIEWCOMPLEX(ToLar(TORUS([1,2.])([4,8])))
 ```
 """
 function TORUS(radii=[1.0,2]::Vector)

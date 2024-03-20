@@ -1,9 +1,9 @@
 using Plasm
 
 function tolaredges(obj::Hpc)::Vector{Vector{Int64}}
-   geo=ToGeometry(obj)
-   V  = geo.points
-   FV = geo.faces
+   lar=ToLar(obj)
+   V  = lar.V
+   FV = lar.C[:FV]
 
    copVV = lar2cop(FV)' * lar2cop(FV)
    predicate(x) = copVV[x...]==2 && x[1]<x[2]

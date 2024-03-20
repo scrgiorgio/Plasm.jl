@@ -3,14 +3,14 @@
 using Plasm 
 
 function TestExplode()
-   geo=ToGeometry(STRUCT(
+   lar=ToLar(STRUCT(
       Plasm.SQUARE(1), 
       T(1,2)(0.5,0.25), 
       Plasm.SQUARE(1)
    ))
 
-   V = hcat(geo.points...)
-   EV = geo.edges
+   V = lar.V
+   EV = lar.C[:EV]
    V,FVs,EVs = Plasm.arrange2D(V,EV)
   
    begin

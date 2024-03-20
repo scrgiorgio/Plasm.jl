@@ -4,7 +4,7 @@ using Plasm
 function TestHpcToLAR()
 
   # SPHERE: ::Hpc -> ::Lar
-  obj = HpcToLar(SPHERE(1.)([3,3]));
+  obj = ToLar(SPHERE(1.)([3,3]));
   V, FV, EV = obj.V, obj.C[:FV], obj.C[:EV];
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 
@@ -38,7 +38,7 @@ function generate_lar_random_bubbles(; n=50)
     str = STRUCT([ transl, scale, CIRCUMFERENCE(1.)(32) ])
     push!(store, str)
   end
-  obj = Plasm.HpcToLar(STRUCT(store))
+  obj = ToLar(STRUCT(store))
   V,EV = obj.V, obj.C[:EV]
     return V,EV
   end

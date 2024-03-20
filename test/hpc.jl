@@ -222,11 +222,11 @@ function TestToLAR()
       [0.9,0.2]
     ]
     hpc=MkPol(points)
-    geo = ToGeometry(hpc)
-    @assert length(geo.points)==5 
-    @assert length(geo.edges )==5
-    @assert length(geo.faces )==1
-    @assert length(geo.hulls )==1
+    lar = ToLar(hpc)
+    @assert lar.n==5 
+    @assert length(lar.C[:EV])==5
+    @assert length(lar.C[:FV])==1
+    @assert length(lar.C[:CV])==1
   end
 
 	# test3D
@@ -238,43 +238,42 @@ function TestToLAR()
       [0.0,0.0,1.0],[1.0,0.0,1.0],[1.0,1.0,1.0], [0.5,2.0,1.0], [0.0,1.0,1.0],
       [0.9,0.2,0.3]
     ]
-    hpc=MkPol(points)
-    geo = ToGeometry(hpc)
+    lar = ToLar(MkPol(points))
     
-    @assert length(geo.points)==10 
-    @assert length(geo.faces)==7
-    @assert length(geo.hulls)==1
+    @assert lar.n==10 
+    @assert length(lar.C[:FV])==7
+    @assert length(lar.C[:CV])==1
   end
 
   # test two 3d cubes
   if true
-    hpc=STRUCT([
+    lar = ToLar(STRUCT([
       CUBOID([1,1,1]), 
       T([1])([3]), 
-      CUBOID([1,1,1])])
-
-    geo = ToGeometry(hpc)
-    @assert(length(geo.points)==8*2)    # each cube is 8 vertices
-    @assert(length(geo.hulls )==2)       # each cube is 1 hull
-    @assert(length(geo.faces)==6*2)    # each cube has 6 boundary faces
+      CUBOID([1,1,1])]))
+    @assert(lar.n==8*2)    # each cube is 8 vertices
+    @assert(length(lar.C[:CV])==2)       # each cube is 1 hull
+    @assert(length(lar.C[:FV])==6*2)    # each cube has 6 boundary faces
   end
 
   # 2D b-rep
   begin
-    geo=ToGeometry(CIRCUMFERENCE(1.0)(8))
-    @assert(length(geo.points)==8 && length(geo.points[1])==2)
-    @assert(length(geo.edges)==8)
-    @assert(length(geo.hulls)==0)
-    @assert(length(geo.faces)==0)
+    lar=ToLar(CIRCUMFERENCE(1.0)(8))
+    @assert(lar.n==8)
+    @assert(lar.m==2)
+    @assert(length(lar.C[:EV])==8)
+    @assert(length(lar.C[:FV])==0)
+    @assert(length(lar.C[:CV])==0)
   end
 
   # 3D brep
   begin
-    geo=ToGeometry(SPHERE(1.0)([4,8]))
-    @assert(length(geo.points)==(4+1)*(8+1))
-    @assert(length(geo.edges)==0)
-    @assert(length(geo.faces)==0)
-    @assert(length(geo.hulls)==(4*8))
+    lar=ToLar(SPHERE(1.0)([4,8]))
+    @assert(lar.n==(4+1)*(8+1))
+    @assert(lar.m==3)
+    @assert(length(lar.C[:EV])==0)
+    @assert(length(lar.C[:FV])==(4*8))
+    @assert(length(lar.C[:CV])==0)
   end
 end
 

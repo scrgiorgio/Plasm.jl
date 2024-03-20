@@ -102,7 +102,7 @@ end
 function bool2d(assembly::Hpc)
 	# input of affine assembly
 	# input of affine assembly
-   ensemble = HpcToLar(assembly)
+   ensemble = ToLar(assembly)
    V,FV,EV = new2old(ensemble)
 	#----------------------------------------------------------------------------
 	# V,EV = Lar.struct2lar(assembly) #TODO proper different method

@@ -52,14 +52,14 @@ end;
 
 # //////////////////////////////////////////////////////////////////////////////
 @testset "VIEWCOMPLEX SPHERE"  begin 
-   mesh3D = HpcToLar(SPHERE(1)([6,12]))
+   mesh3D = ToLar(SPHERE(1)([6,12]))
    @test size(mesh3D.V)==(3, 62)
    VIEWCOMPLEX(mesh3D)
 end;
 
 # //////////////////////////////////////////////////////////////////////////////
 @testset "VIEWCOMPLEX TORUS"  begin 
-   mesh3D = HpcToLar(TORUS([1,2])([6,12]))
+   mesh3D = ToLar(TORUS([1,2])([6,12]))
    @test size(mesh3D.V)==(3, 72)
    @test length(mesh3D.C[:FV])==72
    @test length(mesh3D.C[:EV])==144

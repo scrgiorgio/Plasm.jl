@@ -6,10 +6,10 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	BoxNd,MatrixNd,Hpc,Geometry,
 	toList,valid,fuzzyEqual,dim,size,center,addPoint,addPoints,addBox,isIdentity,transpose,invert,dim,embed,adjoin,transformPoint,translate,scale,rotate,box,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
-	ToSimplicialForm,ToBoundaryForm,ToGeometry,
+	ToSimplicialForm,ToBoundaryForm,ToGeometry,ToLar,
 	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE,
-	Truncate, Lar, Hpc
+	Lar, Hpc
 
 import Base.:(==)
 import Base.:*
@@ -19,18 +19,6 @@ import Base.transpose
 DEFAULT_POINT_COLOR= Point4d(1.0,1.0,1.0,1.0)
 DEFAULT_LINE_COLOR = Point4d(0.3,0.3,0.3,1.0)
 DEFAULT_FACE_COLOR = Point4d(0.8,0.8,0.8,1.0)
-
-
-# //////////////////////////////////////////////////////////////////////////////
-"""
-Transform the float `value` to get a `PRECISION` number of significant digits.
-"""
-Truncate = PRECISION -> value -> begin
-   approx = round(value,digits=PRECISION)
-   abs(approx)==0.0 ? 0.0 : approx
-end
-
-
 
 
 # /////////////////////////////////////////////////////////////
@@ -1326,6 +1314,12 @@ function ConvertFacets(value)
 	return ret
 end
 
+# //////////////////////////////////////////////////////////////////////////////
+function Truncate(value, precision)
+	ret = round(value, digits=precision)
+	return abs(ret)==0.0 ? 0.0 : ret
+end
+
 # ///////////////////////////////////////////////////////////////////
 function ToGeometry(self::Hpc)
 
@@ -1358,14 +1352,25 @@ function ToGeometry(self::Hpc)
 			points = [transformPoint(T,p) for p in points]
 			mapped  = addPoints(ret, points)
 
+			Nmapped=length(mapped)
+			@assert(Nmapped>0)
+
 			# point dim
 			@assert(pdim==0 || pdim==length(points[1]))
 			pdim=length(points[1])
 			@assert(pdim==2 || pdim==3)
 
+			# non full-dim 
 			if qhull_facets==nothing
-				push!(length(mapped)==2 ? ret.edges : ret.hulls, mapped) # goes automatically in hulls unless is an edge
-				continue
+				if Nmapped==1
+					continue                   # probably is a point, ignore
+				elseif Nmapped==2
+					push!(ret.edges , mapped)  # probably is an edge
+					continue
+				else
+					push!(ret.faces , mapped)  # probably is a face, SHOULD I add edges as well? what if they are not ordered?
+					continue
+				end
 			end
 
 			qhull_facets=ConvertFacets(qhull_facets)
@@ -1396,4 +1401,18 @@ function ToGeometry(self::Hpc)
 	return ret
 end
 
-
+# ///////////////////////////////////////////////////////////////////
+function ToLar(obj::Hpc)::Lar
+	geo=ToGeometry(obj)
+  n=length(geo.points)   # number of vertices  (columns of V)
+  m=length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
+	ret=Lar()
+	ret.d=m
+	ret.m=m 
+	ret.n=n
+	ret.V=hcat(geo.points...)
+	ret.C[:EV]=geo.edges
+	ret.C[:FV]=geo.faces
+	ret.C[:CV]=geo.hulls
+	return ret
+end
