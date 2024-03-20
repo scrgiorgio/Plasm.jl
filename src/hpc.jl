@@ -1390,22 +1390,8 @@ mutable struct Lar
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////
-"""
-Constructor of object of Hierarchical Polyhedral Complex (Hpc) type, starting from a pair V,CV of LAR kind. 
-V is of type Matrix{Float64}; CV is any ::Vector{Vector{Int}} dataset.
-"""
-function Hpc(V::Matrix{Float64}, CV::Vector{Vector{Int}}) 
-   W = [V[:,k] for k=1:size(V,2)]
-   out = STRUCT(AA(MKPOL)(DISTL(W, AA(LIST)(CV)))) 
-   return out 
+function LarToHpc(obj::Lar) 
+	return MKPOLS(obj.V,obj.C[:FV]) 
 end
-
-function Hpc(obj::Lar) 
-   V  = obj.V
-	 FV = obj.C[:FV]
-   return Hpc(V,FV) 
-end
-
 
 

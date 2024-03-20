@@ -348,7 +348,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function bool3d(assembly)
 	# input of affine assembly
-   ensemble = LAR(assembly)
+   ensemble = HpcToLar(assembly)
    V,FV,EV = new2old(ensemble)
    #----------------------------------------------------------------------------
 	#V,FV,EV = struct2lar(assembly)

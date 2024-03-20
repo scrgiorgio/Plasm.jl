@@ -4,15 +4,13 @@ using Plasm
 function TestHpcToLAR()
 
   # SPHERE: ::Hpc -> ::Lar
-  obj = LAR(SPHERE(1.)([3,3]));
+  obj = HpcToLar(SPHERE(1.)([3,3]));
   V, FV, EV = obj.V, obj.C[:FV], obj.C[:EV];
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 
   # SPHERE: ::Lar -> ::Hpc
-  obj2 = Hpc(V,EV);
-  VIEW(obj2)
-  obj3 = Hpc(V,FV);
-  VIEW(obj3)
+  VIEW(MKPOLS(V,EV))
+  VIEW(MKPOLS(V,FV))
 
   # SPHERE: ::Hpc -> ::Lar
   obj4 = Lar(obj3);
@@ -40,7 +38,7 @@ function generate_lar_random_bubbles(; n=50)
     str = STRUCT([ transl, scale, CIRCUMFERENCE(1.)(32) ])
     push!(store, str)
   end
-  obj = Plasm.LAR(STRUCT(store))
+  obj = Plasm.HpcToLar(STRUCT(store))
   V,EV = obj.V, obj.C[:EV]
     return V,EV
   end

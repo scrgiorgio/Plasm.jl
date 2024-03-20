@@ -45,10 +45,8 @@ function Temple()
 	model= STRUCT([Temple, Ground, T(1,2,3)(-1.65,0.6,0), SecondaryBeams, ])
 	VIEW(model)
 	
-	skel1model = SKELETON(1)(model)
-	VIEW(skel1model)
-	skel1model = SKELETON(2)(model)
-	VIEW(skel1model)
+	VIEW(SKELETON(1)(model))
+	VIEW(SKELETON(2)(model))
 	
 	# SKELETON(4)(model) -> error
 end

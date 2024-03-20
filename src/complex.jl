@@ -1,13 +1,17 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING,VIEWCOMPLEX2
+export IsPolytope, IsSimplex, simplex, simplexfacets, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING,VIEWCOMPLEX2
 
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
 
 import Base.*
 *(pol1::Hpc, pol2::Hpc) = Power(pol1, pol2)
+
+
+
+
 
 # //////////////////////////////////////////////////////////////////////////////
 """
@@ -105,28 +109,6 @@ function simplexfacets(simplices)
 	return sort(union(out))
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-"""
-    CHULL(points::Matrix):Lar
-Generate the convex hull of a matrix of points.
-
-Possible more details for function role explanation.
-# Examples
-```jldoctest
-julia> points = rand(25, 3);
-
-julia> obj = CHULL(points);
-
-julia> VIEW(Hpc(obj.V, obj.C[:EV]))
-```
-"""
-function CHULL(points::Matrix)
-   ch = QHull.chull(points)
-   FV = ch.simplices
-   pairs = [map(sort,[[i,j],[i,k],[j,k]]) for (i,j,k) in FV]
-   EV = sort!(union(vcat(pairs...)))
-   ret = Lar(2, Matrix(points'), Dict(:EV => EV, :FV => FV))
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 """
@@ -160,7 +142,7 @@ Lar(3, 3, 12, [1.0 0.0 … 2.0 2.0; 0.0 0.0 … 0.0 1.0; 0.0 0.0 … 1.0 1.0], D
 julia> VIEWCOMPLEX(CUBOIDGRID([2,1,1]))
 ```
 """
-function CUBOIDGRID(shape::Vector{Int})
+function CUBOIDGRID(shape::Vector{Int})::Lar
    obj = INSL(POWER)(AA(GRID1)(shape))
    if RN(obj) == 2
       geo=ToGeometry(obj)
@@ -169,7 +151,7 @@ function CUBOIDGRID(shape::Vector{Int})
       EV = geo.edges
       return Plasm.Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
    else 
-      return LAR(obj)
+      return HpcToLar(obj)
    end
 end
 
@@ -184,7 +166,7 @@ Remark: Any `Hpc` object may by visualized with numbered cells of its 2D or boun
 	controlpoints = [[[ 0,0,0],[0 ,3  ,4],[0,6,3],[0,10,0]],[[ 3,0,2], [2 ,2.5,5],[3,6,5],[4,8,2]], [[ 6,0,2],[8 ,3 , 5],[7,6,4.5],[6,10,2.5]], [[10,0,0],[11,3,4],[11,6,3],[10,9,0]]]
 	domain = Power(INTERVALS(1.0)(10),INTERVALS(1.0)(10))
 	mapping = BEZIERSURFACE(controlpoints)
-	VIEWCOMPLEX(LAR(MAP(mapping)(domain)))
+	VIEWCOMPLEX(HpcToLar(MAP(mapping)(domain)))
 ```
 """
 function VIEWCOMPLEX(mesh::Lar; properties::Dict=Dict())
@@ -196,8 +178,9 @@ function VIEWCOMPLEX(mesh::Lar; properties::Dict=Dict())
    properties["text_ev_color"]    = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
    properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
 
-   V = mesh.V; EV = mesh.C[:EV]
-   obj =PROPERTIES(Hpc(V,EV),properties)
+   V  = mesh.V
+   EV = mesh.C[:EV]
+   obj =PROPERTIES(MKPOLS(V,EV),properties)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
 
@@ -222,7 +205,7 @@ function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
    for v in EV append!(used_vertices,v) end
    for v in FV append!(used_vertices,v) end
 
-   obj = Hpc(V,EV)
+   obj = MKPOLS(V,EV)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
 
@@ -257,22 +240,19 @@ end
 """
     SKELETON(k::Int)(pol::Hpc)::Hpc
 Extract the k-skeleton form `Hpc` value `pol`.
-
-# Examples
-```jldoctest
-julia> VIEW(SKELETON(1)(Hpc(CUBOIDGRID([4,2,3]))))
 ```
 """
 function SKELETON(ord::Int)
    function SKELETON0(pol::Hpc)
-      larpol = LAR(pol)
+      geo=ToGeometry(pol)
       if ord==1
-         return Hpc(larpol.V, larpol.C[:EV])
+         return MKPOLS(geo.points, geo.edges)
       elseif ord==2
-         return Hpc(larpol.V, larpol.C[:FV])
+         return MKPOLS(geo.points, geo.faces)
       elseif ord==3
-         return Hpc(larpol.V, larpol.C[:CV])
-      else error("SKELETON($(ord)) not yet implemented")
+         return MKPOLS(geo.points, geo.hulls)
+      else 
+         error("SKELETON($(ord)) not yet implemented")
       end 
    end
    return SKELETON0
@@ -282,13 +262,13 @@ end
 """
     SPHERE(radius=1.0::Number)(subds=[16,32]::Vector{Int})
 Generate a polyhedral approximation of a spherical surface in 3D.
-Maximum correct refinemet is LAR(SPHERE(2)([73,40]))
+Maximum correct refinemet is HpcToLar(SPHERE(2)([73,40]))
 
 # Examples
 ```jldoctest
 julia> VIEW(SPHERE()())
 
-julia> VIEWCOMPLEX(LAR(SPHERE(2)([4,8])))
+julia> VIEWCOMPLEX(HpcToLar(SPHERE(2)([4,8])))
 ```
 """
 function SPHERE(radius=1.0::Number)
@@ -312,7 +292,7 @@ Generate polyhedral approximations of a torus surface in 3D.
 ```jldoctest
 julia> VIEW(TORUS()())
 
-julia> VIEWCOMPLEX(LAR(TORUS([1,2.])([4,8])))
+julia> VIEWCOMPLEX(HpcToLar(TORUS([1,2.])([4,8])))
 ```
 """
 function TORUS(radii=[1.0,2]::Vector)

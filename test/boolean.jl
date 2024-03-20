@@ -3,7 +3,9 @@ using Plasm
 # //////////////////////////////////////////////////////////////////////////////
 # 3D Boolean example generation (see CAD23 paper)
 n,m,p = 1,1,1
-cube = TYPE(Hpc(CUBOIDGRID([n,m,p])), "solid")
+
+grid=CUBOIDGRID([n,m,p]
+cube = TYPE(MKPOLS(grid.V,grid.C[:FV])), "solid")
 
 # three cubes in "assembly"
 assembly = STRUCT( cube,
