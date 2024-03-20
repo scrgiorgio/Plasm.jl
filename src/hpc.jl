@@ -1356,6 +1356,12 @@ function ToGeometry(self::Hpc)
 			for qhull_facet in qhull_facets
 				face=[mapped[P] for P in qhull_facet]
 				push!(ret.faces, face)
+
+				# automatically adding edges too (since it's a good vertex loop coming from qhull)
+				for I in 1:length(face)
+					a,b = face[I],face[I==length(face) ? 1 : I+1]
+					push!(ret.edges,Vector{Int}([a,b]))
+				end
 			end
 
 			# add the hull since it's full
@@ -1363,14 +1369,6 @@ function ToGeometry(self::Hpc)
 		end
 	end
 	
-	# compute edges as interseciton of edges
-	for face in ret.faces
-		for I in 1:length(face)
-			a,b = face[I],face[I==length(face) ? 1 : I+1]
-			push!(ret.edges,Vector{Int}([a,b]))
-		end
-	end
-
 	ret.edges=UniqueCells(ret.edges)
 	ret.faces=UniqueCells(ret.faces)
 	ret.hulls=UniqueCells(ret.hulls)
@@ -1486,7 +1484,7 @@ else
 			edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
 			EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
 			return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EV))
-			
+
 		elseif geo.edges!=[]
 			return Plasm.Lar(1, hcat(geo.points...), Dict(:EV=>geo.edges))
 		else
