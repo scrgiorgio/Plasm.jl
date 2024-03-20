@@ -33,10 +33,6 @@ julia test/arrange2d.jl
 julia test/arrange3d.jl
 julia test/arrange.jl
 julia test/complex.jl
-
-# unused
-# julia test/organizer.jl
-# import Pkg; Pkg.add("ViewerGL")` to install the ViewerGL package.
 ```
 
 # View properties
