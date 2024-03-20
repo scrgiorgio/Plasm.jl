@@ -5,55 +5,7 @@ using IntervalTrees,LinearAlgebra
 
 using DataStructures, Base
 
-function LAR(obj::Hpc)::Lar
-	 obj=ToGeometry(obj)
-   V  = obj.points;
-   EV = obj.edges;
-   FV = obj.faces;
-   V,FV,EV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
-   if !(FV == [])
-      FV = union(FV)
-      FF = CSC(FV) * CSC(FV)'
-      edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
-      EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
-   elseif all(length(x)==2 for x in EV) 
-      return Plasm.Lar(1,V, Dict(:EV=>EV))
-   end
-   return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
-end
-
-
-function simplifyCells(V,CV)
-	PRECISION = 14
-	vertDict = DefaultOrderedDict{Vector{Float64}, Int64}(0)
-	index = 0
-	W = Vector{Float64}[]
-	FW = Vector{Int64}[]
-
-	for incell in CV
-		outcell = Int64[]
-		for v in incell
-			vert = V[:,v]
-			key = map(Base.truncate(PRECISION), vert)
-			if vertDict[key]==0
-				index += 1
-				vertDict[key] = index
-				push!(outcell, index)
-				push!(W,key)
-			else
-				push!(outcell, vertDict[key])
-			end
-		end
-		append!(FW, [[Set(outcell)...]])
-	end
-	return hcat(W...), filter(x->!(LEN(x)<2), FW)
-end
-
-function simplifyCells(V,FV,EV)
-   V,FV = simplifyCells(V,CV)
-   V,EV = simplifyCells(V,EV)
-   return V,FV,EV
-end
+using Plasm
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -213,7 +165,7 @@ end
 
 ################################################################################
 
-using Plasm
+
 
 # //////////////////////////////////////////////////////////////////////////////
 # 2D Boolean example generation (see CAD23 paper)

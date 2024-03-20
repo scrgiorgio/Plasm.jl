@@ -7,7 +7,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE, HPC, LAR,
-	truncate, simplifyCells, CSC, Lar, Hpc, LAR
+	simplifyCells, CSC, Lar, Hpc, LAR
 
 import Base.:(==)
 import Base.:*
@@ -1355,22 +1355,45 @@ end
 
 
 
-# //////////////////////////////////////////////////////////////////////////////
-# With a docstring, can be seen from Help (?) the whole set of parameters
-"""
-	truncate(PRECISION::Int)(value::Float64)
 
-Transform the float `value` to get a `PRECISION` number of significant digits.
-"""
+# ///////////////////////////////////////////////////////////////////
+function UniqueCells(value)
+	ret=Vector{Vector{Int}}()
+	already_exists=Set() 
+	for it in value
+		v=sort!(it)
+		if !(v in already_exists)
+			push!(already_exists, v)
+			push!(ret,it)
+		end
+	end
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////
+function ConvertFacets(value)
+	if value isa Matrix{Int64}
+		nrows,ncols=size(value)
+		ret=Vector{Vector{Int64}}()
+		for R in 1:nrows
+			push!(ret, value[R,:])
+		end
+	else
+		ret=value
+	end
+	@assert ret isa Vector{Vector{Int64}}
+	return ret
+end
+
+# //////////////////////////////////////////////////////////////////////////////
 truncate = PRECISION -> value -> begin
    approx = round(value,digits=PRECISION)
    abs(approx)==0.0 ? 0.0 : approx
 end
 
+
 # //////////////////////////////////////////////////////////////////////////////
 """
-	W,CW = simplifyCells(V,CV)
-
 Find and remove the duplicated vertices and the incorrect cells.
 
 Some vertices could appear two or more times, due to numerical errors
@@ -1400,8 +1423,18 @@ function simplifyCells(V,CV)
 		end
 		append!(FW, [[Set(outcell)...]])
 	end
+
+	#TODO: scrgiorgio in other files is
+	# return hcat(W...), filter(x->!(LEN(x)<2), FW)
 	return hcat(W...), filter(x->!(LEN(x)<3), FW)
 end
+
+function simplifyCells(V,FV,EV)
+	V,FV = simplifyCells(V,CV)
+	V,EV = simplifyCells(V,EV)
+	return V,FV,EV
+end
+
 
 # //////////////////////////////////////////////////////////////////////////////
 """
@@ -1470,7 +1503,7 @@ function LAR(obj::Hpc)::Lar
    V  = geo.points;
    EV = geo.edges;
    FV = geo.faces;
-   V,FV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
+   V,FV = simplifyCells(hcat(V...),FV) 
    if !(FV == [])
       FV = union(FV)
       FF = CSC(FV) * CSC(FV)'
