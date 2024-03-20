@@ -18,17 +18,23 @@ exit()
 # Run tests
 
 ```bash
+
+# core
 julia test/viewer.jl
 julia test/hpc.jl
 julia test/temple.jl
 julia test/manhattan.jl
 julia test/properties.jl
 julia test/fenvs.jl
+
+# LAR part
 julia test/lar.jl
 julia test/arrange2d.jl
 julia test/arrange3d.jl
 julia test/arrange.jl
 julia test/complex.jl
+
+# unused
 # julia test/organizer.jl
 # import Pkg; Pkg.add("ViewerGL")` to install the ViewerGL package.
 ```
