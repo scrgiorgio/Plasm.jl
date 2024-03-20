@@ -7,7 +7,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE, HPC, LAR,
-	simplifyCells, CSC, Lar, Hpc, LAR
+	Lar, Hpc, LAR
 
 import Base.:(==)
 import Base.:*
@@ -1258,6 +1258,57 @@ function InitToLAR()
 end
 
 # ///////////////////////////////////////////////////////////////////
+function ComputeCentroid(points)
+	ret=Point3d(0,0,0)
+	s=1.0/length(points)
+	for p in points
+		while length(p)!=3 push!(p,0.0) end
+		ret=ret+p*s
+	end
+	return ret
+end
+
+
+
+
+# ///////////////////////////////////////////////////////////////////
+function UniqueCells(value)
+	ret=Vector{Vector{Int}}()
+	already_exists=Set() 
+	for it in value
+		v=sort!(it)
+		if !(v in already_exists)
+			push!(already_exists, v)
+			push!(ret,it)
+		end
+	end
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////
+function ConvertFacets(value)
+	if value isa Matrix{Int64}
+		nrows,ncols=size(value)
+		ret=Vector{Vector{Int64}}()
+		for R in 1:nrows
+			push!(ret, value[R,:])
+		end
+	else
+		ret=value
+	end
+	@assert ret isa Vector{Vector{Int64}}
+	return ret
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+Truncate = PRECISION -> value -> begin
+   approx = round(value,digits=PRECISION)
+   abs(approx)==0.0 ? 0.0 : approx
+end
+
+
+
+# ///////////////////////////////////////////////////////////////////
 function ToGeometry(self::Hpc)
 
 	# returning always an unique cell
@@ -1342,118 +1393,6 @@ function ToGeometry(self::Hpc)
 end
 
 
-# ///////////////////////////////////////////////////////////////////
-function ComputeCentroid(points)
-	ret=Point3d(0,0,0)
-	s=1.0/length(points)
-	for p in points
-		while length(p)!=3 push!(p,0.0) end
-		ret=ret+p*s
-	end
-	return ret
-end
-
-
-
-
-# ///////////////////////////////////////////////////////////////////
-function UniqueCells(value)
-	ret=Vector{Vector{Int}}()
-	already_exists=Set() 
-	for it in value
-		v=sort!(it)
-		if !(v in already_exists)
-			push!(already_exists, v)
-			push!(ret,it)
-		end
-	end
-	return ret
-end
-
-# ///////////////////////////////////////////////////////////////////
-function ConvertFacets(value)
-	if value isa Matrix{Int64}
-		nrows,ncols=size(value)
-		ret=Vector{Vector{Int64}}()
-		for R in 1:nrows
-			push!(ret, value[R,:])
-		end
-	else
-		ret=value
-	end
-	@assert ret isa Vector{Vector{Int64}}
-	return ret
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-truncate = PRECISION -> value -> begin
-   approx = round(value,digits=PRECISION)
-   abs(approx)==0.0 ? 0.0 : approx
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-"""
-Find and remove the duplicated vertices and the incorrect cells.
-
-Some vertices could appear two or more times, due to numerical errors
-on mapped coordinates. So, close vertices are identified, according to the
-PRECISION number of significant digits.
-"""
-function simplifyCells(V,CV)
-	PRECISION = 14
-	vertDict = DefaultDict{Vector{Float64}, Int64}(0)
-	index = 0
-	W = Vector{Float64}[]
-	FW = Vector{Int64}[]
-
-	for incell in CV
-		outcell = Int64[]
-		for v in incell
-			vert = V[:,v]
-			key = map(truncate(PRECISION), vert)
-			if vertDict[key]==0
-				index += 1
-				vertDict[key] = index
-				push!(outcell, index)
-				push!(W,key)
-			else
-				push!(outcell, vertDict[key])
-			end
-		end
-		append!(FW, [[Set(outcell)...]])
-	end
-
-	#TODO: scrgiorgio in other files is
-	# return hcat(W...), filter(x->!(LEN(x)<2), FW)
-	return hcat(W...), filter(x->!(LEN(x)<3), FW)
-end
-
-function simplifyCells(V,FV,EV)
-	V,FV = simplifyCells(V,CV)
-	V,EV = simplifyCells(V,EV)
-	return V,FV,EV
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-"""
-   CSC( Cc::Vector{Vector{Int64}} )::SparseMatrix
-
-Creation of Compressed Sparse Column (CSC) sparse matrix format.
-Each CV element is the array of vertex indices of a cell.
-"""
-function CSC( CV ) # CV => Cells defined by their Vertices
-   I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)                
-   # vcat maps arrayofarrays to single array
-   J = vcat( CV...)         
-   # splat transforms the CV array elements to vcat arguments
-   X = Int8[1 for k=1:length(I)]         
-   # Type Int8 defines the memory map of array elements
-   return SparseArrays.sparse(I,J,X)        
-end
-
-
 # //////////////////////////////////////////////////////////////////////////////
 """
    mutable struct Lar
@@ -1497,16 +1436,76 @@ function HPC(obj::Lar)
 	return HPC(obj.V,obj.C[:FV]) 
 end
 
+
 # //////////////////////////////////////////////////////////////////////////////
 function LAR(obj::Hpc)::Lar
+
+	function SimplifyCells(V,CV)
+
+		"""
+		Find and remove the duplicated vertices and the incorrect cells.
+		
+		Some vertices could appear two or more times, due to numerical errors
+		on mapped coordinates. So, close vertices are identified, according to the
+		PRECISION number of significant digits.
+		"""
+	
+		PRECISION = 14
+		vertDict = DefaultDict{Vector{Float64}, Int64}(0)
+		index = 0
+		W = Vector{Float64}[]
+		FW = Vector{Int64}[]
+	
+		for incell in CV
+			outcell = Int64[]
+			for v in incell
+				vert = V[:,v]
+				key = map(Truncate(PRECISION), vert)
+				if vertDict[key]==0
+					index += 1
+					vertDict[key] = index
+					push!(outcell, index)
+					push!(W,key)
+				else
+					push!(outcell, vertDict[key])
+				end
+			end
+			append!(FW, [[Set(outcell)...]])
+		end
+	
+		#TODO: scrgiorgio in other files is
+		# return hcat(W...), filter(x->!(LEN(x)<2), FW)
+		return hcat(W...), filter(x->!(LEN(x)<3), FW)
+	end
+	
+	function SimplifyCells(V,FV,EV)
+		V,FV = SimplifyCells(V,CV)
+		V,EV = SimplifyCells(V,EV)
+		return V,FV,EV
+	end
+
+	# Creation of Compressed Sparse Column sparse matrix format.
+	# Each CV element is the array of vertex indices of a cell.
+	function CreateCompressedSparseColumn( CV ) # CV => Cells defined by their Vertices
+
+		 I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)                
+		 # vcat maps arrayofarrays to single array
+		 J = vcat( CV...)         
+		 # splat transforms the CV array elements to vcat arguments
+		 X = Int8[1 for k=1:length(I)]         
+		 # Type Int8 defines the memory map of array elements
+		 return SparseArrays.sparse(I,J,X)        
+	end
+
+
    geo = ToGeometry(obj)
    V  = geo.points;
    EV = geo.edges;
    FV = geo.faces;
-   V,FV = simplifyCells(hcat(V...),FV) 
+   V,FV = SimplifyCells(hcat(V...),FV) 
    if !(FV == [])
       FV = union(FV)
-      FF = CSC(FV) * CSC(FV)'
+      FF = CreateCompressedSparseColumn(FV) * CreateCompressedSparseColumn(FV)'
       edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
       EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
    elseif all(length(x)==2 for x in EV) 

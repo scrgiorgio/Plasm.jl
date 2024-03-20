@@ -325,33 +325,3 @@ function TORUS(radii=[1.0,2]::Vector)
 	end
 	return TORUS0
 end
-
-# //////////////////////////////////////////////////////////////////////////////
-"""
-    RING(rmin=1., rmax=2., angle=2*pi)(shape::Vector{Int}=[36, 1]):Lar
-Generate polyhedral approximations of a torus surface in 3D.
-
-# Examples
-```jldoctest
-julia> RING()([16, 1])
-Lar(2, 2, 32, [1.84775906502257 0.92387953251129 … 1.84775906502257 0.92387953251129; -0.76536686473018 -0.38268343236509 … 0.76536686473018 0.38268343236509], Dict{Symbol, AbstractArray}(:FV => [[1, 2, 3, 4], [5, 6, 1, 2], [7, 8, 5, 6], [9, 10, 7, 8], ..., [27, 28, 29, 30], [29, 30, 31, 32], [31, 32, 3, 4]], :EV => [[3, 4], [2, 4], [1, 2], ..., [4, 32], [3, 31]]))
-
-VIEWCOMPLEX(RING()([16, 1]))
-```
-"""
-function RING(rmin=1., rmax=2., angle=2*pi)
-    function ring0(shape=[16, 1])
-		obj = CUBOIDGRID(shape)
-		V, CV = obj.V, obj.C[:FV]
-      V = [angle/shape[1] 0;0 (rmax-rmin)/shape[2]]*V .+ [0, rmin]
-      W = [V[:, k] for k=1:size(V, 2)]
-      V = hcat( map(p->let(u, v)=p; [v*cos(u);v*sin(u)] end, W)...)
-      obj = HPC(simplifyCells(V, CV)...)
-      geo = ToGeometry(obj)
-      V  = geo.points
-      FV = geo.hulls
-      EV = geo.edges
-      return Lar(hcat(V...), Dict(:EV=>EV,:FV=>FV))
-   end
-    return ring0
-end
