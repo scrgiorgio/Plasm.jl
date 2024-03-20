@@ -29,7 +29,7 @@ const Chain = SparseVector{Int8,Int}
 const ChainOp = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
 const LARmodel = Tuple{Points, Vector{Cells}}
-const LAR = Union{ 
+const LARtype = Union{ 
    Tuple{Points, Cells}, 
    Tuple{Points, Cells, Cells}, 
    Tuple{Points, Cells, Cells, Cells} }
@@ -197,7 +197,7 @@ planar_arrangement_1, 		sigma::Chain=spzeros(Int8, 0),
 
 	# spaceindex computation
 	model = (convert(Points,V'), cop2lar(copEV))
-	bigPI = spaceindex(model::LAR)
+	bigPI = spaceindex(model::LARtype)
 
     # sequential (iterative) processing of edge fragmentation
    for i in 1:edgenum
@@ -1323,7 +1323,7 @@ coboundary_1, 	#print_organizer("coboundary_1")
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Signed `coboundary_1` function, considering the LAR uncompleteness case """
+""" Signed `coboundary_1` function, considering the lar uncompleteness case """
 coboundary_1, 	#print_organizer("coboundary_1")
 
 	copFE = u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex)

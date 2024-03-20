@@ -15,7 +15,7 @@
 	const ChainOp = SparseMatrixCSC{Int8,Int}
 	const ChainComplex = Vector{ChainOp}
 	const LARmodel = Tuple{Points, Vector{Cells}}
-	const LAR = Union{ Tuple{Points, Cells}, Tuple{Points, Cells, Cells}, Tuple{Points, Cells, Cells, Cells} }
+	const LARtype = Union{ Tuple{Points, Cells}, Tuple{Points, Cells, Cells}, Tuple{Points, Cells, Cells, Cells} }
 	Verbose = false
 
 #///// 8 Intersection of Input Cells   /////////////////////
@@ -188,7 +188,7 @@ function planar_arrangement_1( V, copEV,
 
 	# spaceindex computation
 	model = (convert(Points,V'), cop2lar(copEV))
-	bigPI = spaceindex(model::LAR)
+	bigPI = spaceindex(model::LARtype)
 
     # sequential (iterative) processing of edge fragmentation
    for i in 1:edgenum
@@ -1372,7 +1372,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 
-""" Signed `coboundary_1` function, considering the LAR uncompleteness case """
+""" Signed `coboundary_1` function, considering the lar uncompleteness case """
 function coboundary_1( V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool )::ChainOp
 
 	copFE = u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex)

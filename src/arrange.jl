@@ -1110,37 +1110,6 @@ bigPI = spaceindex(model)
 return V,copEV,sigma,edge_map
 end
 
-""" Build the 2D 1-skeleton of arranged face `sigma` """
-#function planar_arrangement_1( V, copEV,
-#		sigma::Chain=spzeros(Int8, 0),
-#		return_edge_map::Bool=false )
-###print_organizer("planar_arrangement_1")
-#	# data structures initialization
-#	edgenum = size(copEV, 1)
-#	edge_map = Vector{Vector{Int}}(undef,edgenum)
-#	rV = Points(zeros(0, 2))
-#	rEV = SparseArrays.spzeros(Int8, 0, 0)
-#	finalcells_num = 0
-#
-#	# spaceindex computation
-#	model = (convert(Points,V'), cop2lar(copEV))
-#	bigPI = spaceindex(model)#::LAR)
-#
-#    # sequential (iterative) processing of edge fragmentation
-#   for i in 1:edgenum
-#      v, ev = frag_edge(V, copEV, i, bigPI)
-#      newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
-#      edge_map[i] = newedges_nums
-#      finalcells_num += size(ev, 1)
-#      rV = convert(Points, rV)
-#      rV, rEV = skel_merge(rV, rEV, v, ev)
-#   end
-#    # merging of close vertices and edges (2D congruence)
-#    V, copEV = rV, rEV
-#    V, copEV = merge_vertices!(V, copEV, edge_map)
-#	return V,copEV,sigma,edge_map
-#end
-
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -1416,7 +1385,7 @@ function coboundary_1( V::Points, FV::Cells, EV::Cells; convex=true::Bool, exter
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Signed `coboundary_1` function, considering the LAR uncompleteness case """
+""" Signed `coboundary_1` function, considering the lar uncompleteness case """
 function coboundary_1( V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool )::ChainOp
 	#print_organizer("coboundary_1")
 

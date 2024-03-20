@@ -364,7 +364,7 @@ function bool3d(assembly)
 	innerpoints,intersectedfaces = internalpoints(W,copEV,copFE, copCF[2:end,:]);
 	#----------------------------------------------------------------------------
 	# associate internal points to 3-cells
-	listOfLar = AA(LAR)(TOPOS(assembly)) # correspond to evalStruct(assembly)
+	listOfLar = AA(HpcToLar)(TOPOS(assembly)) # correspond to evalStruct(assembly)
 	inputfacenumbers = AA(LEN ∘ S2 ∘ new2old)(listOfLar)
 	cumulative = cumsum([0; inputfacenumbers]).+1
 	fspans = collect(zip(cumulative[1:end-1], cumulative[2:end].-1))

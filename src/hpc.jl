@@ -9,7 +9,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE,
-	truncate, Lar, Hpc, LAR
+	Truncate, Lar, Hpc
 
 import Base.:(==)
 import Base.:*
@@ -19,6 +19,19 @@ import Base.transpose
 DEFAULT_POINT_COLOR= Point4d(1.0,1.0,1.0,1.0)
 DEFAULT_LINE_COLOR = Point4d(0.3,0.3,0.3,1.0)
 DEFAULT_FACE_COLOR = Point4d(0.8,0.8,0.8,1.0)
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+Transform the float `value` to get a `PRECISION` number of significant digits.
+"""
+Truncate = PRECISION -> value -> begin
+   approx = round(value,digits=PRECISION)
+   abs(approx)==0.0 ? 0.0 : approx
+end
+
+
+
 
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
@@ -266,6 +279,32 @@ mutable struct Geometry
 	end
 
 end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+Linear Algebraic Representation (Lar). Data type for Cellular and Chain Complex.
+"""
+mutable struct Lar
+  d::Int # intrinsic dimension
+  m::Int # embedding dimension (rows of V)
+  n::Int # number of vertices  (columns of V)
+  V::Matrix{Float64} # object geometry
+  C::Dict{Symbol, AbstractArray} # object topology (C for cells)
+
+  # inner constructors
+  Lar() = new( -1, 0, 0, Matrix{Float64}(undef,0,0), Dict{Symbol, AbstractArray}() )
+  Lar(m::Int,n::Int) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() )
+  Lar(d::Int,m::Int,n::Int) = new( d,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() ) 
+  Lar(V::Matrix) = begin m, n = size(V); new( m,m,n, V, Dict{Symbol,AbstractArray}() ) end
+  Lar(V::Matrix,C::Dict) = begin m,n = size(V); new( m,m,n, V, C )  end
+  Lar(d::Int,V::Matrix,C::Dict) = begin m,n = size(V); new( d,m,n, V, C )  end
+  Lar(d,m,n, V,C) = new( d,m,n, V,C )
+end
+
+
+
+
 
 # /////////////////////////////////////////////////////////////
 function addPoint(self::Geometry, p::Vector{Float64})::Int
@@ -1302,7 +1341,7 @@ function ToGeometry(self::Hpc)
 			continue
 		end
 
-		# for each hull create a LAR hull (i.e. polygonal faces)
+		# for each hull create a lar hull (i.e. polygonal faces)
 		for hull in obj.hulls
 
 			points=[obj.points[idx] for idx in hull]
@@ -1355,43 +1394,6 @@ function ToGeometry(self::Hpc)
 	ret.hulls=UniqueCells(ret.hulls)
 
 	return ret
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-"""
-Transform the float `value` to get a `PRECISION` number of significant digits.
-"""
-truncate = PRECISION -> value -> begin
-   approx = round(value,digits=PRECISION)
-   abs(approx)==0.0 ? 0.0 : approx
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-"""
-Linear Algebraic Representation (LAR). Data type for Cellular and Chain Complex.
-"""
-mutable struct Lar
-  d::Int # intrinsic dimension
-  m::Int # embedding dimension (rows of V)
-  n::Int # number of vertices  (columns of V)
-  V::Matrix{Float64} # object geometry
-  C::Dict{Symbol, AbstractArray} # object topology (C for cells)
-
-  # inner constructors
-  Lar() = new( -1, 0, 0, Matrix{Float64}(undef,0,0), Dict{Symbol, AbstractArray}() )
-  Lar(m::Int,n::Int) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() )
-  Lar(d::Int,m::Int,n::Int) = new( d,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() ) 
-  Lar(V::Matrix) = begin m, n = size(V); new( m,m,n, V, Dict{Symbol,AbstractArray}() ) end
-  Lar(V::Matrix,C::Dict) = begin m,n = size(V); new( m,m,n, V, C )  end
-  Lar(d::Int,V::Matrix,C::Dict) = begin m,n = size(V); new( d,m,n, V, C )  end
-  Lar(d,m,n, V,C) = new( d,m,n, V,C )
-end
-
-
-function LarToHpc(obj::Lar) 
-	return MKPOLS(obj.V,obj.C[:FV]) 
 end
 
 
