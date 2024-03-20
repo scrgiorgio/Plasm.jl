@@ -1,5 +1,8 @@
 using Test, Plasm, LinearAlgebra
 
+import Random
+Random.seed!(0)
+
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
 

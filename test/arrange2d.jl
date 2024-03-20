@@ -2,6 +2,9 @@
 # ///////////////////////////////////////////////////////
 using Plasm 
 
+import Random
+Random.seed!(0)
+
 function TestExplode()
    geo=ToGeometry(STRUCT(
       Plasm.SQUARE(1), 

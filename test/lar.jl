@@ -1,5 +1,8 @@
 using Plasm
 
+import Random
+Random.seed!(0)
+
 # ///////////////////////////////////////////////////////
 function TestHpcToLAR()
 
