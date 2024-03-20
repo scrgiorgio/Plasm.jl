@@ -1830,7 +1830,7 @@ EV = [[1, 2], [3, 4], [5, 6], [7, 8], [1, 3], [2, 4], [5, 7], [6, 8], [1, 5], [2
 
 # //////////////////////////////////////////////////////////////////////////////
 
-VIEW(Hpc(V, CV)) 
+VIEW(HPC(V, CV)) 
 
 V,CVs,FVs,EVs = testarrangement(V,FV,EV);
 
@@ -1839,9 +1839,9 @@ for key in keys(calldict)
    println( key, " = ", calldict[key] ) 
 end
 
-VIEW(STRUCT([Hpc(DISTL([V,EVs])[k]...) for k=1:LEN(EVs)]))
-VIEW(STRUCT([Hpc(DISTL([V,FVs])[k]...) for k=1:LEN(FVs)]))
-VIEW(STRUCT([Hpc(DISTL([V,map(Cells,CVs)])[k]...) for k=1:LEN(CVs)]))
+VIEW(STRUCT([HPC(DISTL([V,EVs])[k]...) for k=1:LEN(EVs)]))
+VIEW(STRUCT([HPC(DISTL([V,FVs])[k]...) for k=1:LEN(FVs)]))
+VIEW(STRUCT([HPC(DISTL([V,map(Cells,CVs)])[k]...) for k=1:LEN(CVs)]))
 
 # //////////////////////////////////////////////////////////////////////////////
 using ViewerGL

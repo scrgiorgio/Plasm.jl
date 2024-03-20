@@ -117,7 +117,7 @@ julia> points = rand(25, 3);
 
 julia> obj = CHULL(points);
 
-julia> VIEW(Hpc(obj.V, obj.C[:EV]))
+julia> VIEW(HPC(obj.V, obj.C[:EV]))
 ```
 """
 function CHULL(points::Matrix)
@@ -132,10 +132,6 @@ end
 """
     GRID1(n::Int)::Hpc
 Generate a 1D object of `Hpc` type with `n` unit segments.
-# Examples
-```jldoctest
-julia> GRID1(5)
-Hpc(MatrixNd(2), Geometry[Geometry([[0.0], [1.0], [2.0], [3.0], [4.0], [5.0]], hulls=[[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])])
 ```
 """
 GRID1(n) = QUOTE(DIESIS(n)(1.0))
@@ -160,14 +156,14 @@ Lar(3, 3, 12, [1.0 0.0 … 2.0 2.0; 0.0 0.0 … 0.0 1.0; 0.0 0.0 … 1.0 1.0], D
 julia> VIEWCOMPLEX(CUBOIDGRID([2,1,1]))
 ```
 """
-function CUBOIDGRID(shape::Vector{Int})
+function CUBOIDGRID(shape::Vector{Int})::Lar
    obj = INSL(POWER)(AA(GRID1)(shape))
    if RN(obj) == 2
       geo=ToGeometry(obj)
       V  = geo.points
       FV = geo.hulls
       EV = geo.edges
-      return Plasm.Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
+      return Lar(hcat(V...), Dict(:FV=>FV, :EV=>EV))
    else 
       return LAR(obj)
    end
@@ -197,7 +193,7 @@ function VIEWCOMPLEX(mesh::Lar; properties::Dict=Dict())
    properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
 
    V = mesh.V; EV = mesh.C[:EV]
-   obj =PROPERTIES(Hpc(V,EV),properties)
+   obj =PROPERTIES(HPC(V,EV),properties)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
 
@@ -222,7 +218,7 @@ function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
    for v in EV append!(used_vertices,v) end
    for v in FV append!(used_vertices,v) end
 
-   obj = Hpc(V,EV)
+   obj = HPC(V,EV)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
 
@@ -260,18 +256,18 @@ Extract the k-skeleton form `Hpc` value `pol`.
 
 # Examples
 ```jldoctest
-julia> VIEW(SKELETON(1)(Hpc(CUBOIDGRID([4,2,3]))))
+julia> VIEW(SKELETON(1)(HPC(CUBOIDGRID([4,2,3]))))
 ```
 """
 function SKELETON(ord::Int)
    function SKELETON0(pol::Hpc)
       larpol = LAR(pol)
       if ord==1
-         return Hpc(larpol.V, larpol.C[:EV])
+         return HPC(larpol.V, larpol.C[:EV])
       elseif ord==2
-         return Hpc(larpol.V, larpol.C[:FV])
+         return HPC(larpol.V, larpol.C[:FV])
       elseif ord==3
-         return Hpc(larpol.V, larpol.C[:CV])
+         return HPC(larpol.V, larpol.C[:CV])
       else error("SKELETON($(ord)) not yet implemented")
       end 
    end
@@ -350,7 +346,7 @@ function RING(rmin=1., rmax=2., angle=2*pi)
       V = [angle/shape[1] 0;0 (rmax-rmin)/shape[2]]*V .+ [0, rmin]
       W = [V[:, k] for k=1:size(V, 2)]
       V = hcat( map(p->let(u, v)=p; [v*cos(u);v*sin(u)] end, W)...)
-      obj = Hpc(simplifyCells(V, CV)...)
+      obj = HPC(simplifyCells(V, CV)...)
       geo = ToGeometry(obj)
       V  = geo.points
       FV = geo.hulls

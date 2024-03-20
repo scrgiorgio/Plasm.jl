@@ -9,13 +9,13 @@ function TestHpcToLAR()
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 
   # SPHERE: ::Lar -> ::Hpc
-  obj2 = Hpc(V,EV);
+  obj2 = HPC(V,EV);
   VIEW(obj2)
-  obj3 = Hpc(V,FV);
+  obj3 = HPC(V,FV);
   VIEW(obj3)
 
   # SPHERE: ::Hpc -> ::Lar
-  obj4 = Lar(obj3);
+  obj4 = LAR(obj3);
   V, FV, EV = obj4.V, obj4.C[:FV], obj4.C[:EV];
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 

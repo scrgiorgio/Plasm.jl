@@ -1,4 +1,4 @@
-using Test,LinearAlgebra,PyCall
+using Test,LinearAlgebra,PyCall,DataStructures, SparseArrays
 
 export ComputeTriangleNormal,GoodTetOrientation,
 	BoxNd,MatrixNd,Hpc,Geometry,
@@ -6,7 +6,8 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
-	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
+	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE, HPC, LAR,
+	truncate, simplifyCells, CSC, Lar, Hpc, LAR
 
 import Base.:(==)
 import Base.:*
@@ -14,7 +15,7 @@ import Base.size
 import Base.transpose
 
 DEFAULT_POINT_COLOR= Point4d(1.0,1.0,1.0,1.0)
-DEFAULT_LINE_COLOR = Point4d(1.0,1.0,1.0,1.0)
+DEFAULT_LINE_COLOR = Point4d(0.3,0.3,0.3,1.0)
 DEFAULT_FACE_COLOR = Point4d(0.8,0.8,0.8,1.0)
 
 # /////////////////////////////////////////////////////////////
@@ -1321,7 +1322,7 @@ function ToGeometry(self::Hpc)
 		end
 	end
 	
-	# compute edges
+	# compute edges as interseciton of edges
 	edges_set=Set()
 	for face in ret.faces
 		N=length(face)
@@ -1350,5 +1351,134 @@ function ComputeCentroid(points)
 		ret=ret+p*s
 	end
 	return ret
+end
+
+
+
+# //////////////////////////////////////////////////////////////////////////////
+# With a docstring, can be seen from Help (?) the whole set of parameters
+"""
+	truncate(PRECISION::Int)(value::Float64)
+
+Transform the float `value` to get a `PRECISION` number of significant digits.
+"""
+truncate = PRECISION -> value -> begin
+   approx = round(value,digits=PRECISION)
+   abs(approx)==0.0 ? 0.0 : approx
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+	W,CW = simplifyCells(V,CV)
+
+Find and remove the duplicated vertices and the incorrect cells.
+
+Some vertices could appear two or more times, due to numerical errors
+on mapped coordinates. So, close vertices are identified, according to the
+PRECISION number of significant digits.
+"""
+function simplifyCells(V,CV)
+	PRECISION = 14
+	vertDict = DefaultDict{Vector{Float64}, Int64}(0)
+	index = 0
+	W = Vector{Float64}[]
+	FW = Vector{Int64}[]
+
+	for incell in CV
+		outcell = Int64[]
+		for v in incell
+			vert = V[:,v]
+			key = map(truncate(PRECISION), vert)
+			if vertDict[key]==0
+				index += 1
+				vertDict[key] = index
+				push!(outcell, index)
+				push!(W,key)
+			else
+				push!(outcell, vertDict[key])
+			end
+		end
+		append!(FW, [[Set(outcell)...]])
+	end
+	return hcat(W...), filter(x->!(LEN(x)<3), FW)
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+   CSC( Cc::Vector{Vector{Int64}} )::SparseMatrix
+
+Creation of Compressed Sparse Column (CSC) sparse matrix format.
+Each CV element is the array of vertex indices of a cell.
+"""
+function CSC( CV ) # CV => Cells defined by their Vertices
+   I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)                
+   # vcat maps arrayofarrays to single array
+   J = vcat( CV...)         
+   # splat transforms the CV array elements to vcat arguments
+   X = Int8[1 for k=1:length(I)]         
+   # Type Int8 defines the memory map of array elements
+   return SparseArrays.sparse(I,J,X)        
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+   mutable struct Lar
+
+Linear Algebraic Representation (LAR). Data type for Cellular and Chain Complex.
+"""
+mutable struct Lar
+  d::Int # intrinsic dimension
+  m::Int # embedding dimension (rows of V)
+  n::Int # number of vertices  (columns of V)
+  V::Matrix{Float64} # object geometry
+  C::Dict{Symbol, AbstractArray} # object topology (C for cells)
+  # inner constructors
+  Lar() = new( -1, 0, 0, Matrix{Float64}(undef,0,0), Dict{Symbol, AbstractArray}() )
+  Lar(m::Int,n::Int) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() )
+  Lar(d::Int,m::Int,n::Int) = new( d,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() ) 
+  Lar(V::Matrix) = begin m, n = size(V); 
+     new( m,m,n, V, Dict{Symbol,AbstractArray}() ) end
+  Lar(V::Matrix,C::Dict) = begin m,n = size(V); new( m,m,n, V, C )  end
+  Lar(d::Int,V::Matrix,C::Dict) = begin m,n = size(V); new( d,m,n, V, C )  end
+  Lar(d,m,n, V,C) = new( d,m,n, V,C )
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+Constructor of object of Hierarchical Polyhedral Complex (Hpc) type, starting from a pair V,CV of LAR kind. 
+V is of type Matrix{Float64}; CV is any ::Vector{Vector{Int}} dataset.
+"""
+function HPC(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc  
+	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls)))) 
+	return out 
+end
+
+function HPC(V::Matrix{Float64}, hulls::Vector{Vector{Int}}) 
+	W=[V[:,k] for k=1:size(V,2)]
+	return HPC(W, hulls)
+end
+
+function HPC(obj::Lar) 
+	return HPC(obj.V,obj.C[:FV]) 
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function LAR(obj::Hpc)::Lar
+   geo = ToGeometry(obj)
+   V  = geo.points;
+   EV = geo.edges;
+   FV = geo.faces;
+   V,FV = simplifyCells(hcat(V...),FV) # !!!!  simplifyCells(hcat(V...),FV,EV);
+   if !(FV == [])
+      FV = union(FV)
+      FF = CSC(FV) * CSC(FV)'
+      edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
+      EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
+   elseif all(length(x)==2 for x in EV) 
+      return Plasm.Lar(1,V, Dict(:EV=>EV))
+   end
+   return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
 end
 

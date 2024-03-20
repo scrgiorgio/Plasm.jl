@@ -5,7 +5,7 @@ calldict = DefaultDict{String}{Int}(0)
 
 # ///////////////////////////////////////////////////////
 function TestExplode()
-   obj = Lar(STRUCT(
+   obj = LAR(STRUCT(
       Plasm.CUBE(1), 
       T(1,2)(0.5,0.25), 
       Plasm.CUBE(1)
@@ -27,7 +27,7 @@ EV = [[1, 2], [3, 4], [5, 6], [7, 8], [1, 3], [2, 4], [5, 7], [6, 8], [1, 5], [2
 
 # //////////////////////////////////////////////////////////////////////////////
 
-VIEW(Hpc(V, CV)) 
+VIEW(HPC(V, CV)) 
 
 V,CVs,FVs,EVs = testarrangement(V,FV,EV);
 
