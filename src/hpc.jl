@@ -1338,7 +1338,14 @@ function ToGeometry(self::Hpc)
 			@assert(pdim==2 || pdim==3)
 
 			if qhull_facets==nothing
-				push!(ret.faces, mapped)
+				npoints=length(mapped)
+				if npoints==1
+					# ignore points
+				elseif npoints==2
+					push!(ret.edges, mapped) # probably and edge
+				else
+					push!(ret.faces, mapped) # probably an embedded 2D face
+				end
 				continue
 			end
 
@@ -1364,8 +1371,8 @@ function ToGeometry(self::Hpc)
 		end
 	end
 
-	ret.faces=UniqueCells(ret.faces)
 	ret.edges=UniqueCells(ret.edges)
+	ret.faces=UniqueCells(ret.faces)
 	ret.hulls=UniqueCells(ret.hulls)
 
 	return ret
@@ -1432,13 +1439,12 @@ if false
  
 else
 
-	function SimplifyCells(V,CV)ne
+	function SimplifyCells(V,CV)
 		PRECISION = 14
 		vertDict = DefaultDict{Vector{Float64}, Int64}(0)
 		index = 0
 		W = Vector{Float64}[]
 		FW = Vector{Int64}[]
-	
 		for incell in CV
 			outcell = Int64[]
 			for v in incell
@@ -1455,17 +1461,12 @@ else
 			end
 			append!(FW, [[Set(outcell)...]])
 		end
-	
-		#TODO: scrgiorgio in other files is
-		# return hcat(W...), filter(x->!(LEN(x)<2), FW)
 		return hcat(W...), filter(x->!(LEN(x)<3), FW)
 	end
-	
 
 	# Creation of Compressed Sparse Column sparse matrix format.
 	# Each CV element is the array of vertex indices of a cell.
 	function CreateCompressedSparseColumn( CV ) # CV => Cells defined by their Vertices
-
 		 I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)                
 		 # vcat maps arrayofarrays to single array
 		 J = vcat( CV...)         
@@ -1477,21 +1478,19 @@ else
 
 	function LAR(obj::Hpc)::Lar
 		geo = ToGeometry(obj)
-		V  = geo.points;
-		EV = geo.edges;
-		FV = geo.faces;
-		V,FV = SimplifyCells(hcat(V...),FV) 
-		if FV != []
-				FV = union(FV)
-				FF = CreateCompressedSparseColumn(FV) * CreateCompressedSparseColumn(FV)'
-				edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
-				EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
-				return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
-		elseif all(length(x)==2 for x in EV)
-			println("********* HERE") 
-				return Plasm.Lar(1,V, Dict(:EV=>EV))
+
+		if geo.faces != []
+			V,FV = SimplifyCells(hcat(geo.points...),geo.faces) 
+			FV = union(FV)
+			FF = CreateCompressedSparseColumn(FV) * CreateCompressedSparseColumn(FV)'
+			edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
+			EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
+			return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EV))
+			
+		elseif geo.edges!=[]
+			return Plasm.Lar(1, hcat(geo.points...), Dict(:EV=>geo.edges))
 		else
-			error("HERE")
+			error("do not know how to handle this")
 		end
 		
 	end
