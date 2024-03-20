@@ -1415,34 +1415,24 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 if false
 
- function LAR(obj::Hpc)::Lar
-	geo=ToGeometry(obj)
-  n=length(geo.points)    # number of vertices  (columns of V)
-  m=length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
-	ret=Lar()
-	ret.d=m
-	ret.n=n
-	ret.m=m 
-	ret.V=hcat(geo.points...)
-	ret.C[:EV]=geo.edges
-	ret.C[:FV]=geo.faces
-	ret.C[:CV]=geo.hulls
-	return ret
-end
+	function LAR(obj::Hpc)::Lar
+		geo=ToGeometry(obj)
+		n=length(geo.points)    # number of vertices  (columns of V)
+		m=length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
+		ret=Lar()
+		ret.d=m
+		ret.n=n
+		ret.m=m 
+		ret.V=hcat(geo.points...)
+		ret.C[:EV]=geo.edges
+		ret.C[:FV]=geo.faces
+		ret.C[:CV]=geo.hulls
+		return ret
+	end
  
 else
-function LAR(obj::Hpc)::Lar
 
-	function SimplifyCells(V,CV)
-
-		"""
-		Find and remove the duplicated vertices and the incorrect cells.
-		
-		Some vertices could appear two or more times, due to numerical errors
-		on mapped coordinates. So, close vertices are identified, according to the
-		PRECISION number of significant digits.
-		"""
-	
+	function SimplifyCells(V,CV)ne
 		PRECISION = 14
 		vertDict = DefaultDict{Vector{Float64}, Int64}(0)
 		index = 0
@@ -1471,11 +1461,6 @@ function LAR(obj::Hpc)::Lar
 		return hcat(W...), filter(x->!(LEN(x)<3), FW)
 	end
 	
-	function SimplifyCells(V,FV,EV)
-		V,FV = SimplifyCells(V,CV)
-		V,EV = SimplifyCells(V,EV)
-		return V,FV,EV
-	end
 
 	# Creation of Compressed Sparse Column sparse matrix format.
 	# Each CV element is the array of vertex indices of a cell.
@@ -1490,20 +1475,25 @@ function LAR(obj::Hpc)::Lar
 		 return SparseArrays.sparse(I,J,X)        
 	end
 
-   geo = ToGeometry(obj)
-   V  = geo.points;
-   EV = geo.edges;
-   FV = geo.faces;
-   V,FV = SimplifyCells(hcat(V...),FV) 
-   if !(FV == [])
-      FV = union(FV)
-      FF = CreateCompressedSparseColumn(FV) * CreateCompressedSparseColumn(FV)'
-      edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
-      EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
-   elseif all(length(x)==2 for x in EV) 
-      return Plasm.Lar(1,V, Dict(:EV=>EV))
-   end
-   return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
-end
+	function LAR(obj::Hpc)::Lar
+		geo = ToGeometry(obj)
+		V  = geo.points;
+		EV = geo.edges;
+		FV = geo.faces;
+		V,FV = SimplifyCells(hcat(V...),FV) 
+		if FV != []
+				FV = union(FV)
+				FF = CreateCompressedSparseColumn(FV) * CreateCompressedSparseColumn(FV)'
+				edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
+				EW = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
+				return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
+		elseif all(length(x)==2 for x in EV)
+			println("********* HERE") 
+				return Plasm.Lar(1,V, Dict(:EV=>EV))
+		else
+			error("HERE")
+		end
+		
+	end
 
 end # if 
