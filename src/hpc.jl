@@ -1373,11 +1373,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-"""
-   mutable struct Lar
-
-Linear Algebraic Representation (LAR). Data type for Cellular and Chain Complex.
-"""
+# Linear Algebraic Representation (LAR). Data type for Cellular and Chain Complex.
 mutable struct Lar
   d::Int # intrinsic dimension
   m::Int # embedding dimension (rows of V)
@@ -1417,6 +1413,24 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
+if false
+
+ function LAR(obj::Hpc)::Lar
+	geo=ToGeometry(obj)
+  n=length(geo.points)    # number of vertices  (columns of V)
+  m=length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
+	ret=Lar()
+	ret.d=m
+	ret.n=n
+	ret.m=m 
+	ret.V=hcat(geo.points...)
+	ret.C[:EV]=geo.edges
+	ret.C[:FV]=geo.faces
+	ret.C[:CV]=geo.hulls
+	return ret
+end
+ 
+else
 function LAR(obj::Hpc)::Lar
 
 	function SimplifyCells(V,CV)
@@ -1476,7 +1490,6 @@ function LAR(obj::Hpc)::Lar
 		 return SparseArrays.sparse(I,J,X)        
 	end
 
-
    geo = ToGeometry(obj)
    V  = geo.points;
    EV = geo.edges;
@@ -1493,3 +1506,4 @@ function LAR(obj::Hpc)::Lar
    return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EW))
 end
 
+end # if 
