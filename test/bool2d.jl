@@ -170,10 +170,7 @@ using Plasm
 # //////////////////////////////////////////////////////////////////////////////
 # 2D Boolean example generation (see CAD23 paper)
 n,m = 1,1
-
-tmp=CUBOIDGRID([n,m])
-
-square = TYPE(MKPOLS(tmp.V,tmp.C[:FV]), "solid")
+square = TYPE(ToHpc(CUBOIDGRID([n,m])), "solid")
 
 assembly = STRUCT( 
     STRUCT( T(1,2)(-√2/4, -√2/2 ), R(1,2)(π/4), square ),

@@ -9,11 +9,11 @@ function TestHpcToLAR()
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 
   # SPHERE: ::Lar -> ::Hpc
-  VIEW(MKPOLS(V,EV))
-  VIEW(MKPOLS(V,FV))
+  obj2 = MKPOLS(V,EV);VIEW(obj2)
+  obj3 = MKPOLS(V,FV);VIEW(obj3)
 
   # SPHERE: ::Hpc -> ::Lar
-  obj4 = Lar(obj3);
+  obj4 = ToLar(obj3)
   V, FV, EV = obj4.V, obj4.C[:FV], obj4.C[:EV];
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 
@@ -38,7 +38,7 @@ function generate_lar_random_bubbles(; n=50)
     str = STRUCT([ transl, scale, CIRCUMFERENCE(1.)(32) ])
     push!(store, str)
   end
-  obj = ToLar(STRUCT(store))
+  obj = Plasm.LAR(STRUCT(store))
   V,EV = obj.V, obj.C[:EV]
     return V,EV
   end
@@ -76,7 +76,6 @@ function TestArrange2D(name, V,EV)
   V,FV,EV = arrange2D(V,EV)
   println("...done ",name)
 end
-
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestLAR()

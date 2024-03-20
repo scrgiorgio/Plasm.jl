@@ -5,7 +5,7 @@ using Plasm
 n,m,p = 1,1,1
 
 grid=CUBOIDGRID([n,m,p]
-cube = TYPE(MKPOLS(grid.V,grid.C[:FV])), "solid")
+cube = TYPE(ToHpc(grid)), "solid")
 
 # three cubes in "assembly"
 assembly = STRUCT( cube,

@@ -1365,10 +1365,21 @@ function ToGeometry(self::Hpc)
 				if Nmapped==1
 					continue                   # probably is a point, ignore
 				elseif Nmapped==2
-					push!(ret.edges , mapped)  # probably is an edge
+					edge=mapped
+					push!(ret.edges , edge)  # probably is an edge
 					continue
 				else
-					push!(ret.faces , mapped)  # probably is a face, SHOULD I add edges as well? what if they are not ordered?
+					face=mapped
+					push!(ret.faces , face)  
+
+					# add edges (EV) NOTE: this works only if faces are ordinated (i.e. they form a loop)
+					for I in 1:length(face)
+						A,B = face[I], face[I==length(face) ? 1 : I+1]
+						push!(ret.edges,Vector{Int}([A,B]))
+					end
+
+					# not adding the hull here
+
 					continue
 				end
 			end
@@ -1415,4 +1426,9 @@ function ToLar(obj::Hpc)::Lar
 	ret.C[:FV]=geo.faces
 	ret.C[:CV]=geo.hulls
 	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////
+function ToHpc(lar::Lar)
+	return MKPOLS(SL.V,SL.C[:FV])
 end

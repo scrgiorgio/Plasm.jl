@@ -953,8 +953,8 @@ function MKPOLS(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})
 	return STRUCT([MKPOL(points,[hull]) for hull in hulls])
 end
 
-function MKPOLS(V::Matrix{Float64}, CV::Vector{Vector{Int}}) 
-	return MKPOLS([V[:,k] for k=1:size(V,2)],CV)
+function MKPOLS(V::Matrix{Float64}, hulls::Vector{Vector{Int}}) 
+	return MKPOLS([V[:,k] for k=1:size(V,2)],hulls)
 end
 
 # /////////////////////////////////////////////////////////////////
