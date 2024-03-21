@@ -275,8 +275,38 @@ function TestToLAR()
     @assert(length(geo.points[1])==3)            
     @assert(length(geo.faces)==4*8)              
     @assert(length(geo.hulls)==0)                
-  end                                            
+  end   
   
+  
+  # show how to keep all cells in Hpc/Lar transformation
+  begin  
+    hpc1=STRUCT(
+      T(1)(0.1),T(2)(0.1),T(3)(0.1),
+      T(1)(0.0), Simplex(1),
+      T(1)(1.1), Simplex(2),
+      T(1)(1.1), Simplex(3),
+      T(1)(1.1), Cube(1),
+      T(1)(1.1), Cube(2),
+      T(1)(1.1), Cube(3),
+      T(1)(2.1), CIRCUMFERENCE(1.0)(8),   
+      T(1)(2.1), SPHERE(1.0)([4,8])
+    )            
+
+    lar=LAR(hpc1)
+
+    # to keep edges I need to convert FV and EV
+    hpc2=STRUCT(
+      MKPOLS(lar.V, lar.C[:FV]),
+      MKPOLS(lar.V, lar.C[:EV])
+    )
+
+    VIEW(
+      PROPERTIES(
+        STRUCT(hpc1, T(2)(2.5),hpc2), 
+        Dict("line_color" => WHITE,"line_width"=>2)
+      ))
+  end
+
 end
 
 # ///////////////////////////////////////////////////////
