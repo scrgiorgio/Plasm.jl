@@ -1303,11 +1303,11 @@ function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
 		@assert obj isa Geometry
 
 		# automatic filter useless obj
-		if isempty(obj.points) || isempty(obj.hulls) || dim(obj) <= 1
+		if isempty(obj.points) || isempty(obj.hulls) 
 			continue
 		end
 
-		# for each hull create a LAR hull
+
 		for hull in obj.hulls
 			points=[obj.points[idx] for idx in hull]
 
@@ -1394,7 +1394,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-# Linear Algebraic Representation (LAR). Data type for Cellular and Chain Complex.
+# Linear Algebraic Representation . Data type for Cellular and Chain Complex.
 mutable struct Lar
   d::Int # intrinsic dimension
   m::Int # embedding dimension (rows of V)
@@ -1433,7 +1433,6 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-# from LAR (or derivatives) -> Hpc
 function MKPOLS(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc  
 	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls)))) 
 	return out 
