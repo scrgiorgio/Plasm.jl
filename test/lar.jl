@@ -12,9 +12,9 @@ function TestHpcToLAR()
   println("V, FV, EV: $(size(V,2)), $(LEN(FV)), $(LEN(EV))")
 
   # SPHERE: ::Lar -> ::Hpc
-  obj2 = HPC(V,EV);
+  obj2 = MKPOLS(V,EV);
   VIEW(obj2)
-  obj3 = HPC(V,FV);
+  obj3 = MKPOLS(V,FV);
   VIEW(obj3)
 
   # SPHERE: ::Hpc -> ::Lar

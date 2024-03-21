@@ -117,7 +117,7 @@ julia> points = rand(25, 3);
 
 julia> obj = CHULL(points);
 
-julia> VIEW(HPC(obj.V, obj.C[:EV]))
+julia> VIEW(MKPOLS(obj.V, obj.C[:EV]))
 ```
 """
 function CHULL(points::Matrix)
@@ -193,7 +193,7 @@ function VIEWCOMPLEX(mesh::Lar; properties::Dict=Dict())
    properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
 
    V = mesh.V; EV = mesh.C[:EV]
-   obj =PROPERTIES(HPC(V,EV),properties)
+   obj =PROPERTIES(MKPOLS(V,EV),properties)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
 
@@ -218,7 +218,7 @@ function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext)
    for v in EV append!(used_vertices,v) end
    for v in FV append!(used_vertices,v) end
 
-   obj = HPC(V,EV)
+   obj = MKPOLS(V,EV)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
 
@@ -253,21 +253,17 @@ end
 """
     SKELETON(k::Int)(pol::Hpc)::Hpc
 Extract the k-skeleton form `Hpc` value `pol`.
-
-# Examples
-```jldoctest
-julia> VIEW(SKELETON(1)(HPC(CUBOIDGRID([4,2,3]))))
 ```
 """
 function SKELETON(ord::Int)
    function SKELETON0(pol::Hpc)
       larpol = LAR(pol)
       if ord==1
-         return HPC(larpol.V, larpol.C[:EV])
+         return MKPOLS(larpol.V, larpol.C[:EV])
       elseif ord==2
-         return HPC(larpol.V, larpol.C[:FV])
+         return MKPOLS(larpol.V, larpol.C[:FV])
       elseif ord==3
-         return HPC(larpol.V, larpol.C[:CV])
+         return MKPOLS(larpol.V, larpol.C[:CV])
       else error("SKELETON($(ord)) not yet implemented")
       end 
    end

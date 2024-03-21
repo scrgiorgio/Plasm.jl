@@ -6,8 +6,9 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	MkPol,Struct,Cube,Simplex,Join,Quote,Transform,Translate,Scale,Rotate,Power,UkPol,MapFn,
 	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
-	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE, HPC, LAR,
-	Lar, Hpc, LAR
+	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, 
+	HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE, 
+	Lar, Hpc, LAR, MKPOLS
 
 import Base.:(==)
 import Base.:*
@@ -254,21 +255,11 @@ mutable struct Geometry
 	# constructor
 	function Geometry()
 		self=new(
-			# db
 			Dict{Vector{Float64}, Int}(),
-
-			# points
 			Vector{Vector{Float64}}(),
-
-			# edges
 			Vector{Vector{Int}}(),
-
-			# faces
 			Vector{Vector{Int}}(),
-
-			# hulls
 			Vector{Vector{Int}}(),
-
 		)
 		return self
 	end
@@ -1422,27 +1413,9 @@ mutable struct Lar
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////
-"""
-Constructor of object of Hierarchical Polyhedral Complex (Hpc) type, starting from a pair V,CV of LAR kind. 
-V is of type Matrix{Float64}; CV is any ::Vector{Vector{Int}} dataset.
-"""
-function HPC(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc  
-	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls)))) 
-	return out 
-end
-
-function HPC(V::Matrix{Float64}, hulls::Vector{Vector{Int}}) 
-	W=[V[:,k] for k=1:size(V,2)]
-	return HPC(W, hulls)
-end
-
-function HPC(obj::Lar) 
-	return HPC(obj.V, obj.C[:FV]) 
-end
-
 
 # //////////////////////////////////////////////////////////////////////////////
+# from Hpc -> Lar (trying to keep as many information as possible, still unifying to a unique geometry)
 function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	geo=ToGeometry(obj, precision=precision)
 	n=length(geo.points)    # number of vertices  (columns of V)
@@ -1457,3 +1430,18 @@ function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	ret.C[:CV]=geo.hulls
 	return ret
 end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+# from LAR (or derivatives) -> Hpc
+function MKPOLS(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc  
+	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls)))) 
+	return out 
+end
+
+function MKPOLS(V::Matrix{Float64}, hulls::Vector{Vector{Int}}) 
+	W=[V[:,k] for k=1:size(V,2)]
+	return MKPOLS(W, hulls)
+end
+
+
