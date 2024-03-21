@@ -1300,7 +1300,9 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////
-function ToGeometry(self::Hpc; precision=14)
+DEFAULT_PRECISION=14
+
+function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
 
 	# returning always an unique cell
 	ret=Geometry()
@@ -1441,84 +1443,17 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-if false
-
-	function LAR(obj::Hpc)::Lar
-		geo=ToGeometry(obj)
-		n=length(geo.points)    # number of vertices  (columns of V)
-		m=length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
-		ret=Lar()
-		ret.d=m
-		ret.n=n
-		ret.m=m 
-		ret.V=hcat(geo.points...)
-		ret.C[:EV]=geo.edges
-		ret.C[:FV]=geo.faces
-		ret.C[:CV]=geo.hulls
-		return ret
-	end
- 
-else
-
-	Truncate = precision -> value -> begin
-		approx = round(value,digits=precision)
-		abs(approx)==0.0 ? 0.0 : approx
-	end
-
-
-	function SimplifyCells(V,CV; precision=14)
-		vertDict = DefaultDict{Vector{Float64}, Int64}(0)
-		index = 0
-		W = Vector{Float64}[]
-		FW = Vector{Int64}[]
-		for incell in CV
-			outcell = Int64[]
-			for v in incell
-				vert = V[:,v]
-				key = map(Truncate(precision), vert)
-				if vertDict[key]==0
-					index += 1
-					vertDict[key] = index
-					push!(outcell, index)
-					push!(W,key)
-				else
-					push!(outcell, vertDict[key])
-				end
-			end
-			append!(FW, [[Set(outcell)...]])
-		end
-		return hcat(W...), filter(x->!(LEN(x)<3), FW)
-	end
-
-	# Creation of Compressed Sparse Column sparse matrix format.
-	# Each CV element is the array of vertex indices of a cell.
-	function CreateCompressedSparseColumn( CV ) # CV => Cells defined by their Vertices
-		 I = vcat( [ [k for h in CV[k]] for k=1:length(CV) ]...)                
-		 # vcat maps arrayofarrays to single array
-		 J = vcat( CV...)         
-		 # splat transforms the CV array elements to vcat arguments
-		 X = Int8[1 for k=1:length(I)]         
-		 # Type Int8 defines the memory map of array elements
-		 return SparseArrays.sparse(I,J,X)        
-	end
-
-	function LAR(obj::Hpc)::Lar
-		geo = ToGeometry(obj)
-
-		if geo.faces != []
-			V,FV = SimplifyCells(hcat(geo.points...),geo.faces) 
-			FV = union(FV)
-			FF = CreateCompressedSparseColumn(FV) * CreateCompressedSparseColumn(FV)'
-			edges = filter(x->x[1]<x[2] && FF[x...]==2, collect(zip(findnz(FF)[1:2]...)))
-			EV = sort!(collect(Set([FV[i] ∩ FV[j] for (i,j) in edges])))
-			return Plasm.Lar(V, Dict(:FV=>FV, :EV=>EV))
-
-		elseif geo.edges!=[]
-			return Plasm.Lar(1, hcat(geo.points...), Dict(:EV=>geo.edges))
-		else
-			error("do not know how to handle this")
-		end
-		
-	end
-
-end # if 
+function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
+	geo=ToGeometry(obj, precision=precision)
+	n=length(geo.points)    # number of vertices  (columns of V)
+	m=length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
+	ret=Lar()
+	ret.d=m
+	ret.n=n
+	ret.m=m 
+	ret.V=hcat(geo.points...)
+	ret.C[:EV]=geo.edges
+	ret.C[:FV]=geo.faces
+	ret.C[:CV]=geo.hulls
+	return ret
+end
