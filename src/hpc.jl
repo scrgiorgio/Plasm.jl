@@ -1297,14 +1297,10 @@ function ConvertFacets(value)
 	return ret
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-Truncate = PRECISION -> value -> begin
-   approx = round(value,digits=PRECISION)
-   abs(approx)==0.0 ? 0.0 : approx
-end
+
 
 # ///////////////////////////////////////////////////////////////////
-function ToGeometry(self::Hpc)
+function ToGeometry(self::Hpc; precision=14)
 
 	# returning always an unique cell
 	ret=Geometry()
@@ -1330,6 +1326,18 @@ function ToGeometry(self::Hpc)
 			end
 
 			points = [transformPoint(T,p) for p in points]
+
+			# ex truncate
+			if precision!=0.0
+				for point in points
+					for K in 1:length(point)
+						approx = round(point[K], digits=precision)
+						point[K]=abs(approx)==0.0 ? 0.0 : approx
+					end
+				end
+			end
+
+			# add the points
 			mapped  = addPoints(ret, points)
 
 			# point dim
@@ -1374,13 +1382,13 @@ function ToGeometry(self::Hpc)
 	# alternative would be: find fitting plane, order points by angle. This way I would produce all edges
 	begin
 		for f1 in ret.faces
-						for f2 in ret.faces
-										s1,s2=Set(f1),Set(f2)
-										edge=collect(intersect(s1,s2)) # note: if f1 is an edge this will return two edges, ok with that? 
-										if length(edge)==2
-														push!(ret.edges,edge)
-										end
-						end
+			for f2 in ret.faces
+				s1,s2=Set(f1),Set(f2)
+				edge=collect(intersect(s1,s2)) # note: if f1 is an edge this will return two edges, ok with that? 
+				if length(edge)==2
+					push!(ret.edges,edge)
+				end
+			end
 		end 
 	end		
 	
@@ -1428,7 +1436,7 @@ function HPC(V::Matrix{Float64}, hulls::Vector{Vector{Int}})
 end
 
 function HPC(obj::Lar) 
-	return HPC(obj.V,obj.C[:FV]) 
+	return HPC(obj.V, obj.C[:FV]) 
 end
 
 
@@ -1452,8 +1460,13 @@ if false
  
 else
 
-	function SimplifyCells(V,CV)
-		PRECISION = 14
+	Truncate = precision -> value -> begin
+		approx = round(value,digits=precision)
+		abs(approx)==0.0 ? 0.0 : approx
+	end
+
+
+	function SimplifyCells(V,CV; precision=14)
 		vertDict = DefaultDict{Vector{Float64}, Int64}(0)
 		index = 0
 		W = Vector{Float64}[]
@@ -1462,7 +1475,7 @@ else
 			outcell = Int64[]
 			for v in incell
 				vert = V[:,v]
-				key = map(Truncate(PRECISION), vert)
+				key = map(Truncate(precision), vert)
 				if vertDict[key]==0
 					index += 1
 					vertDict[key] = index

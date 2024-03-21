@@ -270,7 +270,7 @@ function TestToLAR()
 
   # 3D brep
   begin                                          
-    geo=ToGeometry(SPHERE(1.0)([4,8]))           
+    geo=ToGeometry(SPHERE(1.0)([4,8]),precision=0.0)
     @assert(length(geo.points)==(4+1)*(8+1))     
     @assert(length(geo.points[1])==3)            
     @assert(length(geo.faces)==4*8)              
