@@ -1344,7 +1344,7 @@ function ToGeometry(self::Hpc)
 				elseif npoints==2
 					push!(ret.edges, mapped) # probably and edge
 				else
-					push!(ret.faces, mapped) # probably an embedded 2D face
+					push!(ret.faces, mapped) # probably an embedded 2D face (NOTE edges will be computed by intersection of faces)
 				end
 				continue
 			end
@@ -1368,6 +1368,21 @@ function ToGeometry(self::Hpc)
 			push!(ret.hulls, [mapped[P] for P in 1:length(points)])
 		end
 	end
+
+	# need to produce missing edges (coming from embedded 2d faces)
+	# this way only edges which are the interection of two faces are produced, missing single isolated faces in 3d (is it a big deal?)
+	# alternative would be: find fitting plane, order points by angle. This way I would produce all edges
+	begin
+		for f1 in ret.faces
+						for f2 in ret.faces
+										s1,s2=Set(f1),Set(f2)
+										edge=collect(intersect(s1,s2)) # note: if f1 is an edge this will return two edges, ok with that? 
+										if length(edge)==2
+														push!(ret.edges,edge)
+										end
+						end
+		end 
+	end		
 	
 	ret.edges=UniqueCells(ret.edges)
 	ret.faces=UniqueCells(ret.faces)

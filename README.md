@@ -35,6 +35,15 @@ julia test/arrange.jl
 julia test/complex.jl
 ```
 
+
+
+
+
+
+
+
+
+
 # View properties
 
 Important: use String as Dict keys, not symbols
@@ -53,7 +62,8 @@ View(batches, properties=Dict(
   "zfar "            => 100.0) 
   "walk_speed "      => 10.0) 
 )
-'''
+```
+
 
 # Jupyter or Juno?
 
