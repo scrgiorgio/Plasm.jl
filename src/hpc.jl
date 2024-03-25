@@ -1443,4 +1443,15 @@ function MKPOLS(V::Matrix{Float64}, hulls::Vector{Vector{Int}})
 	return MKPOLS(W, hulls)
 end
 
+function MKPOLS(V::Union{Vector{Vector{Float64}}, Matrix{Float64}}, cells::Dict{Symbol, AbstractArray}) 
+	v=[]
+	for (__symbol, hulls) in cells
+		push!(v,MKPOLS(V,hulls))
+	end
+	return STRUCT(v)
+end
+
+
+
+
 
