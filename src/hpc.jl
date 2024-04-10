@@ -1121,6 +1121,11 @@ function InitToLAR()
 		# constructor
 		def __init__(self, user_points, verbose=False):
 			user_points = np.ascontiguousarray(user_points, dtype=np.double)
+
+			# http://www.qhull.org/html/qh-quick.htm#options
+			# Qs  search all points for the initial simplex
+			# Pp - do not report precision problems
+			# i incidence
 			qhull_options = "i Qs Pp".encode('latin1')
 			qhull = _Qhull(b"i", user_points, qhull_options, required_options=None, incremental=True) # this is the line I need to change
 			_QhullUser.__init__(self, qhull, incremental=True)
@@ -1134,9 +1139,10 @@ function InitToLAR()
 			# in 2d the normal is pointing up (i.e Z>=0)
 			if self.pdim==2:
 				self.normals=[[0.0,0.0,1.0]]
-		
+
 			self.removeUnusedPoints()
 			self.findEdges()
+			
 			self.findFacetLoops()
 			self.correctOrientation()
 	
@@ -1197,7 +1203,7 @@ function InitToLAR()
 					for A in range(nfaces):
 						for B in range(A+1,nfaces):
 							edge=list(set.intersection(set(self.qhull_facets[A]),set(self.qhull_facets[B])))
-							if edge:
+							if edge and len(edge)==2:
 								self.edges[A].append(edge)
 								self.edges[B].append(edge)
 	
@@ -1316,6 +1322,7 @@ function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
 			try
 				points, qhull_facets = py"GetLARConvexHull"(points)
 			catch e
+				# println(e)
 			end
 
 			points = [transformPoint(T,p) for p in points]
