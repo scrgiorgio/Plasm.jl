@@ -1119,14 +1119,15 @@ function InitToLAR()
 	class MyConvexHull(_QhullUser):
 	
 		# constructor
-		def __init__(self, user_points, verbose=False):
+		def __init__(self, user_points, verbose=False, precision=1e-10):
 			user_points = np.ascontiguousarray(user_points, dtype=np.double)
 
 			# http://www.qhull.org/html/qh-quick.htm#options
 			# Qs  search all points for the initial simplex
 			# Pp - do not report precision problems
 			# i incidence
-			qhull_options = "i Qs Pp".encode('latin1')
+			# En - max roundoff error for distance computations
+			qhull_options = f"i Qs Pp E{precision}".encode('latin1')
 			qhull = _Qhull(b"i", user_points, qhull_options, required_options=None, incremental=True) # this is the line I need to change
 			_QhullUser.__init__(self, qhull, incremental=True)
 	
