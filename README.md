@@ -1,19 +1,7 @@
 # Plasm
 
-[![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
-
-# Clone and enable dev
-
-```bash
-git clone git@github.com:scrgiorgio/Plasm.jl.git
-cd Plasm.jl
-
-julia
-using Pkg
-Pkg.develop(PackageSpec(path = pwd()))
-exit()
-```
 
 # Run tests
 
@@ -35,48 +23,38 @@ julia test/arrange.jl
 julia test/complex.jl
 ```
 
+To test notebooks:
+- install Microsoft Visual Studio
+- install Julia Extension
+- Open `notebooks/examples.ipynb`
+
+For Jupyter Notebooks alternatives see [ :](https://marketsplash.com/julia-ides/)
 
 
+# Developing Plasm.jl
+
+See:
+- https://julialang.org/contribute/developing_package/
+- activate .
 
 
+```bash
+julia 
 
+# Go to the package mode
+] 
 
+# activate environment in current directory
+activate .
 
+add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStructures SparseArrays NearestNeighbors Triangulate IntervalTrees QHull CoordinateTransformations Rotations GeometryBasics Colors MeshCat FileIO MeshIO Meshing IJulia 
 
+# exit package MODE
+# CTRL+C 
 
-# View properties
-
-Important: use String as Dict keys, not symbols
-
-```julia
-View(batches, properties=Dict(
-  "background_color" => Point4d(1,1,1,1))
-  "title"            => "my title")
-  "use_ortho"        => false)
-  "show_lines"       => true)
-  "fov"              => 60.0)
-  "pos"              => Point3d(0,0,0) )
-  "dir"              => Point3d(0,0,-1))
-  "vup"              => Point3d(1,0,0))
-  "znear"            => 0.00001) 
-  "zfar "            => 100.0) 
-  "walk_speed "      => 10.0) 
-)
-```
-
-
-# Jupyter or Juno?
-
-```
-julia
 using Pkg
-add IJulia
-add MeshCat
-add CoordinateTransformations 
-add Rotations 
-add GeometryBasics
-add Colors
-add DataStructures
-using IJulia
-IJulia.notebook()
-``````
+Pkg.resolve()
+
+exit()
+```
+

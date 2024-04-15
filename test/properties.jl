@@ -1,5 +1,22 @@
 using Plasm
 
+"""
+# List of properties
+View(batches, properties=Dict(
+  "background_color" => Point4d(1,1,1,1))
+  "title"            => "my title")
+  "use_ortho"        => false)
+  "show_lines"       => true)
+  "fov"              => 60.0)
+  "pos"              => Point3d(0,0,0) )
+  "dir"              => Point3d(0,0,-1))
+  "vup"              => Point3d(1,0,0))
+  "znear"            => 0.00001) 
+  "zfar "            => 100.0) 
+  "walk_speed "      => 10.0) 
+)
+"""
+
 # different ways to `View`
 VIEW(CUBE(1), "normal cube (1)")
 
