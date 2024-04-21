@@ -7,6 +7,9 @@
 
 ```bash
 
+# alberto's laptop
+# alias julia=julia19
+
 # core
 julia test/viewer.jl
 julia test/hpc.jl
@@ -33,18 +36,25 @@ For Jupyter Notebooks alternatives see [ :](https://marketsplash.com/julia-ides/
 
 # Developing Plasm.jl
 
-See:
-- https://julialang.org/contribute/developing_package/
-- activate .
-
-
 ```bash
+
+# clone the current repository
+cd ~
+mkdir -p github.com/scrgiorgio
+cd github.com/scrgiorgio
+git clone https://github.com/scrgiorgio/Plasm.jl
+cd Plasm.jl
+
+# alberto's laptop
+# alias julia=julia19
+
 julia 
 
 # Go to the package mode
+# see https://julialang.org/contribute/developing_package
 ] 
 
-# activate environment in current directory
+# Activate the environment in the current directory
 activate .
 
 add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStructures SparseArrays NearestNeighbors Triangulate IntervalTrees QHull CoordinateTransformations Rotations GeometryBasics Colors MeshCat FileIO MeshIO Meshing IJulia 
@@ -55,6 +65,20 @@ add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStruc
 using Pkg
 Pkg.resolve()
 
+# install jupyter notebook
+using IJulia
+notebook()
+# jupyterlab() (OPTIONAL) if you want lab
+
+# force to use julia internal jupyter
+ENV["JUPYTER"]=""
+Pkg.build("IJulia")
+
 exit()
+
+git diff
+
+# for Alberto's laptop: use `lab` instead of notebook
+~/.julia/conda/3/bin/jupyter notebook --ip='*' --NotebookApp.token='' --NotebookApp.password=''
 ```
 
