@@ -7,8 +7,6 @@
 
 ```bash
 
-# alberto's laptop
-# alias julia=julia19
 
 # core
 julia test/viewer.jl
@@ -48,7 +46,10 @@ cd Plasm.jl
 # alberto's laptop
 # alias julia=julia19
 
-julia 
+# in windows
+# set PATH=c:\Julia-1.10.4\bin;%PATH%
+
+julia
 
 # Go to the package mode
 # see https://julialang.org/contribute/developing_package
@@ -57,6 +58,7 @@ julia
 # Activate the environment in the current directory
 activate .
 
+# add packages
 add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStructures SparseArrays NearestNeighbors Triangulate IntervalTrees QHull CoordinateTransformations Rotations GeometryBasics Colors MeshCat FileIO MeshIO Meshing IJulia 
 
 # exit package MODE
@@ -68,7 +70,7 @@ Pkg.resolve()
 # install jupyter notebook
 using IJulia
 notebook()
-# jupyterlab() (OPTIONAL) if you want lab
+# jupyterlab() (OPTIONAL) if you want to install lab
 
 # force to use julia internal jupyter
 ENV["JUPYTER"]=""

@@ -975,10 +975,10 @@ function runViewer(viewer::Viewer)
 	viewer.scaley=framebuffer_size[2]/Float64(window_size[2])
 
 	GLFW.SetWindowSizeCallback(win,  function(win::GLFW.Window, width::Integer, height::Integer) handleResizeEvent(viewer) end)  
-	GLFW.SetKeyCallback(win,         function((win::GLFW.Window,key, scancode, action, mods)) handleKeyPressEvent(viewer,key,scancode,action,mods) end)	
-	GLFW.SetCursorPosCallback(win,   function((win::GLFW.Window,x,y)) handleMouseMoveEvent(viewer,x,y) end)
+	GLFW.SetKeyCallback(win,         function(win::GLFW.Window,key, scancode, action, mods) handleKeyPressEvent(viewer,key,scancode,action,mods) end)	
+	GLFW.SetCursorPosCallback(win,   function(win::GLFW.Window,x,y) handleMouseMoveEvent(viewer,x,y) end)
 	GLFW.SetMouseButtonCallback(win, function(win::GLFW.Window,button,action,mods) handleMouseButtonEvent(viewer,button,action,mods) end)
-	GLFW.SetScrollCallback(win,      function((win::GLFW.Window,dx,dy)) handleMouseWheelEvent(viewer,dy) end)	
+	GLFW.SetScrollCallback(win,      function(win::GLFW.Window,dx,dy) handleMouseWheelEvent(viewer,dy) end)	
 
 	handleResizeEvent(viewer::Viewer)
 	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
@@ -1023,6 +1023,7 @@ function GLView(batches::Vector{GLBatch}, properties::Dict=Dict())
 	end
 
 	viewer.background_color =           _get(properties,"background_color", viewer.background_color)
+
 	viewer.title            =           _get(properties,"title",       viewer.title)
 	viewer.use_ortho        =           _get(properties,"use_ortho",   viewer.use_ortho)
 	viewer.show_lines       =           _get(properties,"show_lines",  viewer.show_lines)
