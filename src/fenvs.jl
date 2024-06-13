@@ -1962,7 +1962,7 @@ function HERMITE(args)
 end
 
 # /////////////////////////////////////////////////////////////
-function Q(H)
+function Q(H::Number)
 	return MkPol([[0], [H]], [[1, 2]])
 end
 

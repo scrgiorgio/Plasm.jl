@@ -760,6 +760,12 @@ function MkPol(points::Vector{Vector{Int64}}, hulls::Vector{Vector{Int}}=Vector{
 	return MkPol(Vector{Vector{Float64}}(points), hulls)
 end
 
+
+function MkPol(points::Vector{Vector}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+	return MkPol(Vector{Vector{Float64}}(points), hulls)
+end
+
+
 function MkPol0()
 	points=Vector{Vector{Float64}}()
 	push!(points,[])
