@@ -50,6 +50,9 @@ VIEW(
    "face_color"
 )
 
+# COLOR
+VIEW(COLOR([1.0,1.0,0.0,0.0])(CUBE(1))
+
 # example of mixing and matching different properties
 VIEW(STRUCT(
    PROPERTIES(
