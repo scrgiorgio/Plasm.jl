@@ -1118,6 +1118,7 @@ function InitToLAR()
 	py"""
 
 	import numpy as np
+	import copy
 	import math
 	from scipy.spatial._qhull import _Qhull,_QhullUser
 	
@@ -1254,7 +1255,7 @@ function InitToLAR()
 	def GetLARConvexHull(user_points, verbose=False):
 		lar=MyConvexHull(user_points,verbose=False)
 		return [
-			lar.points, 
+			[list(p) for p in lar.points],                                          # force a copy
 			[[int(it+1) for it in qhull_facet] for qhull_facet in lar.qhull_facets] # 0->1 index
 		]
 	
@@ -1304,6 +1305,23 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////
+function ConvertPoints(value)
+	if value isa Matrix{Float64}
+		nrows,ncols=size(value)
+		ret=Vector{Vector{Float64}}()
+		for R in 1:nrows
+			push!(ret, value[R,:])
+		end
+	else
+		ret=value
+	end
+	@assert ret isa Vector{Vector{Float64}}
+	return ret
+end
+
+
+
+# ///////////////////////////////////////////////////////////////////
 DEFAULT_PRECISION=14
 
 function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
@@ -1328,6 +1346,7 @@ function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
 			qhull_facets=nothing
 			try
 				points, qhull_facets = py"GetLARConvexHull"(points)
+				points=ConvertPoints(points)
 			catch e
 				# println(e)
 			end
