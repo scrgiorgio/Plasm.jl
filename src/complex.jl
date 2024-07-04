@@ -1,13 +1,28 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING,VIEWCOMPLEX2
+export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING,VIEWCOMPLEX2,SQRT
+
+import Base.-  
+-(f::Function, g::Function) = (x...) -> f(x...) - g(x...)  
 
 import Base.+  
 +(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
 
+import Base./  
+/(f::Function, g::Function) = (x...) -> f(x...) / g(x...)  
+
+import Base.*  
+*(f::Function, g::Function) = (x...) -> f(x...) * g(x...)  
+
 import Base.*
 *(pol1::Hpc, pol2::Hpc) = Power(pol1, pol2)
+
+import Base.^
+^(f1::Function, f2::Function) = (x,y) -> f1(x)^f2(y) 
+
+import Base.sqrt
+SQRT(f::Function) = x -> f(x)^(1/2) 
 
 # //////////////////////////////////////////////////////////////////////////////
 """
@@ -274,7 +289,7 @@ end
 """
     SPHERE(radius=1.0::Number)(subds=[16,32]::Vector{Int})
 Generate a polyhedral approximation of a spherical surface in 3D.
-Maximum correct refinemet is LAR(SPHERE(2)([73,40]))
+Maximum correct refinement is LAR(SPHERE(2)([73,40]))
 
 # Examples
 ```jldoctest

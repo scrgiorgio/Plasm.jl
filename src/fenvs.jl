@@ -2386,9 +2386,9 @@ end
 
 # //////////////////////////////////////////////////////////////
 function SOLIDIFY(pol)
-	box = box(pol)
-	min = box.p1[1]
-	max = box.p2[1]
+	mybox = box(pol)
+	min = mybox.p1[1]
+	max = mybox.p2[1]
 	siz = max-min
 	far_point = max+siz*100
 	function InftyProject(pol)
@@ -2401,7 +2401,8 @@ function SOLIDIFY(pol)
 	end
 	ret = SPLITCELLS(pol)
 	ret = [JOIN([pol, InftyProject(pol)]) for pol in ret]
-	return XOR(FILTER(IsFull)(ret))
+	objs = convert(Vector{Hpc},FILTER(IsFull)(ret))
+	return XOR(objs)
 end
 
 # //////////////////////////////////////////////////////////////
@@ -2801,7 +2802,7 @@ end
 # //////////////////////////////////////////////////////////////
 function COLOR(C)
 	function COLOR0(hpc::Hpc)
-			return PROPERTIES(hpc,Dict{String, Any}("face_color"=>Point4d(C[1],C[2],C[3],length(C) >= 4 ? C[4] : 1.0)))
+		return PROPERTIES(hpc,Dict{String, Any}("face_color"=>Point4d(C[1],C[2],C[3],length(C) >= 4 ? C[4] : 1.0)))
 	end
 	return COLOR0
 end
