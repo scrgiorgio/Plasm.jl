@@ -766,6 +766,12 @@ function MkPol(points::Vector{Vector}, hulls::Vector{Vector{Int}}=Vector{Vector{
 end
 
 
+function MkPol(points::Matrix{Float64}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+	W=[V[:,k] for k=1:size(V)[2]]
+	return MkPol(W, hulls)
+end
+
+
 function MkPol0()
 	points=Vector{Vector{Float64}}()
 	push!(points,[])
@@ -1484,6 +1490,20 @@ function MKPOLS(V::Union{Vector{Vector{Float64}}, Matrix{Float64}}, cells::Dict{
 	return STRUCT(v)
 end
 
+#NOTE: better use MKPOLS to specify what Hpc you want to build 
+function HPC(lar::Lar)::Hpc 
+
+	if :FV in lar.C && length(lar.C[:FV])
+		return MKPOLS(lar.V, lar.C[:FV])
+
+	elseif :EV in lar.C && length(lar.C[:EV])
+		return MKPOLS(lar.V, lar.C[:EV])
+
+	else
+		error("Empty Lar")
+	end
+
+end
 
 
 

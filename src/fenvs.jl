@@ -943,6 +943,11 @@ function MKPOL(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}},__pol
 	return MkPol(points, hulls)
 end
 
+function MKPOL(V::Matrix{Float64}, hulls::Vector{Vector{Int}}, __pols=Nothing)
+	W=[V[:,k] for k=1:size(V)[2]]
+	return MkPol(W, hulls)
+end
+
 # deprecated
 function MKPOL(args)
 	return MKPOL(args[1], args[2])
