@@ -30,7 +30,7 @@ EV = [[1, 2], [3, 4], [5, 6], [7, 8], [1, 3], [2, 4], [5, 7], [6, 8], [1, 5], [2
 
 # //////////////////////////////////////////////////////////////////////////////
 
-VIEW(MKPOLS(V, CV)) 
+VIEW(MKPOLS(V, CV), Dict("background_color"=>WHITE)) 
 
 V,CVs,FVs,EVs = testarrangement(V,FV,EV);
 

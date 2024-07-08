@@ -963,6 +963,7 @@ function cleandecomposition(V, copEV, sigma, edge_map)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+using NearestNeighbors
 
 function merge_vertices!(V::Points, EV::ChainOp, edge_map, err=1e-4)
     #print_organizer("Plasm."*"merge_vertices")
@@ -1517,8 +1518,8 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	rFE = SparseArrays.blockdiag(depot_FE...);
 	#if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
    rV, rcopEV, rcopFE = Plasm.merge_vertices(rV, rEV, rFE);
-#   C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
-#   println("V - E + F = ", C)   
+  C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
+  println("V - E + F = ", C)   
    rcopCF = build_copFC(rV, rcopEV, rcopFE)
    return rV, rcopEV, rcopFE, rcopCF
 end

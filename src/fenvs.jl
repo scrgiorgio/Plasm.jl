@@ -26,7 +26,7 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	TENSORPRODSOLID,BEZIERMANIFOLD,LOCATE,RIF,FRACTALSIMPLEX,MESH,NU_GRID,SEGMENT,SOLIDIFY,EXTRUSION,
 	EX,LEX,SEX,UKPOLF,POLAR,SWEEP,MINKOWSKI,OFFSET,THINSOLID,PLANE,RATIONALBEZIER,ELLIPSE,CURVE_NORMAL,DERBEZIER,
 	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO,PROPERTIES,SQUARE, LINE,MKPOINTS, FRAME2,FRAME3,
-	COLOR
+	COLOR,ICOSPHERE,icosphere
 
 PI = pi
 COS = cos
@@ -1825,6 +1825,7 @@ function MIRROR(D)
 	return MIRROR0
 end
 
+
 # /////////////////////////////////////////////////////////////
 function POLYMARKER(type::Int, MARKERSIZE::Float64=0.1)
 	A, B = MARKERSIZE, -MARKERSIZE
@@ -2821,3 +2822,24 @@ function PROPERTIES(hpc::Hpc, properties::Dict)
 	end 
 	return ret
 end
+
+
+# //////////////////////////////////////////////////////////////
+function ICOSPHERE(obj::Hpc=ICOSAHEDRON())::Hpc  # obj = Hpc
+   W  = LAR(obj).V
+   EV = LAR(obj).C[:EV]
+   W  = [W[:,k] for k=1:size(W,2)]
+   V  = [(W[v1]+W[v2])./2 for (v1,v2) in EV]
+   r1 = sqrt(sum(W[1].^2))
+   s1 = sqrt(sum(V[1].^2))
+   CONVEXHULL([W; V*(r1/s1)]);
+end
+
+# /////////////////////////////////////////////////////////////
+function icosphere(level::Int64=1)
+   obj0 = ICOSAHEDRON() 
+   if level == 0  return obj0  end
+   if level == 1  return obj1 = ICOSPHERE(obj0) end
+   if level >= 2  obj1 = ICOSPHERE(obj0); return ICOSPHERE(obj1) end
+end
+

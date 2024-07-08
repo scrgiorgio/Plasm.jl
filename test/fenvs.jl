@@ -1,5 +1,11 @@
 using Plasm
 
+
+# /////////////////////////////////////////////////////////////
+VIEW(ICOSPHERE())
+
+VIEW(icosphere(level=2))
+
 # /////////////////////////////////////////////////////////////
 function TestSphere()
 	VIEW(SPHERE(1.0)([16,16]), "TestSphere")
@@ -46,15 +52,7 @@ function TestRotationalSurface()
 	VIEW(MAP(ROTATIONALSURFACE(profile))(domain), "TestRotationalSurface")
 end
 
-function TestCylindricalSurface()
-	alpha = BEZIER(S1)([[1.0,1.0,0.0],[-1.0,1.0,0.0],[1.0,-1.0,0.0],[-1.0,-1.0,0.0]])
-	Udomain = INTERVALS(1.0)(20)
-	Vdomain = INTERVALS(1.0)(6)
-	domain = Power(Udomain,Vdomain)
-	fn = CYLINDRICALSURFACE([alpha,[0.0,0.0,1.0]])
-	VIEW(MAP(fn)(domain), "TestCylindricalSurface")
-end
-
+DISPLAYNUBSPLINE
 function TestConicalSurface()
 	domain = Power(INTERVALS(1.0)(20),INTERVALS(1.0)(6))
 	beta = BEZIER(S1)([ [1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0] ])
