@@ -1,1 +1,0 @@
-julia> GL.VIEW([ GL.GLFrame2, GL.GLLines(V, EV) ]);
