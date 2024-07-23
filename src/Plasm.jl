@@ -7,6 +7,7 @@ include("./fenvs.jl")
 include("./arrange.jl")
 include("./complex.jl")
 include("./boolean.jl")
+include("./congruence.jl")
 
 # module init
 function __init__()
