@@ -17,10 +17,17 @@ julia --project=. test/fenvs.jl
 
 # LAR part
 julia --project=. test/lar.jl
-julia --project=. test/arrange2d.jl
-julia --project=. test/arrange3d.jl
-julia --project=. test/arrange.jl
 julia --project=. test/complex.jl
+
+# deprecated
+# julia --project=. test/arrange2d.jl
+# julia --project=. test/arrange3d.jl
+# julia --project=. test/arrange.jl
+
+julia --project=. test/randomlines.jl
+julia --project=. test/randomcubes.jl
+
+
 julia --project=. test/congruence.jl
 ```
 
