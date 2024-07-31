@@ -1518,8 +1518,8 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	rFE = SparseArrays.blockdiag(depot_FE...);
 	#if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
    rV, rcopEV, rcopFE = Plasm.merge_vertices(rV, rEV, rFE);
-  C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
-  println("V - E + F = ", C)   
+#   C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
+#   println("V - E + F = ", C)   
    rcopCF = build_copFC(rV, rcopEV, rcopFE)
    return rV, rcopEV, rcopFE, rcopCF
 end
@@ -1548,6 +1548,11 @@ end
 """ Splitting of `sigma` face against faces in `sp_idx[sigma]` """
 function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
 	#print_organizer("frag_face")
+@show V;
+@show EV;
+@show FE;
+@show sp_idx;
+@show sigma;
 
    vs_num = size(V, 1)
 
@@ -1560,7 +1565,7 @@ function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
    sV = tV[sigmavs, :]
    # `sigma` face intersection with faces in `sp_idx[sigma]`, i.e., in `bigpi`
    for i in sp_idx[sigma]
-       tmpV, tmpEV = face_int(tV, EV, FE[i, :])
+       tmpV, tmpEV = face_int(tV, EV, FE[i, :]) # va in loop qui dentro
        sV, sEV = skel_merge(sV, sEV, tmpV, tmpEV)
    end
    # computation of 2D arrangement of sigma face
