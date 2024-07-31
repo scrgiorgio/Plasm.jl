@@ -29,6 +29,7 @@ julia --project=. test/randomcubes.jl
 
 
 julia --project=. test/congruence.jl
+julia --project=. test/3tubes3d.jl
 ```
 
 
