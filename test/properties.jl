@@ -51,27 +51,27 @@ VIEW(
 )
 
 # COLOR
-VIEW(COLOR([1.0,1.0,0.0,0.0])(CUBE(1))
+VIEW(COLOR([1.0,1.0,0.0,0.0])(CUBE(1)))
 
 # example of mixing and matching different properties
-VIEW(STRUCT(
-   PROPERTIES(
-      STRUCT(T(1)(0.0),CUBE(1)), 
-      Dict{String, Any}(
-         "face_color"=>Point4d(0.0,1.0,0.0,1.0),
-         "line_color"=>Point4d(1.0,1.0,0.0,1.0),
-         "line_width"=>3
-      )
-   ),
-   PROPERTIES(
-      STRUCT(T(1)(1.0),CUBE(1)), 
-      Dict{String, Any}(
-         "face_color"=>Point4d(1.0,0.0,0.0,1.0),
-         "line_color"=>Point4d(0.0,1.0,1.0,1.0),
-         "line_width"=>3
-      )
-   )),
-
+cube_a=STRUCT(T(1)(0.0),CUBE(1))
+a=PROPERTIES(cube_a, 
+   Dict{String, Any}(
+      "face_color"=>Point4d(0.0,1.0,0.0,1.0),
+      "line_color"=>Point4d(1.0,1.0,0.0,1.0),
+      "line_width"=>3
+   )
+)
+cube_b=STRUCT(T(1)(1.0),CUBE(1))
+b=PROPERTIES(cube_b, 
+   Dict{String, Any}(
+      "face_color"=>Point4d(1.0,0.0,0.0,1.0),
+      "line_color"=>Point4d(0.0,1.0,1.0,1.0),
+      "line_width"=>3
+   )
+)
+VIEW(
+   STRUCT(a,b),
    Dict{String, Any}(
       "title" => "2 colored cubes",
       "background_color" => [0.0,0.0,0.0]
