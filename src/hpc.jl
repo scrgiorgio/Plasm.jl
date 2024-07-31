@@ -1260,10 +1260,14 @@ function InitToLAR()
 	
 	def GetLARConvexHull(user_points, verbose=False):
 		lar=MyConvexHull(user_points,verbose=False)
-		return [
-			[list(p) for p in lar.points],                                          # force a copy
-			[[int(it+1) for it in qhull_facet] for qhull_facet in lar.qhull_facets] # 0->1 index
-		]
+
+		# force a copy
+		A=[list(p) for p in lar.points]             
+		
+		# force a copy; 0->1 index
+		B=[[int(it+1) for it in qhull_facet] for qhull_facet in lar.qhull_facets] 
+
+		return [lar,A,B]
 	
 	"""
 end
@@ -1344,14 +1348,13 @@ function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
 			continue
 		end
 
-
 		for hull in obj.hulls
 			points=[obj.points[idx] for idx in hull]
 
 			# can fail because it's not fully dimensional (e.g. MAP with a pole which collapse points, such as CIRCLE)
 			qhull_facets=nothing
 			try
-				points, qhull_facets = py"GetLARConvexHull"(points)
+				__, points, qhull_facets = py"GetLARConvexHull"(points)
 				points=ConvertPoints(points)
 			catch e
 				# println(e)
