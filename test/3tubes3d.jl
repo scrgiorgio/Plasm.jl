@@ -1,7 +1,7 @@
 using Plasm
 
-tube = T(3)(-2)(CYLINDER([0.5,4])(4));
-assembly = STRUCT( tube, R(2,3)(π/2), tube, R(1,3)(π/2), tube );
+rod = T(3)(-2)(CYLINDER([0.5,4])(4));
+assembly = STRUCT( rod, R(2,3)(π/2), rod, R(1,3)(π/2), rod );
 VIEW(assembly)
 
 obj = LAR(assembly);
