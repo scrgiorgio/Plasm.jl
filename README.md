@@ -20,6 +20,7 @@ julia --project=. test/lar.jl
 julia --project=. test/complex.jl
 
 julia --project=. test/randomlines.jl
+julia --project=. test/randombubbles.jl
 julia --project=. test/randomcubes.jl
 
 julia --project=. test/congruence.jl
