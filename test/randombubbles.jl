@@ -8,11 +8,9 @@ function RandomBubble()
   return STRUCT(
     T(1,2)(vt...),
     S([1,2])([0.25*vs, 0.25*vs]), 
-    CIRCLE(1)([8,1])
+    CIRCUMFERENCE(1)(rand(3:32))
   )
 end
-
-VIEW(RandomBubble())
 
 # ////////////////////////////////////////////////////////
 function ViewColored(V,cells, scale=1.2, line_width=3)
