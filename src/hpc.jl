@@ -8,7 +8,7 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, 
 	HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE, 
-	Lar, Hpc, LAR, MKPOLS
+	Lar, Hpc, LAR, MKPOLS, HPC
 
 import Base.:(==)
 import Base.:*
@@ -1496,10 +1496,10 @@ end
 #NOTE: better use MKPOLS to specify what Hpc you want to build 
 function HPC(lar::Lar)::Hpc 
 
-	if :FV in lar.C && length(lar.C[:FV])
+	if :FV in keys(lar.C) && length(lar.C[:FV])
 		return MKPOLS(lar.V, lar.C[:FV])
 
-	elseif :EV in lar.C && length(lar.C[:EV])
+	elseif :EV in keys(lar.C) && length(lar.C[:EV])
 		return MKPOLS(lar.V, lar.C[:EV])
 
 	else
