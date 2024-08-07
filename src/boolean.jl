@@ -95,7 +95,7 @@ function settestpoints(V,EV,FV,Fs, copEV,copFE)
 	n2 = LinearAlgebra.normalize(cross( t2[2]-t2[1], t2[3]-t2[1] ))
 	p0 = (V[:,v1] + V[:,v2]) ./ 2 # mean point
 	n = n1 + n2  # mean normal
-	ϵ = 1.0e-1  # Alberto 2024-03-03
+	ϵ = 1.0e-8  # Alberto 2024-03-03
 	#ϵ = 1.0e-8
 	ptest1 = p0 + ϵ * n
 	ptest2 = p0 - ϵ * n
