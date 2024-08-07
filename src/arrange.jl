@@ -1346,7 +1346,7 @@ function show_exploded(V,CVs,FVs,EVs)
    end
    VIEW(STRUCT(v))
 
-   exploded=explodecells(V, CVs[2:end], sx=5, sy=5, sz=5)
+   exploded=explodecells(V, CVs[1:end], sx=2.5, sy=2.5, sz=2.5)
    v=[]
    for k in 1:length(exploded)
       face_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
@@ -1359,7 +1359,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Test the whole arrangement pipeline; return the triangulated geometry """
 function testarrangement(V,FV,EV)
-	#print_organizer("testarrangement")
 		cop_EV = coboundary_0(EV::Cells)
 		cop_FE = coboundary_1(V, FV::Cells, EV::Cells)
 		W = convert(Points, V');
@@ -1374,7 +1373,6 @@ end;
 # //////////////////////////////////////////////////////////////////////////////
 """ Alternate method of function `u_coboundary_1` from `Cells` """
 function u_coboundary_1( FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
-	#print_organizer("u_coboundary_1")
 	copFV = characteristicMatrix(FV)
 	copEV = characteristicMatrix(EV)
 	out = u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex::Bool)
@@ -1384,7 +1382,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Unsigned function `coboundary_1` """
 function u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex=true::Bool)::ChainOp
-	#print_organizer("u_coboundary_1")
 	temp = copFV * copEV'
 	I,J,Val = Int64[], Int64[], Int8[]
 	for j=1:size(temp,2)
@@ -1407,7 +1404,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Alternate method of function `coboundary_1` from `ChainOp` """
 function coboundary_1( V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
-	#print_organizer("coboundary_1")
 	# generate unsigned operator's sparse matrix
 	copFV = characteristicMatrix(FV)
 	copEV = characteristicMatrix(EV)
@@ -1419,7 +1415,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Signed `coboundary_1` function, considering the LAR uncompleteness case """
 function coboundary_1( V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool )::ChainOp
-	#print_organizer("coboundary_1")
 
 	copFE = u_coboundary_1( copFV::ChainOp, copEV::ChainOp, convex)
 	EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
@@ -1492,7 +1487,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
 function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
-	#print_organizer("space_arrangement")
    fs_num = size(FE, 1)
    # strange but necessary cycle of computations to get FV::Cells algebraically
    FV = (abs.(FE) * abs.(EV)).÷ 2;
@@ -1527,7 +1521,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Main to build the multidimensional `spaceindex(model)` for any d-cell type """
 function spaceindex(model)::Vector{Vector{Int}}
-	#print_organizer("spaceindex")
 	V,CV = model[1:2]
 	dim = size(V,1)
 	cellpoints = [ V[:,CV[k]] for k=1:LEN(CV) ]
@@ -1547,15 +1540,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Splitting of `sigma` face against faces in `sp_idx[sigma]` """
 function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
-	#print_organizer("frag_face")
-@show V;
-@show EV;
-@show FE;
-@show sp_idx;
-@show sigma;
-
    vs_num = size(V, 1)
-
 # 2D transformation of `sigma` face
    sigmavs = (abs.(FE[sigma:sigma,:]) * abs.(EV))[1,:].nzind # sigma vertex indices
    sV = V[sigmavs, :]
@@ -1581,7 +1566,6 @@ end
 """ Compute the map from vs (at least three) to z=0 """
 # REMARK: will not work when vs[:,1:3] are aligned !!!!  TODO: fix 
 function submanifold_mapping(vs)
-	#print_organizer("submanifold_mapping")
    #@show vs;
     u1 = vs[2,:] - vs[1,:]
     u2 = vs[3,:] - vs[1,:]
@@ -1595,7 +1579,6 @@ end
 
 #//////////////////////////////////////////////////////////////////////////////
 function face_int(V::Points, EV::ChainOp, face::Cell)
-	#print_organizer("face_int")
     vs = buildFV(EV, face)     # EV::ChainOp, face::Cell
 #@show vs;
     retV = Points(undef, 0, 3)
@@ -1643,7 +1626,6 @@ end
 
 """ Predicate to check membership of `vertex` in `vertices_set` array"""
 function vin(vertex, vertices_set)::Bool
-	#print_organizer("vin")
     for v in vertices_set
         if vequals(vertex, v)
             return true
@@ -1655,7 +1637,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Predicate to check equality of two vertices (only used above) """
 function vequals(v1, v2)
-	#print_organizer("vequals")
     err = 10e-8
     return length(v1) == length(v2) && all(map((x1, x2)->-err < x1-x2 < err, v1, v2))
 end
@@ -1665,7 +1646,6 @@ end
 """ Task to iteratively add new local components to the global 2-skeleton """
 # Remark: sensible to `err`; works w `err=1e-6`, "ERROR: no pivot" with `err=1e-7`
 function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
-	#print_organizer("merge_vertices")
    vertsnum = size(V, 1)
    edgenum = size(EV, 1)
    facenum = size(FE, 1)
@@ -1744,10 +1724,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ TGW algorithm implementation (pao) """
 function build_copFC(rV, rcopEV, rcopFE)
-#@show rV;
-#@show rcopEV;
-#@show rcopFE;
-	#print_organizer("build_copFC")
 #function build_copFC(V,FV,EV,copFE)
 
 	# G&F -> Pao data structures
@@ -1847,7 +1823,6 @@ end
 
 """ Triangle containment test of checkpoint into `f`; used in TGW algorithm """
 function interior_to_f(triangle,f,V,FV,EV,FE)::Bool
-	#print_organizer("interior_to_f")
    # affine mapping computation to z=0 plane
 	v1,v2,v3 = triangle
 	u = V[:,v2]-V[:,v1]
@@ -1878,7 +1853,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Correct ordering of triangles (hence faces) about each boundary edge """
 function ordering(triangles,V)
-	#print_organizer("ordering")
 	normals = []
 	v1,v2,v3 = triangles[1]
 	if v1>v2 v1,v2 = v2,v1 end
@@ -1908,7 +1882,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for TGW in 3D """
 function mynext(cycle, pivot)
-	#print_organizer("mynext")
 	len = length(cycle)
 	ind = findall(x -> x==pivot, cycle)[1]
 	nextIndex = ind==len ? 1 : ind+1
@@ -1918,7 +1891,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for TGW in 3D """
 function myprev(cycle, pivot)
-	#print_organizer("myprev")
 	len = length(cycle)
 	ind = findall(x->x==pivot, cycle)[1]
 	nextIndex = ind==1 ? len : ind-1
@@ -1928,8 +1900,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
 #function pols2tria(W, copEV, copFE, copCF) # W by columns
-#	#print_organizer("pols2tria")
-#   V = convert(Points,W')
+##   V = convert(Points,W')
 #   #triangulated_faces = mytriangulate(V, [copEV, copFE])
 #   triangulated_faces = mytriangulate(V, [copEV, copFE])
 #   EVs = FV2EVs(copEV, copFE) # polygonal face fragments
@@ -1949,7 +1920,6 @@ end
 #   return V,CVs,FVs,EVs
 #end
 function pols2tria(W, copEV, copFE, copCF) # W by columns
-	#print_organizer("pols2tria")
 	V = convert(Points,W')
 	triangulated_faces = mytriangulate(V, [copEV, copFE])
 	EVs = FV2EVs(copEV, copFE) # polygonal face fragments
@@ -2016,7 +1986,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ map 3D faces in z=0 and triangulate them; return a 3D Vector{Cells}  """
 function mytriangulate(V::Points, cc::ChainComplex)   
-	#print_organizer("mytriangulate")
    copEV, copFE = cc[1:2]
 
    triangulated_faces = Vector{Any}(undef, copFE.m)
@@ -2054,7 +2023,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Coherently orient the edges of f face """
 function vcycle( copEV::ChainOp, copFE::ChainOp, f::Int )
-	#print_organizer("vcycle")
   edges,signs = findnz(copFE[f,:])
   vpairs = [s>0 ? findnz(copEV[e,:])[1] :
               reverse(findnz(copEV[e,:])[1])
@@ -2074,7 +2042,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ CDT Constrained Delaunay Triangulation """
 function triangulate2d(V::Points, EV::Cells)
-	#print_organizer("triangulate2d")
    points = convert(Array{Float64,2}, V')
 	points_map = Array{Int,1}(collect(1:1:size(points)[1]))
    edges_list = convert(Array{Int,2}, hcat(EV...)')

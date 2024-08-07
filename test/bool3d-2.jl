@@ -2,9 +2,9 @@ using Plasm
 
 # //////////////////////////////////////////////////////////////////////////////
 # 3D Boolean example generation (see CAD23 paper)
-n,m,p = 1,1,1
-cube = TYPE(HPC(CUBOIDGRID([n,m,p])), "solid")
+cube = CUBE(1)
 
+#using Plasm
 # three cubes in "assembly"
 assembly = STRUCT( cube,
    T(1,2,3)(.3,.4,.25), R(2,3)(pi/5), R(1,2)(pi/12), cube,

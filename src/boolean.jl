@@ -1,5 +1,6 @@
 
-export bool3d, internalpoints, new2old
+export  settestpoints, spaceindex2, testinternalpoint, getinternalpoint, chainbasis2solids, internalpoints, ord, rayintersection, planemap, new2old, bool3d
+
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Set tile code of boxed point w.r.t nine tiles of 2D plane  """ 
@@ -80,25 +81,26 @@ end
 function settestpoints(V,EV,FV,Fs, copEV,copFE)
 	f = Fs[1]
 	e = findnz(copFE[f,:])[1][1] # first (global) edge of first (global) face
-	f1,f2 = findnz(copFE[:,e])[1] # two (global) faces incident on it
-@show "f1,f2", findnz(copFE[:,e])[1]
-	v1,v2 = findnz(copEV[e,:])[1] # two (global) verts incident on in
-@show "v1,v2", findnz(copEV[e,:])[1]
-	fdict = Dict(zip(Fs,1:length(Fs)))
-	V1 = FV[fdict[f1]]
-	V2 = FV[fdict[f2]]
-	v1,v2 = intersect(V1,V2) # verified ... !
-	t1 = V[:,v1], V[:,v2], V[:,[v for v in V1 if v≠v1 && v≠v2][1]]
-	t2 = V[:,v2], V[:,v1], V[:,[v for v in V2 if v≠v1 && v≠v2][1]]
+   # f,e relative to atom
+	f1,f2 = findnz(copFE[:,e])[1] # two (global) faces incident on it (atom)
+	v1,v2 = findnz(copEV[e,:])[1] # two (global) verts incident on it (atom)
+   fdict = Dict(zip(Fs,1:length(Fs))) # enumerate atom faces (internal codes)
+   V1 = FV[fdict[f1]]
+   V2 = FV[fdict[f2]]
+   v1,v2 = intersect(V1,V2) # verified ... !
+   # two tringles sharing a common edge 
+	t1 = V[:,v1], V[:,v2], V[:,[v for v in V1 if v≠v1 && v≠v2][1]]# t1 ⊆ ∂atom ??
+	t2 = V[:,v2], V[:,v1], V[:,[v for v in V2 if v≠v1 && v≠v2][1]]# t2 ⊆ ∂atom ??
 	n1 = LinearAlgebra.normalize(cross( t1[2]-t1[1], t1[3]-t1[1] ))
 	n2 = LinearAlgebra.normalize(cross( t2[2]-t2[1], t2[3]-t2[1] ))
-	p0 = (V[:,v1] + V[:,v2]) ./ 2
-	n = n1 + n2
-	#ϵ = 1.0e-4  # Alberto 2024-03-03
-	ϵ = 1.0e-8
+	p0 = (V[:,v1] + V[:,v2]) ./ 2 # mean point
+	n = n1 + n2  # mean normal
+	ϵ = 1.0e-1  # Alberto 2024-03-03
+	#ϵ = 1.0e-8
 	ptest1 = p0 + ϵ * n
 	ptest2 = p0 - ϵ * n
-	return ptest1, ptest2
+	# it is not known if angle(f1,f2) < π;  hence return two opposite points
+	return ptest1, ptest2 
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -167,12 +169,14 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
+
+""" return two opposite internal/external points in an atom """
 function getinternalpoint(V,EV,FV,Fs, copEV,copFE)
 	#edges for v1=FV[1][1]
 	ptest1, ptest2 = settestpoints(V,EV,FV,Fs, copEV,copFE)
 	intersectedfaces = Int64[]
 	# for each test point compute the face planes intersected by vertical ray
-	dep1, dep2 = [],[]
+	dep1, dep2 = [],[] # to store the pairs (face, 3D-point)
 	# face in Fs : global indices of faces of current solid
 	for (f,face) in enumerate(Fs)
 		ret1 = rayintersection(ptest1)(V,FV,f)
@@ -183,7 +187,7 @@ function getinternalpoint(V,EV,FV,Fs, copEV,copFE)
 	# transform each plane in 2D and look whether the point is internal
 	# return the test point with odd numeber of ray intersections
 	k1,k2 = 0,0
-	for (face,point3d) in dep1
+	for (face,point3d) in dep1 # testing ptest1 for interior of atom
 		vs, edges, point2d = planemap(V,copEV,copFE,face)(point3d)
 		classify = pointInPolygonClassification(vs,edges)
 		inOut = classify(point2d)
@@ -193,7 +197,7 @@ function getinternalpoint(V,EV,FV,Fs, copEV,copFE)
 		end
 	end
 	if k1 % 2 == 1 return ptest1,intersectedfaces
-	else
+	else # testing ptest2 for interior of atom
 		for (face,point3d) in dep2
 			vs, edges, point2d = planemap(V,copEV,copFE,face)(point3d)
 			classify = pointInPolygonClassification(vs,edges)
@@ -204,15 +208,16 @@ function getinternalpoint(V,EV,FV,Fs, copEV,copFE)
 			end
 		end
 		if k2 % 2 == 1 return ptest2,intersectedfaces
-		else println("error: while computing internal point of 3-cell") end
-	end
+	   else error("tertium non datur")
+		end
+   end
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 function chainbasis2solids(V,copEV,copFE,copCF)
-	CF = [findnz(copCF[k,:])[1] for k=1:copCF.m]
-	FE = [findnz(copFE[k,:])[1] for k=1:copFE.m]
-	EV = [findnz(copEV[k,:])[1] for k=1:copEV.m]
+	CF = [findnz(copCF[k,:])[1] for k=1:copCF.m] # faces per cell
+	FE = [findnz(copFE[k,:])[1] for k=1:copFE.m] # edges per face
+	EV = [findnz(copEV[k,:])[1] for k=1:copEV.m] # vertices per edge
 
 	FEs = Array{Array{Int64,1},1}[]
 	EVs = Array{Array{Array{Int64,1},1},1}[]
@@ -241,8 +246,8 @@ function internalpoints(V,copEV,copFE,copCF)
 		(EV,FV,FE),Fs = pols[k],CF[k]
 		EV = convert(Cells,collect(Set(vcat(EV...))))
 		#GL.VIEW([ GL.GLFrame, GL.GLLines(V,EV) ]);
-		points,facenumber = getinternalpoint(V,EV,FV,Fs, copEV,copFE)
-		push!(innerpoints,points)
+		point,facenumber = getinternalpoint(V,EV,FV,Fs, copEV,copFE)
+		push!(innerpoints,point)
 		push!(intersectedfaces,facenumber)
 	end
 	return innerpoints,intersectedfaces
@@ -250,7 +255,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
-function ord(hinge::Int, bd1::AbstractSparseVector{Int,Int}, V::Points,
+function ord(hinge::Int, bd1, V::Points,
              FV::Cells, EV::Cells, FE::Cells)
 	#print_organizer("ord")
    
@@ -296,7 +301,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function rayintersection(point3d)
 	function rayintersection0(V, FV, face::Int)
-						l0, l = point3d, [0,0,1.]
+		l0, l = point3d, [0,0,1.]
 		ps = V[:,FV[face]]  # face points
 		p0 = ps[:,1]
 		v1, v2 = ps[:,2]-p0, ps[:,3]-p0
@@ -316,6 +321,8 @@ function rayintersection(point3d)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+""" Take model,face,point on face plane and return 2Dface, edges, and point """
+
 function planemap(V,copEV,copFE,face)
 	fv, edges = vcycle(copEV, copFE, face)
 	# Fv = Dict(zip(1:length(fv),fv))
@@ -360,36 +367,44 @@ function bool3d(assembly)
 	# generate the 3D space arrangement
 	V, copEV, copFE, copCF = Plasm.space_arrangement( W, cop_EV, cop_FE );
 	W = convert(Points, V');
-	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF);
-	innerpoints,intersectedfaces = internalpoints(W,copEV,copFE, copCF[2:end,:]);
+   copCF = copCF[2:end,:]
+	#V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF);
+   #show_exploded(V,CVs,FVs,EVs)
+	innerpoints, _ = internalpoints(W,copEV,copFE, copCF);
 	#----------------------------------------------------------------------------
-	# associate internal points to 3-cells
+	# associate internal points to (original) faces of 3-cells
 	listOfLar = AA(LAR)(TOPOS(assembly)) # correspond to evalStruct(assembly)
 	inputfacenumbers = AA(LEN ∘ S2 ∘ new2old)(listOfLar)
 	cumulative = cumsum([0; inputfacenumbers]).+1
 	fspans = collect(zip(cumulative[1:end-1], cumulative[2:end].-1))
-	span(h) = [j for j=1:length(fspans) if fspans[j][1]<=h<=fspans[j][2] ]
+	span(h) = [j for j=1:length(fspans) if fspans[j][1]<=h<=fspans[j][2] ]  # ??
 	#----------------------------------------------------------------------------
 	# test input data for containment of reference points
 	V,FV,EV = new2old(ensemble)
-	containmenttest = Plasm.testinternalpoint(V,EV,FV)
+	containmenttest = testinternalpoint(V,EV,FV)
 	# currently copCF contains the outercell in first column ...
 	# TODO remove first row and column, in case (look at file src/)
 	boolmatrix = BitArray(undef, length(innerpoints)+1, length(fspans)+1)
 	boolmatrix[1,1] = 1
-	for (k,point) in enumerate(innerpoints) # k runs on columns
-		cells = containmenttest(point) # contents of columns
-		#println(k," ",faces)
-		rows = [span(h) for h in cells]
-		for l in vcat(rows...)
-			boolmatrix[k+1,l+1] = 1
+	for (k,thepoint) in enumerate(innerpoints) # k runs on rows
+		faces = containmenttest(thepoint) # items of a row
+		count = zeros(Int,length(fspans))
+		for h in faces
+		   for s in span(h) 
+		      count[s] += 1
+		   end
 		end
+		isinternal = count .% 2
+      boolmatrix[k+1,2:end] = isinternal
 	end
+@show boolmatrix
 	return W, (copEV, copFE, copCF), boolmatrix
 end
 
+
 function bool3d(expr, assembly)
-	V, copEV, copFE, copCF, boolmatrix = bool3d(assembly)
-	# TODO please see template "bool2d()" in src/bool2d.jl
-	return V, (copEV, copFE, copCF), boolmatrix, result
+   V, (copEV, copFE, copCF), boolmatrix = bool3d(assembly)
+   # TODO please see template "bool2d()" in src/bool2d.jl
+   result = 0
+   return (V, (copEV, copFE, copCF), boolmatrix, result)
 end
