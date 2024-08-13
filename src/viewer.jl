@@ -9,7 +9,7 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	POINTS,LINES,TRIANGLES,
 	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,
 	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, TRANSPARENT, get_ortho_scale,set_ortho_scale,
-	DEFAULT_V_FONTSIZE,DEFAULT_EV_FONTSIZE,DEFAULT_FV_FONTSIZE
+	DEFAULT_V_FONTSIZE,DEFAULT_EV_FONTSIZE,DEFAULT_FV_FONTSIZE, DEFAULT_TEXT_SCALING
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -1501,6 +1501,9 @@ vectors = [
 
 
 # ////////////////////////////////////////////////////////////////////////////
+
+DEFAULT_TEXT_SCALING=(0.250,0.375)
+
 function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", fontsize=0.05, color=Point4d(0,0,0,1))
 
 	ret=Vector{GLBatch}()
@@ -1509,8 +1512,8 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", fontsize=
 		return ret;
 	end
 
-	sx=0.250*fontsize
-	sy=0.375*fontsize
+	sx=DEFAULT_TEXT_SCALING[1]*fontsize
+	sy=DEFAULT_TEXT_SCALING[2]*fontsize
 
 	vertices=Vector{Float32}()
 	colors  =Vector{Float32}()
