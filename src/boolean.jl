@@ -77,7 +77,7 @@ function pointInPolygonClassification(V,EV)
     return pointInPolygonClassification0
 end
 
-# //////////////////////////////////////////////////////////////////////////////
+# //// look for a pair of test point for given atom ////////////////////////////
 function settestpoints(V,EV,FV,Fs, copEV,copFE)
 	f = Fs[1]
 	e = findnz(copFE[f,:])[1][1] # first (global) edge of first (global) face
@@ -95,7 +95,7 @@ function settestpoints(V,EV,FV,Fs, copEV,copFE)
 	n2 = LinearAlgebra.normalize(cross( t2[2]-t2[1], t2[3]-t2[1] ))
 	p0 = (V[:,v1] + V[:,v2]) ./ 2 # mean point
 	n = n1 + n2  # mean normal
-	ϵ = 1.0e-8  # Alberto 2024-03-03
+	ϵ = 1.0e-6  # Alberto 2024-03-03
 	#ϵ = 1.0e-8
 	ptest1 = p0 + ϵ * n
 	ptest2 = p0 - ϵ * n
@@ -172,7 +172,8 @@ end
 
 """ return two opposite internal/external points in an atom """
 function getinternalpoint(V,EV,FV,Fs, copEV,copFE)
-	#edges for v1=FV[1][1]
+#@show V,EV,FV,Fs, copEV,copFE
+	# look at edges for v1=FV[1][1]
 	ptest1, ptest2 = settestpoints(V,EV,FV,Fs, copEV,copFE)
 	intersectedfaces = Int64[]
 	# for each test point compute the face planes intersected by vertical ray
@@ -215,9 +216,15 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function chainbasis2solids(V,copEV,copFE,copCF)
+println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 	CF = [findnz(copCF[k,:])[1] for k=1:copCF.m] # faces per cell
+@show CF;
 	FE = [findnz(copFE[k,:])[1] for k=1:copFE.m] # edges per face
+@show FE;
 	EV = [findnz(copEV[k,:])[1] for k=1:copEV.m] # vertices per edge
+@show EV;
+@show V;
+println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 
 	FEs = Array{Array{Int64,1},1}[]
 	EVs = Array{Array{Array{Int64,1},1},1}[]
@@ -238,6 +245,7 @@ function internalpoints(V,copEV,copFE,copCF)
 	# transform each 3-cell in a solid (via model)
    #----------------------------------------------------------------------------
 	U,pols,CF = chainbasis2solids(V,copEV,copFE,copCF)
+@show CF;
 	# compute, for each `pol` (3-cell) in `pols`, one `internalpoint`.
 	#----------------------------------------------------------------------------
 	innerpoints = []
@@ -365,12 +373,13 @@ function bool3d(assembly)
 	# generate the 3D space arrangement
 	#----------------------------------------------------------------------------
 	# generate the 3D space arrangement
-	V, copEV, copFE, copCF = Plasm.space_arrangement( W, cop_EV, cop_FE );
+	V, cpEV, cpFE, cpCF = space_arrangement( W, cop_EV, cop_FE );
+	@show cpCF;
 	W = convert(Points, V');
-   copCF = copCF[2:end,:]
-	#V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF);
-   #show_exploded(V,CVs,FVs,EVs)
-	innerpoints, _ = internalpoints(W,copEV,copFE, copCF);
+   cpCF = cpCF[2:end,:]
+	V,CVs,FVs,EVs = pols2tria(W, cpEV, cpFE, cpCF);
+   show_exploded(V,CVs,FVs,EVs)
+	innerpoints, _ = internalpoints(W,cpEV,cpFE, cpCF);
 	#----------------------------------------------------------------------------
 	# associate internal points to (original) faces of 3-cells
 	listOfLar = AA(LAR)(TOPOS(assembly)) # correspond to evalStruct(assembly)

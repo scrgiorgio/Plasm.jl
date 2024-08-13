@@ -1512,6 +1512,11 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	rFE = SparseArrays.blockdiag(depot_FE...);
 	#if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
    rV, rcopEV, rcopFE = Plasm.merge_vertices(rV, rEV, rFE);
+println("==================================================")
+@show rV
+@show rcopEV
+@show rcopFE
+println("==================================================")
 #   C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
 #   println("V - E + F = ", C)   
    rcopCF = build_copFC(rV, rcopEV, rcopFE)
@@ -1738,18 +1743,28 @@ function build_copFC(rV, rcopEV, rcopFE)
 
 	copEF = transpose(copFE)
 	FE = [SparseArrays.findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
+println("++++++++++++++++++++++++++++++++++++++++++++++++")
+@show FE;
+@show FV;
+@show EV;
+println("++++++++++++++++++++++++++++++++++++++++++++++++")
 	# Initializations
 	m,n = size(copEF)
 	#@show m,n;
 	marks = zeros(Int,n);
 	I = Int[]; J = Int[]; W = Int[];
-	jcol = 0
-	choose(marks) = findfirst(x -> x<2, marks)
+	jcol = 0; 
+	choose(marks) = findall(x -> x<2, marks)[end]
 
 	# Main loop (adding one copFC's column stepwise)
-	while sum(marks) < 2n # no robust condition ... make better
+	# while sum(marks) < 2n # no robust condition ... make better
+	while (!all(value==2 for value in marks) && (sum(marks) <= 2n)) 
+	# to don't loop
 		# select a (d−1)-cell, "seed" of the column extraction
 		σ = choose(marks)
+println("\nSTART 2-CHAIN")
+@show marks;
+@show σ;
 		if marks[σ] == 0
 			cd1 = sparsevec([σ], Int[1], n)
 		elseif marks[σ] == 1
@@ -1757,9 +1772,6 @@ function build_copFC(rV, rcopEV, rcopFE)
 		end
 		# compute boundary cd2 of seed cell
 		cd2 = copEF * cd1
-#@show "0: ", cd1;
-#@show "1: ", cd2;
-#if !(cd2 == 1 || !cd2 == -1 || !cd2 == 0) error("cd2 = $(cd2)") end
 		# loop until (boundary) cd2 becomes empty
 		while nnz(cd2)≠0
 			corolla = sparsevec([], Int[], m)
@@ -1782,9 +1794,9 @@ function build_copFC(rV, rcopEV, rcopFE)
 				# compute the new adj cell
 				fan = ord(abs(τ),bd1,V,FV,EV,FE) # ord(pivot,bd1)
 				if τ > 0
-					adj = mynext(fan,pivot)
+					adj = mynext(fan,pivot,marks)
 				elseif τ < 0
-					adj = myprev(fan,pivot)
+					adj = myprev(fan,pivot,marks)
 				end
 				# orient adj
 				if copEF[abs(τ),adj] ≠ copEF[abs(τ),pivot]
@@ -1798,6 +1810,7 @@ function build_copFC(rV, rcopEV, rcopFE)
 			for (k,val) in zip(SparseArrays.findnz(corolla)...)
 				cd1[k] = val
 			end
+@show zip(SparseArrays.findnz(corolla)...)
 			# compute again the boundary of cd1
 			cd2 = copEF * cd1
 #@show "2: ",cd2;
@@ -1809,12 +1822,19 @@ function build_copFC(rV, rcopEV, rcopFE)
 		# append a new column to [∂d+]
 		# copFC += cd1
 		rows, vals = SparseArrays.findnz(cd1)
+@show rows, vals
 		jcol += 1
 		append!(I,rows)
 		append!(J,[ jcol for k=1:nnz(cd1) ])
 		append!(W,vals)
 	end
 	copCF = sparse(J,I,W)
+println("-----------------------------------------------------------------");
+@show copCF;
+println("-----------------------------------------------------------------");
+@show marks;
+println("-----------------------------------------------------------------");
+
 	return copCF
 end
 
@@ -1881,19 +1901,34 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for TGW in 3D """
-function mynext(cycle, pivot)
+function mynext(cycle, pivot, marks)
+@show cycle;
+@show pivot;
 	len = length(cycle)
-	ind = findall(x -> x==pivot, cycle)[1]
+	ind = findfirst(x -> x==pivot, cycle)[1]
 	nextIndex = ind==len ? 1 : ind+1
+@show nextIndex;
+@show marks[nextIndex];
+#if marks[nextIndex]==2
+#  nextIndex = ind==1 ? len : ind-1
+#end
 	return cycle[nextIndex][1]
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for TGW in 3D """
-function myprev(cycle, pivot)
+function myprev(cycle, pivot, marks)
+@show cycle;
+@show pivot;
 	len = length(cycle)
-	ind = findall(x->x==pivot, cycle)[1]
+	ind = findfirst(x -> x==pivot, cycle)[1] #  ind is address of pivot in cycle
 	nextIndex = ind==1 ? len : ind-1
+@show nextIndex;
+@show marks[nextIndex];
+#if marks[nextIndex]==2
+#  nextIndex = ind==len ? 1 : ind+1
+#end
+@show marks;
 	return cycle[nextIndex][1]
 end
 
