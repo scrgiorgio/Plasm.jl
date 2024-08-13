@@ -8,7 +8,8 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,GLVertexBuffer,
 	POINTS,LINES,TRIANGLES,
 	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,
-	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, TRANSPARENT, get_ortho_scale,set_ortho_scale
+	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, TRANSPARENT, get_ortho_scale,set_ortho_scale,
+	DEFAULT_V_FONTSIZE,DEFAULT_EV_FONTSIZE,DEFAULT_FV_FONTSIZE, DEFAULT_TEXT_SCALING
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -1497,11 +1498,13 @@ vectors = [
 	([1.0 1.75 2.75 3.5; 5.0 5.5 5.0 5.5], [[1, 2], [2, 3], [3, 4]])]
 
 # seems coordinates are in the range 4x6, is it right?
-SINGLE_W=4.0
-SINGLE_H=6.0
+
 
 # ////////////////////////////////////////////////////////////////////////////
-function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=0.05, color=Point4d(0,0,0,1))
+
+DEFAULT_TEXT_SCALING=(0.250,0.375)
+
+function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", fontsize=0.05, color=Point4d(0,0,0,1))
 
 	ret=Vector{GLBatch}()
 
@@ -1509,8 +1512,8 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=
 		return ret;
 	end
 
-	sx=single_w/SINGLE_W
-	sy=sx*(SINGLE_H/SINGLE_W)
+	sx=DEFAULT_TEXT_SCALING[1]*fontsize
+	sy=DEFAULT_TEXT_SCALING[2]*fontsize
 
 	vertices=Vector{Float32}()
 	colors  =Vector{Float32}()
@@ -1528,7 +1531,7 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=
 			x1=min(x1, p0[1], p1[1]);y1=min(y1, p0[2], p1[2]);z1=min(z1, p0[3], p1[3])
 			x2=max(x2, p0[1], p1[1]);y2=max(y2, p0[2], p1[2]);z2=max(z2, p0[3], p1[3])
 		end
-		tx+=single_w
+		tx+=fontsize
 		ty+=0
 	end
 
@@ -1548,46 +1551,10 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", single_w=
 	batch.vertices=GLVertexBuffer(vertices)
 	batch.colors  =GLVertexBuffer(colors)
 
-	
 	push!(ret,batch)
 	return ret
 end
 
-
-# ///////////////////////////////////////////////////////////////////
-function GLText(
-		V::Vector{Vector{Float64}}; 
-		EV=nothing, 
-		FV=nothing, 
-		V_color=Point4d(1,1,1,1),
-		#EV_color=Point4d(1,0,0,1),
-		EV_color=Point4d(0,0,1,1),
-		FV_color=Point4d(0,1,0,1),
-		single_w=0.05)
-
-	batches=Vector{GLBatch}()
-
-	for I in 1:length(V)
-		append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in [I]]), single_w=single_w, color=V_color))
-	end
-
-	if EV!=nothing
-		for I in 1:length(EV)
-			append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in EV[I]]), single_w=single_w, color=EV_color))
-		end
-	end
-
-	if FV!=nothing
-		for I in 1:length(FV)
-			append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in FV[I]]), single_w=single_w, color=FV_color))
-		end
-	end
-
-	return batches
-
-end
-
-# ///////////////////////////////////////////////////////////////
 
 const WHITE       = Point4d([1.0, 1.0, 1.0, 1.0])
 const RED         = Point4d([1.0, 0.0, 0.0, 1.0])
@@ -1647,6 +1614,45 @@ function GetColorByName(name)
 
 end
 
+DEFAULT_V_FONTSIZE =0.06
+DEFAULT_EV_FONTSIZE=0.04
+DEFAULT_FV_FONTSIZE=0.02
+
+# ///////////////////////////////////////////////////////////////////
+function GLText(
+		V::Vector{Vector{Float64}}; 
+		EV=nothing, 
+		FV=nothing, 
+		V_color=WHITE,
+		EV_color=BLUE,
+		FV_color=GREEN,
+		fontsize=0.05)
+
+	batches=Vector{GLBatch}()
+
+	if V_color[4]>0
+		for I in 1:length(V)
+			append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in [I]]), fontsize=fontsize, color=V_color))
+		end
+	end
+
+	if EV!=nothing && EV_color[4]>0
+		for I in 1:length(EV)
+			append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in EV[I]]), fontsize=fontsize, color=EV_color))
+		end
+	end
+
+	if FV!=nothing && FV_color[4]>0
+		for I in 1:length(FV)
+			append!(batches,GLText(string(I),center=ComputeCentroid([V[it] for it in FV[I]]), fontsize=fontsize, color=FV_color))
+		end
+	end
+
+	return batches
+
+end
+
+# ///////////////////////////////////////////////////////////////
 
 # ///////////////////////////////////////////////////////////////////////////
 # scrgiorgio: not sure this class is needed
