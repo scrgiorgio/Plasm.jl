@@ -78,11 +78,12 @@ function pointInPolygonClassification(V,EV)
 end
 
 # //// look for a pair of test point for given atom ////////////////////////////
-function settestpoints(V,EV,FV,Fs, copEV,copFE)
+function settestpoints(V,EV,FE,FV,Fs, copEV,copFE)
+@show (V,EV,FE,FV,Fs, copEV,copFE);
 	f = Fs[1]
 	e = findnz(copFE[f,:])[1][1] # first (global) edge of first (global) face
    # f,e relative to atom
-	f1,f2 = findnz(copFE[:,e])[1] # two (global) faces incident on it (atom)
+	f1,f2 =  findnz(copFE[:,f])[1] # two (global) faces incident on it (atom)
 	v1,v2 = findnz(copEV[e,:])[1] # two (global) verts incident on it (atom)
    fdict = Dict(zip(Fs,1:length(Fs))) # enumerate atom faces (internal codes)
    V1 = FV[fdict[f1]]
@@ -171,10 +172,10 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ return two opposite internal/external points in an atom """
-function getinternalpoint(V,EV,FV,Fs, copEV,copFE)
-#@show V,EV,FV,Fs, copEV,copFE
+function getinternalpoint(V,EV,FE,FV,Fs, copEV,copFE)
 	# look at edges for v1=FV[1][1]
-	ptest1, ptest2 = settestpoints(V,EV,FV,Fs, copEV,copFE)
+	ptest1, ptest2 = settestpoints(V,EV,FE,FV,Fs, copEV,copFE)
+
 	intersectedfaces = Int64[]
 	# for each test point compute the face planes intersected by vertical ray
 	dep1, dep2 = [],[] # to store the pairs (face, 3D-point)
@@ -216,26 +217,19 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function chainbasis2solids(V,copEV,copFE,copCF)
-println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-	CF = [findnz(copCF[k,:])[1] for k=1:copCF.m] # faces per cell
-@show CF;
-	FE = [findnz(copFE[k,:])[1] for k=1:copFE.m] # edges per face
-@show FE;
-	EV = [findnz(copEV[k,:])[1] for k=1:copEV.m] # vertices per edge
-@show EV;
-@show V;
-println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-
 	FEs = Array{Array{Int64,1},1}[]
 	EVs = Array{Array{Array{Int64,1},1},1}[]
 	FVs = Array{Array{Int64,1},1}[]
+   CF = [findnz(copCF[k,:])[1] for k=1:copCF.m] # faces per cell
+   FE = [findnz(copFE[k,:])[1] for k=1:copFE.m] # edges per face
+   EV = [findnz(copEV[k,:])[1] for k=1:copEV.m] # vertices per edge
+   FV = [union(CAT([EV[e] for e in f])) for f in FE] # vertices per face
 	for k=1:copCF.m
 		push!( FEs, [collect(Set([e for e in FE[f]])) for f in CF[k]] )
-		# edges aggregated by face, in order to answer point-classifications
-		push!(EVs, [[EV[e] for e in FE[f]] for f in CF[k]] )
+		push!( EVs, [[EV[e] for e in FE[f]] for f in CF[k]] )
 		push!(FVs, [collect(Set(vcat([EV[e] for e in FE[f]]...))) for f in CF[k]])
 	end
-	pols = collect(zip(EVs,FVs,FEs))
+	pols = collect(zip(EVs,FVs,FEs)) # all atoms w global numbering
 	W = convert(Points,V')
 	return W,pols,CF
 end
@@ -245,16 +239,13 @@ function internalpoints(V,copEV,copFE,copCF)
 	# transform each 3-cell in a solid (via model)
    #----------------------------------------------------------------------------
 	U,pols,CF = chainbasis2solids(V,copEV,copFE,copCF)
-@show CF;
-	# compute, for each `pol` (3-cell) in `pols`, one `internalpoint`.
+	# compute, for each `pol` (3-cell, i.e atom) in `pols`, one `internalpoint`.
 	#----------------------------------------------------------------------------
 	innerpoints = []
 	intersectedfaces = []
 	for k=1:length(pols)
 		(EV,FV,FE),Fs = pols[k],CF[k]
-		EV = convert(Cells,collect(Set(vcat(EV...))))
-		#GL.VIEW([ GL.GLFrame, GL.GLLines(V,EV) ]);
-		point,facenumber = getinternalpoint(V,EV,FV,Fs, copEV,copFE)
+		point,facenumber = getinternalpoint(V,EV,FE,FV,Fs, copEV,copFE)
 		push!(innerpoints,point)
 		push!(intersectedfaces,facenumber)
 	end
@@ -374,9 +365,8 @@ function bool3d(assembly)
 	#----------------------------------------------------------------------------
 	# generate the 3D space arrangement
 	V, cpEV, cpFE, cpCF = space_arrangement( W, cop_EV, cop_FE );
-	@show cpCF;
 	W = convert(Points, V');
-   cpCF = cpCF[2:end,:]
+   #cpCF = cpCF[end,:]
 	V,CVs,FVs,EVs = pols2tria(W, cpEV, cpFE, cpCF);
    show_exploded(V,CVs,FVs,EVs)
 	innerpoints, _ = internalpoints(W,cpEV,cpFE, cpCF);

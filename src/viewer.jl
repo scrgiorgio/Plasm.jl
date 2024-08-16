@@ -1614,9 +1614,9 @@ function GetColorByName(name)
 
 end
 
-DEFAULT_V_FONTSIZE =0.06
-DEFAULT_EV_FONTSIZE=0.04
-DEFAULT_FV_FONTSIZE=0.02
+DEFAULT_V_FONTSIZE =0.04
+DEFAULT_EV_FONTSIZE=0.06
+DEFAULT_FV_FONTSIZE=0.08
 
 # ///////////////////////////////////////////////////////////////////
 function GLText(
