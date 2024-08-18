@@ -1,4 +1,4 @@
-using Plasm
+using Plasm  # da usare per testare TGW:  sembra terminare correttamente,      ma senza la condizione sufficiente "all(marks[k]=2 for all k"
 
 rod = T(3)(-2)(CYLINDER([0.5,4])(4));
 assembly = STRUCT( rod, R(2,3)(π/2), rod, R(1,3)(π/2), rod );

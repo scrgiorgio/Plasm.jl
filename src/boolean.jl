@@ -83,8 +83,8 @@ function settestpoints(V,EV,FE,FV,Fs, copEV,copFE)
 	f = Fs[1]
 	e = findnz(copFE[f,:])[1][1] # first (global) edge of first (global) face
    # f,e relative to atom
-	f1,f2 =  findnz(copFE[:,f])[1] # two (global) faces incident on it (atom)
-	v1,v2 = findnz(copEV[e,:])[1] # two (global) verts incident on it (atom)
+	f1,f2 =  findnz(copFE[f,:])[1][1:2] # two (global) faces incident on it (atom)
+	v1,v2 = findnz(copEV[e,:])[1][1:2] # two (global) verts incident on it (atom)
    fdict = Dict(zip(Fs,1:length(Fs))) # enumerate atom faces (internal codes)
    V1 = FV[fdict[f1]]
    V2 = FV[fdict[f2]]
@@ -364,12 +364,13 @@ function bool3d(assembly)
 	# generate the 3D space arrangement
 	#----------------------------------------------------------------------------
 	# generate the 3D space arrangement
-	V, cpEV, cpFE, cpCF = space_arrangement( W, cop_EV, cop_FE );
+	V, copEV, copFE, copCF = space_arrangement( W, cop_EV, cop_FE );
+	@show V, copEV, copFE, copCF;
 	W = convert(Points, V');
    #cpCF = cpCF[end,:]
-	V,CVs,FVs,EVs = pols2tria(W, cpEV, cpFE, cpCF);
+	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF);
    show_exploded(V,CVs,FVs,EVs)
-	innerpoints, _ = internalpoints(W,cpEV,cpFE, cpCF);
+	innerpoints, _ = internalpoints(W,copEV,copFE, copCF);
 	#----------------------------------------------------------------------------
 	# associate internal points to (original) faces of 3-cells
 	listOfLar = AA(LAR)(TOPOS(assembly)) # correspond to evalStruct(assembly)
