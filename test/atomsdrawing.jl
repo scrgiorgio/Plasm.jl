@@ -1,5 +1,6 @@
 
 using Plasm, SparseArrays, DataStructures
+
 cube = CUBE(1)
 assembly = STRUCT(cube, R(1,2)(π/4), cube)	
 
@@ -31,7 +32,7 @@ dictFV = Dict{Vector{Int},Int}(collect(zip(FV,1:length(FV))))
 arranged = LAR(MKPOL(W,FV,EV))
 
 # Intero modello dopo l'arrangement
-# VIEWCOMPLEX(arranged)  
+VIEWCOMPLEX(arranged)  
 
 # extraction of atoms from arranged space
 _,pols,_ = chainbasis2solids(V,copEV,copFE,copCF)
@@ -44,12 +45,11 @@ for k=1:length(pols)
    localEV = union(CAT(localEV))
    localFV = AA(sort)(localFV)
    
-   VIEWCOMPLEX(localV, localEV, localFV, 
-      properties=Properties(
-         "background_color"=>Point4d(1.0,1.0,1.0,1.0), 
-         "v_text"  => [string(Wdict[a])  for a in W],
-         "ev_text" => [string(dictEV[a]) for a in localEV],
-         "fv_text" => [string(dictFV[a]) for a in localFV]
-         ))
+   VIEWCOMPLEX2(
+      localV, localEV, localFV, 
+      [string(Wdict[a])  for a in W],
+      [string(dictEV[a]) for a in localEV],
+      [string(dictFV[a]) for a in localFV],
+      properties=Properties("background_color"=>Point4d(1.0,1.0,1.0,1.0)))
   
 end
