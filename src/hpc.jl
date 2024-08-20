@@ -490,16 +490,14 @@ function GetBatchesForGeometry(obj::Geometry)
 end
 
 
-
-
 # /////////////////////////////////////////////////////////////
 mutable struct Hpc
 	 T::MatrixNd
 	 childs::Union{Vector{Hpc}, Vector{Geometry}}
-	 properties::Dict{Any, Any}
+	 properties::Properties
 	 
 	 # constructor
-	 function Hpc(T::MatrixNd=MatrixNd(0), childs:: Union{Vector{Hpc}, Vector{Geometry}}=[], properties=Dict())
+	 function Hpc(T::MatrixNd=MatrixNd(0), childs:: Union{Vector{Hpc}, Vector{Geometry}}=[], properties=Properties())
 
 		  self = new()
 		  self.childs = childs
@@ -514,12 +512,12 @@ mutable struct Hpc
 	 end
 end
 	 
-function Hpc(g::Geometry; properties=Dict())
+function Hpc(g::Geometry; properties=Properties())
 	return Hpc(MatrixNd(0),[g], properties)
 end
 
 	 
-function Hpc(gs::Vector{Geometry}; properties=Dict())
+function Hpc(gs::Vector{Geometry}; properties=Properties())
 	return Hpc(MatrixNd(0),gs, properties)
 end
 
@@ -544,9 +542,9 @@ function dim(self::Hpc)
 	return dim(self.T) - 1
 end
 
-HpcGroup=Vector{Tuple{MatrixNd,Dict,Union{Hpc,Geometry}}}
+HpcGroup=Vector{Tuple{MatrixNd,Properties,Union{Hpc,Geometry}}}
 
-function toList(Tdim::Int64, T::MatrixNd, properties::Dict, node::Hpc)::HpcGroup
+function toList(Tdim::Int64, T::MatrixNd, properties::Properties, node::Hpc)::HpcGroup
 	ret = []
 
 	# to visit
@@ -575,7 +573,7 @@ end
 
 function toList(node::Hpc)::HpcGroup
 	Tdim = dim(node) + 1
-	return toList(Tdim, MatrixNd(Tdim),Dict(), node)
+	return toList(Tdim, MatrixNd(Tdim),Properties(), node)
 end
 
 
@@ -616,7 +614,7 @@ end
 
 
 # ///////////////////////////////////////////////////////
-function TOPOS(ret::Vector{Hpc}, target_dim::Int64, T::MatrixNd, properties::Dict, node::Union{Hpc, Geometry}, stop_key::String, stop_value::String, multi_geometry::Bool)
+function TOPOS(ret::Vector{Hpc}, target_dim::Int64, T::MatrixNd, properties::Properties, node::Union{Hpc, Geometry}, stop_key::String, stop_value::String, multi_geometry::Bool)
 
 	# need to STOP anyway
 	if isa(node,Geometry)
@@ -642,13 +640,13 @@ end
  function TOPOS(node::Hpc; label::String="solid", multi_geometry::Bool=false)::Vector{Hpc}
 	target_dim=dim(node) + 1
 	ret=Vector{Hpc}()
-	TOPOS(ret,target_dim, MatrixNd(target_dim), Dict(), node, "node_type", label, multi_geometry)
+	TOPOS(ret,target_dim, MatrixNd(target_dim), Properties(), node, "node_type", label, multi_geometry)
 	return ret
  end
 
 # ///////////////////////////////////////////////////////
 function TYPE(node::Hpc, label::String)::Hpc
-	return PROPERTIES(node,Dict("node_type"=>label))
+	return PROPERTIES(node,Properties("node_type"=>label))
 end
 
 # ////////////////////////////////////////////////////////////////////////////////////////
@@ -969,16 +967,16 @@ function GetBatchesForHpc(hpc::Hpc)
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function View(batches::Vector{GLBatch}, properties::Dict=Dict())
+function View(batches::Vector{GLBatch}, properties::Properties=Properties())
 	GLView(batches, properties)
 end
 
 function View(batches::Vector{GLBatch}, title::String)
-	GLView(batches, Dict{String,Any}( "title" => title))
+	GLView(batches, Properties( "title" => title))
 end
 
 # //////////////////////////////////////////////////////////
-function View(hpc::Hpc, properties::Dict=Dict())
+function View(hpc::Hpc, properties::Properties=Properties())
 
 	pdim=dim(hpc)
 
@@ -1001,7 +999,7 @@ function View(hpc::Hpc, properties::Dict=Dict())
 		vup=Point3d(0,1,0)
 	
 		# default properties if not specified
-		properties=Dict{String,Any}(properties)
+		properties=Properties(properties)
 		properties["background_color"] =           get(properties,"background_color", WHITE)
 		properties["use_ortho"]        =           get(properties,"use_ortho",   true)
 		properties["pos"]              =           get(properties,"pos",         pos)
@@ -1022,7 +1020,7 @@ end
 
 
 function View(hpc::Hpc, title::String)
-	return View(hpc, Dict( "title" => title))
+	return View(hpc, Properties( "title" => title))
 end
 
 

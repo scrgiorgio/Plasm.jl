@@ -303,7 +303,7 @@ function TestToLAR()
     VIEW(
       PROPERTIES(
         STRUCT(hpc1, T(2)(2.5),hpc2), 
-        Dict("line_color" => WHITE,"line_width"=>2)
+        Properties("line_color" => WHITE,"line_width"=>2)
       ))
   end
 

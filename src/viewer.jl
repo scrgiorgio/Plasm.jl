@@ -9,7 +9,8 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	POINTS,LINES,TRIANGLES,
 	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,
 	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, TRANSPARENT, get_ortho_scale,set_ortho_scale,
-	DEFAULT_V_FONTSIZE,DEFAULT_EV_FONTSIZE,DEFAULT_FV_FONTSIZE, DEFAULT_TEXT_SCALING
+	DEFAULT_V_FONTSIZE,DEFAULT_EV_FONTSIZE,DEFAULT_FV_FONTSIZE, DEFAULT_TEXT_SCALING,
+	Properties
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -916,7 +917,7 @@ mutable struct Viewer
 	mouse_beginy::Float64
 	down_button::Int32
 	batches::Any
-	shaders::Dict
+	shaders::Dict{Any,Any}
 	use_ortho:: Bool 
 	exitNow:: Bool
 	show_lines:: Bool
@@ -926,7 +927,7 @@ mutable struct Viewer
 
 	# constructor
 	function Viewer(batches) 
-		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Dict(), false, false, true,[0.3,0.4,0.5], "Viewer", true)
+		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Properties(), false, false, true,[0.3,0.4,0.5], "Viewer", true)
 	end
 	
 end
@@ -994,9 +995,10 @@ function runViewer(viewer::Viewer)
 	GLFW.Terminate()	
 end
 
+Properties=Dict{String,Any}
 
 # ///////////////////////////////////////////////////////////////////////
-function GLView(batches::Vector{GLBatch}, properties::Dict=Dict())
+function GLView(batches::Vector{GLBatch}, properties::Properties=Properties())
 	
 	show_axis=get(properties,"show_axis",true)
 	if show_axis
@@ -1570,9 +1572,11 @@ const GRAY        = Point4d([0.5, 0.5, 0.5, 1.0])
 const BLACK       = Point4d([0.0, 0.0, 0.0, 1.0])
 const TRANSPARENT = Point4d([0.0,0.0,0.0,0.0])
 
-const palette = Dict(1=>WHITE, 2=>RED, 3=>GREEN, 4=>BLUE,
-        5=>CYAN, 6=>MAGENTA, 7=>YELLOW, 8=>ORANGE,
-        9=>PURPLE, 10=>BROWN, 11=>GRAY, 12=>BLACK )
+const palette = Dict{Int,Point4d}(
+	1=>WHITE, 2=>RED, 3=>GREEN, 4=>BLUE,
+	5=>CYAN, 6=>MAGENTA, 7=>YELLOW, 8=>ORANGE,
+	9=>PURPLE, 10=>BROWN, 11=>GRAY, 12=>BLACK 
+)
 
 
 const rgb = [
@@ -1596,7 +1600,7 @@ const rgb = [
 
 function GetColorByName(name)
 
-	return Dict(
+	return Dict{String,Point4d}(
 		"white"=>WHITE, 
 		"red"=>RED, 
 		"green"=>GREEN, 

@@ -14,7 +14,7 @@ function MyMain()
 	if false
 		VIEW(
 			CUBOID([1,1,1]),
-			Dict(
+			Properties(
 				# 3d pipeline position
 				"pos" => Point3d(0.5, 0.5, 3.0),
 				"dir" => Point3d(0.0, 0.0,-1.0),

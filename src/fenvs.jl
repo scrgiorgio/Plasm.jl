@@ -823,7 +823,7 @@ VIEW=View
 function LINE(p1,p2;line_color=Point4d(1.0,1.0,1.0,1.0),line_width=1)
   return PROPERTIES(
 		MKPOL([p1,p2],[[1,2]]), 
-		Dict(
+		Properties(
 			"line_color"=>line_color,
 			"line_width"=>line_width
 			)
@@ -2808,13 +2808,13 @@ end
 # //////////////////////////////////////////////////////////////
 function COLOR(C)
 	function COLOR0(hpc::Hpc)
-		return PROPERTIES(hpc,Dict{String, Any}("face_color"=>Point4d(C[1],C[2],C[3],length(C) >= 4 ? C[4] : 1.0)))
+		return PROPERTIES(hpc,Properties("face_color"=>Point4d(C[1],C[2],C[3],length(C) >= 4 ? C[4] : 1.0)))
 	end
 	return COLOR0
 end
 
 # //////////////////////////////////////////////////////////////
-function PROPERTIES(hpc::Hpc, properties::Dict)
+function PROPERTIES(hpc::Hpc, properties::Properties)
 	ret=STRUCT([hpc])
 	ret.properties=copy(hpc.properties)
 	for (key, value) in properties

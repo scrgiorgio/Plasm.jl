@@ -1,7 +1,7 @@
 using LinearAlgebra
 using QHull
 
-export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING,VIEWCOMPLEX2,SQRT
+export IsPolytope, IsSimplex, simplex, simplexfacets, CHULL, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, SPHERE, VIEWCOMPLEX, TORUS, RING,VIEWCOMPLEX,SQRT
 
 import Base.-  
 -(f::Function, g::Function) = (x...) -> f(x...) - g(x...)  
@@ -198,90 +198,104 @@ Remark: Any `Hpc` object may by visualized with numbered cells of its 2D or boun
 	VIEWCOMPLEX(LAR(MAP(mapping)(domain)))
 ```
 """
-function VIEWCOMPLEX(mesh::Lar; properties::Dict=Dict())
-
-   # set defaultx for alberto
-   properties["background_color"] = get(properties,"background_color", Point4d(1.0,1.0,1.0, 1.0))
-   properties["line_color"]       = get(properties,"line_color"      , Point4d(0.0,0.0,0.0, 1.0))
-   properties["line_width"]       = get(properties,"line_width"      , 2)
-   properties["text_v_color" ]    = get(properties,"text_v_color"    , Point4d(0.0,0.0,0.0, 1.0))
-   properties["text_ev_color"]    = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
-   properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
-
-   # font sizes
-   properties["v_fontsize"]       = get(properties,"v_fontsize"      , DEFAULT_V_FONTSIZE)
-   properties["ev_fontsize"]      = get(properties,"ev_fontsize"     , DEFAULT_EV_FONTSIZE)
-   properties["fv_fontsize"]      = get(properties,"fv_fontsize"     , DEFAULT_FV_FONTSIZE)
-
-   V = mesh.V; EV = mesh.C[:EV]
-   obj =PROPERTIES(MKPOLS(V,EV),properties)
-   batches=Vector{GLBatch}()
-   append!(batches,GetBatchesForHpc(obj))
-
-   vertices=[V[:,k] for k=1:size(V,2)]
-   edges   = EV=[it for it in EV]
-   faces   = FV=:FV in keys(mesh.C) ? mesh.C[:FV] : nothing
-
-   # draw TEXT for vertices, edges, faces (NOTE: different font sizes)
-   append!(batches,GLText(vertices,         V_color =properties["text_v_color"] ,                     fontsize=properties["v_fontsize"]))
-   append!(batches,GLText(vertices,EV=edges,V_color =TRANSPARENT,EV_color=properties["text_ev_color"],fontsize=properties["ev_fontsize"]))
-   append!(batches,GLText(vertices,FV=faces,V_color =TRANSPARENT,FV_color=properties["text_fv_color"],fontsize=properties["fv_fontsize"]))
-   View(batches,properties)
-end
 
 
 # ///////////////////////////////////////////////////
-function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext;properties::Dict=Dict())
+function VIEWCOMPLEX(
+   lar_vertices::Matrix{Float64}, 
+   edges::Vector{Vector{Int}},  
+   faces::Vector{Vector{Int}};
+   properties::Properties=Properties())
 
-   properties["background_color"] = get(properties,"background_color", Point4d(1.0,1.0,1.0, 1.0))
-   properties["line_color"]       = get(properties,"line_color"      , Point4d(0.0,0.0,0.0, 1.0))
-   properties["line_width"]       = get(properties,"line_width"      , 2)
-
-   properties["text_v_color" ]    = get(properties,"text_v_color"    , Point4d(0.0,0.0,0.0, 1.0))
-   properties["text_ev_color"]    = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
-   properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
-
-   # font sizes
-   properties["v_fontsize"]       = get(properties,"v_fontsize"      , DEFAULT_V_FONTSIZE)
-   properties["ev_fontsize"]      = get(properties,"ev_fontsize"     , DEFAULT_EV_FONTSIZE)
-   properties["fv_fontsize"]      = get(properties,"fv_fontsize"     , DEFAULT_FV_FONTSIZE)
-
-   used_vertices=[]
-   for v in EV append!(used_vertices,v) end
-   for v in FV append!(used_vertices,v) end
-
-   obj = MKPOLS(V,EV)
    batches=Vector{GLBatch}()
-   append!(batches,GetBatchesForHpc(obj))
 
-   W = [V[:,k] for k=1:size(V,2)]
+   # draw vertices 
+   vertices= [lar_vertices[:,k] for k=1:size(lar_vertices,2)]
+   begin
+      color = get(properties,"text_v_color", Point4d(0.0,0.0,0.0, 1.0))
+      fontsize=get(properties,"v_fontsize", DEFAULT_V_FONTSIZE)
+      if color[4]>0.0 && fontsize>0
 
-   # show vertices
-   if properties["text_v_color"][4]>0
-      for I in 1:length(W)
-         append!(batches, GLText( (I in used_vertices ? Vtext[I] : ""),center=ComputeCentroid([W[it] for it in [I]]), color=properties["text_v_color" ],fontsize=properties["v_fontsize"]) )
+         used_vertices=[]
+         for v in edges append!(used_vertices,v) end
+         for v in faces append!(used_vertices,v) end
+
+         text=get(properties,"v_text", [string(I) for I in eachindex(vertices)])
+         for I in eachindex(vertices)
+            # do not show unused vertices
+            if I in used_vertices 
+               append!(batches, GLText(text[I], center=vertices[I],  color=color, fontsize=fontsize)) 
+            end
+         end
       end
    end
 
-   # show edges
-   if EV!=nothing && properties["text_ev_color"][4]>0
-      for I in 1:length(EV)
-         append!(batches, GLText(EVtext[I],center=ComputeCentroid([W[it] for it in EV[I]]), color=properties["text_ev_color"],fontsize=properties["ev_fontsize"]) )
+   # draw edges
+   if !isnothing(edges)
+      batch = GLBatch(LINES)
+      batch.line_width  = get(properties,"line_width", 2)
+      batch.line_color  = get(properties,"line_color", DEFAULT_LINE_COLOR)
+      for edge in edges
+            p0 = ToVector3(vertices[edge[1]])
+            p1 = ToVector3(vertices[edge[2]])
+            push!(batch.vertices.vector, p0...)
+            push!(batch.vertices.vector, p1...)
+      end
+      push!(batches,batch)
+
+      text=get(properties,"ev_text", [string(I) for I in eachindex(edges)])
+      color = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
+      fontsize = get(properties,"ev_fontsize", DEFAULT_EV_FONTSIZE)
+      if color[4]>0.0 && fontsize > 0
+         for I in eachindex(edges)
+            centroid=ComputeCentroid([vertices[it] for it in edges[I]])
+            append!(batches, GLText(text[I], center=centroid, color=color, fontsize=fontsize) )
+         end
       end
    end
 
-   # show faces
-   if FV!=nothing && properties["text_fv_color"][4]>0
-      for I in 1:length(FV)
-         append!(batches,GLText(FVtext[I],center=ComputeCentroid([W[it] for it in FV[I]]), color=properties["text_fv_color"],fontsize=properties["fv_fontsize"]))
+   # draw faces. NOTE that faces could be non-convex (!)
+   if !isnothing(faces)
+      batch = GLBatch(TRIANGLES)
+      batch.face_color  = get(properties,"face_color", DEFAULT_FACE_COLOR)
+      for face in faces
+         @show face
+         for S in 1:(length(face)-2)
+            p0 = ToVector3(vertices[face[S+0]])
+            p1 = ToVector3(vertices[face[S+1]])
+            p2 = ToVector3(vertices[face[S+2]])
+            n = ComputeTriangleNormal(p0, p1, p2) # in case there are degenerate triangles...
+            push!(batch.vertices.vector, p0...);push!(batch.normals.vector, n...)
+            push!(batch.vertices.vector, p1...);push!(batch.normals.vector, n...)
+            push!(batch.vertices.vector, p2...);push!(batch.normals.vector, n...)
+         end
+      end
+      push!(batches,batch)
+
+      text=get(properties,"fv_text", [string(I) for I in eachindex(faces)])
+      color = get(properties,"text_fv_color", Point4d(0.0,0.2,0.6, 1.0))
+      fontsize = get(properties,"fv_fontsize", DEFAULT_FV_FONTSIZE)
+      if color[4]>0.0
+         for I in eachindex(faces)
+            centroid=ComputeCentroid([vertices[it] for it in faces[I]])
+            append!(batches,GLText(text[I], center=centroid, color=color, fontsize=fontsize))
+         end
+
       end
    end
 
-   View(batches)
-
+   View(batches,properties)
 end
 
-
+# ////////////////////////////////////////////////////////////////////////////////////
+function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
+   return VIEWCOMPLEX(
+      mesh.V,
+      (:EV in keys(mesh.C)) ? mesh.C[:EV] : nothing,
+      (:FV in keys(mesh.C)) ? mesh.C[:FV] : nothing,
+      properties=properties
+   )
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 """

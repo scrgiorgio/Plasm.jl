@@ -592,7 +592,7 @@ function MyMain()
 			Translate(Cube(2)     , [1.0, 1.0, 0.0]),
 			Translate(Cube(3)     , [2.0, 1.0, 0.0]),
 		])
-		View(obj, Dict{String,Any}("title" => "Example" ))
+		View(obj, Properties("title" => "Example" ))
 
 		TestArguments()
 		TestCube()
@@ -634,7 +634,7 @@ function MyMain()
 				LINE([0.0,0.0,0.0],[0.0,1.0,0.0],line_color=GREEN,line_width=3),
 				LINE([0.0,0.0,0.0],[0.0,0.0,1.0],line_color=BLUE ,line_width=3),
 			),
-			Dict(
+			Properties(
 				"show_axis" => false,
 				"title" => "Frame"
 			)
@@ -697,7 +697,7 @@ function MyMain()
 		CUBOID([1,1,1]),
 	
 		# view properties
-		Dict(
+		Properties(
 			"title" => "view with properties",
 
 			# 3d pipeline position

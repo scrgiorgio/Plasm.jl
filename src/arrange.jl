@@ -1329,7 +1329,7 @@ function show_exploded(V,CVs,FVs,EVs)
    for k in 1:length(exploded)
      face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
      face_color[4] = 1.0
-     push!(v,PROPERTIES(exploded[k], Dict(
+     push!(v,PROPERTIES(exploded[k], Properties(
      "face_color" => face_color, 
      #"line_color" => GL.BLACK, 
      "line_width" => 3)))
@@ -1342,7 +1342,7 @@ function show_exploded(V,CVs,FVs,EVs)
       line_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
       line_color[4]=1.0    
       push!(v,PROPERTIES(exploded[k], 
-            Dict("line_color" => line_color, "line_width" => 3)))
+      Properties("line_color" => line_color, "line_width" => 3)))
    end
    VIEW(STRUCT(v))
 
@@ -1351,7 +1351,7 @@ function show_exploded(V,CVs,FVs,EVs)
    for k in 1:length(exploded)
       face_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
       face_color[4]=1.0    
-      push!(v,PROPERTIES(exploded[k], Dict("line_width" => 3)))
+      push!(v,PROPERTIES(exploded[k], Properties("line_width" => 3)))
    end
    VIEW(STRUCT(v))
 end
