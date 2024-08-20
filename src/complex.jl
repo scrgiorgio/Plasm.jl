@@ -216,7 +216,8 @@ function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
    properties["ev_fontsize"]      = get(properties,"ev_fontsize"     , DEFAULT_EV_FONTSIZE)
    properties["fv_fontsize"]      = get(properties,"fv_fontsize"     , DEFAULT_FV_FONTSIZE)
 
-   V = mesh.V; EV = mesh.C[:EV]
+   V = mesh.V
+   EV = mesh.C[:EV]
    obj =PROPERTIES(MKPOLS(V,EV),properties)
    batches=Vector{GLBatch}()
    append!(batches,GetBatchesForHpc(obj))
