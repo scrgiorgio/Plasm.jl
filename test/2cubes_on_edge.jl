@@ -9,7 +9,7 @@ FE = cop2lar(rcopFE);
 #@show FE;
 EV = cop2lar(rcopEV);
 #@show EV;
-FV = cop2lar(lar2cop(FE) * lar2cop(EV) .÷ Int8(2));
+FV = cop2lar(lar2cop(FE) * lar2cop(EV) .÷ Int8(2)); # problem: be careful .. !!
 #@show FV;
 V = permutedims(rV);
 #@show V;
@@ -19,4 +19,4 @@ twocubes = MKPOL(V,FV,EV)
 model = LAR(twocubes)
 VIEWCOMPLEX(model)
 
-FV = [union(CAT([CAT([EV[e]]) for e in f])) for f in FE] ## corretta !!
+FV = [union(CAT([CAT([EV[e]]) for e in f])) for f in FE] ## correct !!

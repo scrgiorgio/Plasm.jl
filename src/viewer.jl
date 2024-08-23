@@ -1105,7 +1105,6 @@ end
 
 # ///////////////////////////////////////////////////////////////////////
 function glRender(viewer::Viewer)
-	
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glDisable(GL_CULL_FACE)

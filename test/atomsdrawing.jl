@@ -16,13 +16,13 @@ W = convert(Points, V');
 
 # generate the 3D space arrangement
 V, copEV, copFE, copCF = space_arrangement( W, cop_EV, cop_FE );
-#@show V, copEV, copFE, copCF;
+@show V, copEV, copFE, copCF;
 
 # Lar complex computation, with associated dictionaries
-EV = AA(sort)([findnz(copEV[k,:])[1] for k=1:copEV.m]) # vertices per edge
-FE = AA(sort)([findnz(copFE[k,:])[1] for k=1:copFE.m]) # edges per face
-FV = AA(sort)([union(CAT([EV[e] for e in f])) for f in FE]) # vertices per face
-W = [V[k,:] for k=1:size(V,1)]
+EV = AA(sort)([findnz(copEV[k,:])[1] for k=1:copEV.m]); # vertices per edge
+FE = AA(sort)([findnz(copFE[k,:])[1] for k=1:copFE.m]); # edges per face
+FV = AA(sort)([union(CAT([EV[e] for e in f])) for f in FE]); # vertices per face
+W = [V[k,:] for k=1:size(V,1)];
 
 Wdict = OrderedDict{Any,Int}(zip(W,1:LEN(W)));
 dictEV = Dict{Vector{Int},Int}(collect(zip(EV,1:length(EV))))
@@ -44,6 +44,8 @@ for k=1:length(pols)
    localEV,localFV = pols[k] 
    localEV = union(CAT(localEV))
    localFV = AA(sort)(localFV)
+   
+@show localV, localEV, localFV;
    
    VIEWCOMPLEX2(
       localV, localEV, localFV, 
