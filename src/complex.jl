@@ -204,12 +204,13 @@ Remark: Any `Hpc` object may by visualized with numbered cells of its 2D or boun
 function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
 
    # set defaultx for alberto
-   properties["background_color"] = get(properties,"background_color", Point4d(1.0,1.0,1.0, 1.0))
-   properties["line_color"]       = get(properties,"line_color"      , Point4d(0.0,0.0,0.0, 1.0))
+   properties["background_color"] = get(properties,"background_color", WHITE)
+   properties["line_color"]       = get(properties,"line_color"      , BLACK)
    properties["line_width"]       = get(properties,"line_width"      , 2)
-   properties["text_v_color" ]    = get(properties,"text_v_color"    , Point4d(0.0,0.0,0.0, 1.0))
-   properties["text_ev_color"]    = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
-   properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
+
+   properties["text_v_color" ]    = get(properties,"text_v_color"    , BLACK)
+   properties["text_ev_color"]    = get(properties,"text_ev_color"   , GREEN)
+   properties["text_fv_color"]    = get(properties,"text_fv_color"   , RED)
 
    # font sizes
    properties["v_fontsize"]       = get(properties,"v_fontsize"      , DEFAULT_V_FONTSIZE)
@@ -237,13 +238,13 @@ end
 # ///////////////////////////////////////////////////
 function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext;properties::Properties=Properties())
 
-   properties["background_color"] = get(properties,"background_color", Point4d(1.0,1.0,1.0, 1.0))
-   properties["line_color"]       = get(properties,"line_color"      , Point4d(0.0,0.0,0.0, 1.0))
+   properties["background_color"] = get(properties,"background_color", WHITE)
+   properties["line_color"]       = get(properties,"line_color"      , BLACK)
    properties["line_width"]       = get(properties,"line_width"      , 2)
 
-   properties["text_v_color" ]    = get(properties,"text_v_color"    , Point4d(0.0,0.0,0.0, 1.0))
-   properties["text_ev_color"]    = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
-   properties["text_fv_color"]    = get(properties,"text_fv_color"   , Point4d(0.0,0.2,0.6, 1.0))
+   properties["text_v_color" ]    = get(properties,"text_v_color"    , BLACK)
+   properties["text_ev_color"]    = get(properties,"text_ev_color"   , GREEN)
+   properties["text_fv_color"]    = get(properties,"text_fv_color"   , RED)
 
    # font sizes
    properties["v_fontsize"]       = get(properties,"v_fontsize"      , DEFAULT_V_FONTSIZE)
@@ -299,7 +300,7 @@ if false
       # draw vertices 
       vertices= [lar_vertices[:,k] for k=1:size(lar_vertices,2)]
       begin
-         color = get(properties,"text_v_color", Point4d(0.0,0.0,0.0, 1.0))
+         color = get(properties,"text_v_color", BLACK)
          fontsize=get(properties,"v_fontsize", DEFAULT_V_FONTSIZE)
          if color[4]>0.0 && fontsize>0
 
@@ -331,7 +332,7 @@ if false
          push!(batches,batch)
 
          text=get(properties,"ev_text", [string(I) for I in eachindex(edges)])
-         color = get(properties,"text_ev_color"   , Point4d(0.0,0.0,1.0, 1.0))
+         color = get(properties,"text_ev_color"   , GREEN)
          fontsize = get(properties,"ev_fontsize", DEFAULT_EV_FONTSIZE)
          if color[4]>0.0 && fontsize > 0
             for I in eachindex(edges)
@@ -360,7 +361,7 @@ if false
          push!(batches,batch)
 
          text=get(properties,"fv_text", [string(I) for I in eachindex(faces)])
-         color = get(properties,"text_fv_color", Point4d(0.0,0.2,0.6, 1.0))
+         color = get(properties,"text_fv_color", RED)
          fontsize = get(properties,"fv_fontsize", DEFAULT_FV_FONTSIZE)
          if color[4]>0.0
             for I in eachindex(faces)
