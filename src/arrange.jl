@@ -761,29 +761,6 @@ function constrained_triangulation2D(V::Points, EV::Cells)
 	return trias
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-
-#function triangulate2d(V::Points, EV::Cells)
-#    #print_organizer("Plasm."*"triangulate2d")
-#   	 # data for Constrained Delaunay Triangulation (CDT)
-#   	 points = convert(Array{Float64,2}, V')
-#	 # points_map = Array{Int,1}(collect(1:1:size(points)[1]))
-#   	 # edges_list = convert(Array{Int,2}, hcat(EV...)')
-#   	 # edge_boundary = [true for k=1:size(edges_list,1)] ## dead code !!
-#	trias = constrained_triangulation2D(V::Points, EV::Cells)
-#
-# 	#Triangle.constrained_triangulation(points,points_map,edges_list)
-#	innertriangles = Array{Int,1}[]
-#	for (u,v,w) in trias
-#		point = (points[u,:]+points[v,:]+points[w,:])./3
-#		copEV = lar2cop(EV)
-#		inner = point_in_face(point, points::Points, copEV::ChainOp)
-#		if inner
-#			push!(innertriangles,[u,v,w])
-#		end
-#	end
-#    return innertriangles
-#end
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -1180,7 +1157,6 @@ function faces2polygons(copEV,copFE)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function triangulate2D(V::Points, cc::ChainComplex)::Array{Any, 1}
     #print_organizer("Plasm."*"triangulate2D")
     copEV, copFE = cc
@@ -1911,26 +1887,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
-#function pols2tria(W, copEV, copFE, copCF) # W by columns
-##   V = convert(Points,W')
-#   #triangulated_faces = mytriangulate(V, [copEV, copFE])
-#   triangulated_faces = mytriangulate(V, [copEV, copFE])
-#   EVs = FV2EVs(copEV, copFE) # polygonal face fragments
-#   # triangulated_faces = [ item for (k,item) in enumerate(triangulated_faces)
-#   # 	if isdefined(triangulated_faces,k) && item ≠ Any[]  ]
-#   FVs = convert(Array{Cells}, triangulated_faces)
-#   CVs = []
-#   for cell in 1:copCF.m
-#      obj = []
-#          for f in copCF[cell, :].nzind
-#              triangles = triangulated_faces[f]
-#         append!(obj, triangles)
-#          end
-#      push!(CVs,obj)
-#      end
-#   V = convert(Points,V')
-#   return V,CVs,FVs,EVs
-#end
+
 function pols2tria(W, copEV, copFE, copCF) # W by columns
 	V = convert(Points,W')
 	triangulated_faces = mytriangulate(V, [copEV, copFE])
