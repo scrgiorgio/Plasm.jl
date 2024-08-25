@@ -9,6 +9,7 @@ include("./complex.jl")
 include("./boolean.jl")
 include("./congruence.jl")
 include("./lar2triangles.jl")
+include("./atoms.jl")
 
 # module init
 function __init__()

@@ -1323,7 +1323,7 @@ function show_exploded(V,CVs,FVs,EVs)
    end
    VIEW(STRUCT(v))
 
-   exploded=explodecells(V, CVs[1:end], sx=2.5, sy=2.5, sz=2.5)
+   exploded=explodecells(V, CVs[1:end], sx=4.5, sy=4.5, sz=4.5)
    v=[]
    for k in 1:length(exploded)
       face_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
@@ -1889,6 +1889,7 @@ end
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
 
 function pols2tria(W, copEV, copFE, copCF) # W by columns
+println("sono-io")
 	V = convert(Points,W')
 	triangulated_faces = mytriangulate(V, [copEV, copFE])
 	EVs = FV2EVs(copEV, copFE) # polygonal face fragments

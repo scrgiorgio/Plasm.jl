@@ -28,6 +28,7 @@ function find_cycle( EV, FE, f::Int )
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+""" input old LAR consistent data; output triangulated_faces """
 function lar2triangles(V, EV, FV, FE) 
    V = size(V,1)==3 ? permutedims(V) : V
    triangulated_faces = Vector{Any}(undef, length(FE))
@@ -38,7 +39,7 @@ function lar2triangles(V, EV, FV, FE)
       fv, edges = find_cycle(EV, FE, f) 
       # look for independent vector triple
       points = V[fv,:]
-      vmap = Dict(zip(fv,1:length(fv))) # inverse vertex map
+      vmap = Dict(zip(fv,1:length(fv))) # vertex map
       mapv = Dict(zip(1:length(fv),fv)) # inverse vertex map
       edges = [[vmap[A],vmap[B]] for (A,B) in edges]
       v1 = LinearAlgebra.normalize(points[2,:] - points[1,:])
