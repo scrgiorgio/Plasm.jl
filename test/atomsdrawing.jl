@@ -50,6 +50,6 @@ for k=1:length(pols)
       [string(Wdict[a])  for a in W],
       [string(dictEV[a]) for a in localEV],
       [string(dictFV[a]) for a in localFV],
-      properties=Properties("background_color"=>Point4d(1.0,1.0,1.0,1.0)))
+      properties=Properties("background_color"=>DEFAULT_BACKGROUND_COLOR))
   
 end

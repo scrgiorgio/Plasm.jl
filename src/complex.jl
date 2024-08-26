@@ -204,9 +204,9 @@ Remark: Any `Hpc` object may by visualized with numbered cells of its 2D or boun
 function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
 
    # set defaultx for alberto
-   properties["background_color"] = get(properties,"background_color", WHITE)
+   properties["background_color"] = get(properties,"background_color", DEFAULT_BACKGROUND_COLOR)
    properties["line_color"]       = get(properties,"line_color"      , BLACK)
-   properties["line_width"]       = get(properties,"line_width"      , 2)
+   properties["line_width"]       = get(properties,"line_width"      , DEFAULT_LINE_WIDTH)
 
    properties["text_v_color" ]    = get(properties,"text_v_color"    , BLACK)
    properties["text_ev_color"]    = get(properties,"text_ev_color"   , GREEN)
@@ -238,7 +238,7 @@ end
 # ///////////////////////////////////////////////////
 function VIEWCOMPLEX2(V , EV,  FV, Vtext, EVtext,FVtext;properties::Properties=Properties())
 
-   properties["background_color"] = get(properties,"background_color", WHITE)
+   properties["background_color"] = get(properties,"background_color", DEFAULT_BACKGROUND_COLOR)
    properties["line_color"]       = get(properties,"line_color"      , BLACK)
    properties["line_width"]       = get(properties,"line_width"      , 2)
 
