@@ -708,16 +708,16 @@ function MyMain()
 			"zfar"  => 10.0,
 	
 			# perspective fov
-			"fov" => 60.0,
+			"fov" => DEFAULT_FOV,
 	
 			#triangles, show/hide lines
 			"show_lines" => false,
 	
 			#viewer background color
-			"background_color" => Point4d(1.0, 1.0, 1.0, 1.0),
+			"background_color" => DEFAULT_BACKGROUND_COLOR,
 	
 			# perspective or ortho projection
-			"use_ortho" => true
+			"use_ortho" => DEFAULT_USE_ORTHO
 		)
 
 	)
