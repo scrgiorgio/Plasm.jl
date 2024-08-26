@@ -1300,6 +1300,7 @@ CIRCUMFERENCE(1)(12)
 
 # //////////////////////////////////////////////////////////////////////////////
 function show_exploded(V,CVs,FVs,EVs)
+@show (V,CVs,FVs,EVs)
    exploded = explodecells(V, FVs, sx=1.2, sy=1.2, sz=1.2)
    v=[]
    for k in 1:length(exploded)
@@ -1322,7 +1323,7 @@ function show_exploded(V,CVs,FVs,EVs)
    end
    VIEW(STRUCT(v))
 
-   exploded=explodecells(V, CVs[1:end], sx=2.5, sy=2.5, sz=2.5)
+   exploded=explodecells(V, CVs[1:end], sx=4.5, sy=4.5, sz=4.5)
    v=[]
    for k in 1:length(exploded)
       face_color=Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
@@ -1488,11 +1489,6 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	rFE = SparseArrays.blockdiag(depot_FE...);
 	#if !(size(rV,1) - size(rEV,1) + size(rFE,1) == fs_num) error("all") end
    rV, rcopEV, rcopFE = Plasm.merge_vertices(rV, rEV, rFE);
-println("==================================================")
-@show rV
-@show rcopEV
-@show rcopFE
-println("==================================================")
 #   C = size(rV,1) - size(rcopEV,1) + size(rcopFE,1)   
 #   println("V - E + F = ", C)   
    rcopCF = build_copFC(rV, rcopEV, rcopFE)
@@ -1719,11 +1715,6 @@ function build_copFC(rV, rcopEV, rcopFE)
 
 	copEF = transpose(copFE)
 	FE = [SparseArrays.findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
-println("++++++++++++++++++++++++++++++++++++++++++++++++")
-@show FE;
-@show FV;
-@show EV;
-println("++++++++++++++++++++++++++++++++++++++++++++++++")
 	# Initializations
 	m,n = size(copEF)
 	#@show m,n;
@@ -1738,9 +1729,6 @@ println("++++++++++++++++++++++++++++++++++++++++++++++++")
 	# to don't loop
 		# select a (d−1)-cell, "seed" of the column extraction
 		σ = choose(marks)
-println("\nSTART 2-CHAIN")
-@show marks;
-@show σ;
 		if marks[σ] == 0
 			cd1 = sparsevec([σ], Int[1], n)
 		elseif marks[σ] == 1
@@ -1786,7 +1774,6 @@ println("\nSTART 2-CHAIN")
 			for (k,val) in zip(SparseArrays.findnz(corolla)...)
 				cd1[k] = val
 			end
-@show zip(SparseArrays.findnz(corolla)...)
 			# compute again the boundary of cd1
 			cd2 = copEF * cd1
 #@show "2: ",cd2;
@@ -1798,7 +1785,6 @@ println("\nSTART 2-CHAIN")
 		# append a new column to [∂d+]
 		# copFC += cd1
 		rows, vals = SparseArrays.findnz(cd1)
-@show rows, vals
 		jcol += 1
 		append!(I,rows)
 		append!(J,[ jcol for k=1:nnz(cd1) ])
@@ -1878,13 +1864,9 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for TGW in 3D """
 function mynext(cycle, pivot, marks)
-@show cycle;
-@show pivot;
 	len = length(cycle)
 	ind = findfirst(x -> x==pivot, cycle)[1]
 	nextIndex = ind==len ? 1 : ind+1
-@show nextIndex;
-@show marks[nextIndex];
 #if marks[nextIndex]==2
 #  nextIndex = ind==1 ? len : ind-1
 #end
@@ -1894,17 +1876,12 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ Utility function for TGW in 3D """
 function myprev(cycle, pivot, marks)
-@show cycle;
-@show pivot;
 	len = length(cycle)
 	ind = findfirst(x -> x==pivot, cycle)[1] #  ind is address of pivot in cycle
 	nextIndex = ind==1 ? len : ind-1
-@show nextIndex;
-@show marks[nextIndex];
 #if marks[nextIndex]==2
 #  nextIndex = ind==len ? 1 : ind+1
 #end
-@show marks;
 	return cycle[nextIndex][1]
 end
 
@@ -1912,6 +1889,7 @@ end
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
 
 function pols2tria(W, copEV, copFE, copCF) # W by columns
+println("sono-io")
 	V = convert(Points,W')
 	triangulated_faces = mytriangulate(V, [copEV, copFE])
 	EVs = FV2EVs(copEV, copFE) # polygonal face fragments
@@ -2009,6 +1987,7 @@ function mytriangulate(V::Points, cc::ChainComplex)
          triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
       end
    end
+@show("eccomi")   
    return convert(Vector{Cells}, triangulated_faces)
 end
 
