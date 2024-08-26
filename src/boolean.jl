@@ -85,7 +85,7 @@ function settestpoints(V,EV,FE,FV,Fs, copEV,copFE)
    # f,e relative to atom
 	f1,f2 =  findnz(copFE[f,:])[1][1:2] # two (global) faces incident on it (atom)
 	v1,v2 = findnz(copEV[e,:])[1][1:2] # two (global) verts incident on it (atom)
-   fdict = Dict(zip(Fs,1:length(Fs))) # enumerate atom faces (internal codes)
+   fdict = Dict(zip(Fs,1:length(Fs))) # enumerate atom faces (local codes)
    V1 = FV[fdict[f1]]
    V2 = FV[fdict[f2]]
    v1,v2 = intersect(V1,V2) # verified ... !
@@ -238,13 +238,14 @@ end
 function internalpoints(V,copEV,copFE,copCF)
 	# transform each 3-cell in a solid (via model)
    #----------------------------------------------------------------------------
-	U,pols,CF = chainbasis2solids(V,copEV,copFE,copCF)
+	U,pols,CF = chainbasis2solids(V,copEV,copFE,copCF) # V by rows; U by columns
+	outerspace,atoms = SELECTATOMS(V,pols) 
 	# compute, for each `pol` (3-cell, i.e atom) in `pols`, one `internalpoint`.
 	#----------------------------------------------------------------------------
 	innerpoints = []
 	intersectedfaces = []
 	for k=1:length(pols)
-		(EV,FV,FE),Fs = pols[k],CF[k]
+		(EV,FV,FE),Fs = atoms[k],CF[k]
 		point,facenumber = getinternalpoint(V,EV,FE,FV,Fs, copEV,copFE)
 		push!(innerpoints,point)
 		push!(intersectedfaces,facenumber)
@@ -365,12 +366,9 @@ function bool3d(assembly)
 	#----------------------------------------------------------------------------
 	# generate the 3D space arrangement
 	V, copEV, copFE, copCF = space_arrangement( W, cop_EV, cop_FE );
-	@show V, copEV, copFE, copCF;
-	W = convert(Points, V');
-   #cpCF = cpCF[end,:]
-	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF);
-   show_exploded(V,CVs,FVs,EVs)
-	innerpoints, _ = internalpoints(W,copEV,copFE, copCF);
+#	V,CVs,FVs,EVs = pols2tria( permutedims(V), copEV, copFE, copCF );
+#   show_exploded(V,CVs,FVs,EVs)
+	innerpoints, _ = internalpoints(V,copEV,copFE,copCF);
 	#----------------------------------------------------------------------------
 	# associate internal points to (original) faces of 3-cells
 	listOfLar = AA(LAR)(TOPOS(assembly)) # correspond to evalStruct(assembly)
