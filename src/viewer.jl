@@ -7,9 +7,7 @@ export Point3d,Point4d, Box3d,Matrix3d,Matrix4d,Quaternion,GLBatch,
 	norm,normalized,invalidBox,addPoint,getPoints,center,flatten,translateMatrix,scaleMatrix,lookAtMatrix,perspectiveMatrix,orthoMatrix,getLookAt,GetBoundingBox,
 	convertToQuaternion,convertToMatrix,prependTransformation,computeNormal,GLVertexBuffer,
 	POINTS,LINES,TRIANGLES,
-	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,
-	WHITE,RED,GREEN,BLUE,CYAN,MAGENTA,YELLOW,ORANGE,PURPLE,BROWN,GRAY,BLACK, TRANSPARENT, get_ortho_scale,set_ortho_scale,
-	DEFAULT_V_FONTSIZE,DEFAULT_EV_FONTSIZE,DEFAULT_FV_FONTSIZE, DEFAULT_TEXT_SCALING,
+	GLCuboid,GLAxis,GLCells,GLView,GLExplode,explodecells,COLORS, GetColorByName,get_ortho_scale,set_ortho_scale,
 	Properties
 
 
@@ -899,7 +897,7 @@ function unprojectPoint(map::FrustumMap,x::Float64,y::Float64, z::Float64)
 end	
 
 
-
+# /////////////////////////////////////////////////////////////////////////////
 mutable struct Viewer
 	win::Any
 	W::Int32
@@ -927,7 +925,25 @@ mutable struct Viewer
 
 	# constructor
 	function Viewer(batches) 
-		new(0,1024,768,1.0,1.0, 60.0, Point3d(), Point3d(), Point3d(), 0.0, 0.0, 0.0,  0,0,0, batches,Properties(), false, false, true,[0.3,0.4,0.5], "Viewer", true)
+		new(
+			0,
+			1024,768,
+			1.0,1.0, 
+			DEFAULT_FOV, 
+			Point3d(0,0, 1), 
+			Point3d(0,0,-1), 
+			Point3d(1,0, 0), 
+			0.01, 100.0, 0.1,  
+			0,0,0, 
+			batches,
+			Dict{Any,Any}(), 
+			DEFAULT_USE_ORTHO, 
+			false,  # exitNow
+			DEFAULT_SHOW_LINES,
+			DEFAULT_BACKGROUND_COLOR, 
+			"Plasm.jl", 
+			DEFAULT_LIGHTING_ENABLED
+		)
 	end
 	
 end
@@ -1122,6 +1138,7 @@ function glRender(viewer::Viewer)
 
 	for batch in viewer.batches
 
+		# show points
 		if batch.primitive==GL_POINTS
 
 			if batch.point_color[4]>0.0
@@ -1130,6 +1147,7 @@ function glRender(viewer::Viewer)
 				glPointSize(1)
 			end
 
+		# show lines
 		elseif batch.primitive==GL_LINES || batch.primitive==GL_LINE_STRIP || batch.primitive==GL_LINE_LOOP
 
 			if batch.line_color[4]>0.0
@@ -1137,6 +1155,8 @@ function glRender(viewer::Viewer)
 				glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)	
 				glLineWidth(1)
 			end
+
+		# show triangles
 		else
 
 			if viewer.show_lines && batch.line_width>0
@@ -1502,9 +1522,6 @@ vectors = [
 
 
 # ////////////////////////////////////////////////////////////////////////////
-
-DEFAULT_TEXT_SCALING=(0.250,0.375)
-
 function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", fontsize=0.05, color=Point4d(0,0,0,1))
 
 	ret=Vector{GLBatch}()
@@ -1556,20 +1573,7 @@ function GLText(mystring; center=Point3d(0.0,0.0,0.0), align="center", fontsize=
 	return ret
 end
 
-
-const WHITE       = Point4d([1.0, 1.0, 1.0, 1.0])
-const RED         = Point4d([1.0, 0.0, 0.0, 1.0])
-const GREEN       = Point4d([0.0, 1.0, 0.0, 1.0])
-const BLUE        = Point4d([0.0, 0.0, 1.0, 1.0])
-const CYAN        = Point4d([0.0, 1.0, 1.0, 1.0])
-const MAGENTA     = Point4d([1.0, 0.0, 1.0, 1.0])
-const YELLOW      = Point4d([1.0, 1.0, 0.0, 1.0])
-const ORANGE      = Point4d([1.0, 0.65, 1.0, 1.0])
-const PURPLE      = Point4d([0.5, 0.0, 0.5, 1.0])
-const BROWN       = Point4d([0.65, 0.16, 0.16, 1.0])
-const GRAY        = Point4d([0.5, 0.5, 0.5, 1.0])
-const BLACK       = Point4d([0.0, 0.0, 0.0, 1.0])
-const TRANSPARENT = Point4d([0.0,0.0,0.0,0.0])
+include("./defaults.jl")
 
 const palette = Dict{Int,Point4d}(
 	1=>WHITE, 2=>RED, 3=>GREEN, 4=>BLUE,
@@ -1617,9 +1621,7 @@ function GetColorByName(name)
 
 end
 
-DEFAULT_V_FONTSIZE =0.04
-DEFAULT_EV_FONTSIZE=0.06
-DEFAULT_FV_FONTSIZE=0.08
+
 
 # ///////////////////////////////////////////////////////////////////
 function GLText(

@@ -42,19 +42,19 @@ function DRAWATOMS(V,copEV,copFE,copCF, pols;outer=true) # V by cols
       localEV,localFV = atoms[k] 
       localEV = union(CAT(localEV))
       localFV = AA(sort)(localFV)     
-      VIEWCOMPLEX2( localV, localEV, localFV, [string(Wdict[a])  for a in W],
-         [string(dictEV[a]) for a in localEV],
-         [string(dictFV[a]) for a in localFV],
-         properties=Properties("background_color"=>Point4d(1.0,1.0,1.0,1.0) ))
+      VIEWCOMPLEX( localV, localEV, localFV,
+         V_TEXT=[string(Wdict[a])  for a in W],
+         EV_TEXT=[string(dictEV[a]) for a in localEV],
+         FV_TEXT=[string(dictFV[a]) for a in localFV])
    end # Visualization of outer space (B-rep)
    if outer==true
       localV=(V)
       localEV,localFV = outerspace 
       localEV = union(CAT(localEV))
       localFV = AA(sort)(localFV)   
-      VIEWCOMPLEX2( localV, localEV, localFV, [string(Wdict[a])  for a in W],
-         [string(dictEV[a]) for a in localEV],
-         [string(dictFV[a]) for a in localFV],
-         properties=Properties("background_color"=>Point4d(1.0,1.0,1.0,1.0) ))
+      VIEWCOMPLEX( localV, localEV, localFV,
+         V_TEXT=[string(Wdict[a])  for a in W],
+         EV_TEXT=[string(dictEV[a]) for a in localEV],
+         FV_TEXT=[string(dictFV[a]) for a in localFV])
    end
 end

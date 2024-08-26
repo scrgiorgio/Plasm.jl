@@ -15,9 +15,6 @@ import Base.:*
 import Base.size
 import Base.transpose
 
-DEFAULT_POINT_COLOR= Point4d(1.0,1.0,1.0,1.0)
-DEFAULT_LINE_COLOR = Point4d(0.3,0.3,0.3,1.0)
-DEFAULT_FACE_COLOR = Point4d(0.8,0.8,0.8,1.0)
 
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
@@ -953,8 +950,8 @@ function GetBatchesForHpc(hpc::Hpc)
 			T[1,2], T[1,3], T[1,4],   T[1,1]
 		)
 		for batch in GetBatchesForGeometry(obj)
-			batch.point_size = get(properties,"point_size", 1)
-			batch.line_width  = copy(get(properties,"line_width",1))
+			batch.point_size = get(properties,"point_size", DEFAULT_POINT_SIZE)
+			batch.line_width  = copy(get(properties,"line_width",DEFAULT_LINE_WIDTH))
 			batch.point_color = get(properties,"point_color", DEFAULT_POINT_COLOR)
 			batch.line_color  = get(properties,"line_color" , DEFAULT_LINE_COLOR)
 			batch.face_color  = get(properties,"face_color" , DEFAULT_FACE_COLOR)
@@ -1000,16 +997,16 @@ function View(hpc::Hpc, properties::Properties=Properties())
 	
 		# default properties if not specified
 		properties=Properties(properties)
-		properties["background_color"] =           get(properties,"background_color", WHITE)
-		properties["use_ortho"]        =           get(properties,"use_ortho",   true)
+		properties["background_color"] =           get(properties,"background_color", DEFAULT_BACKGROUND_COLOR)
+		properties["use_ortho"]        =           get(properties,"use_ortho",   DEFAULT_USE_ORTHO)
 		properties["pos"]              =           get(properties,"pos",         pos)
 		properties["dir"]              =           get(properties,"dir",         dir)
 		properties["vup"]              =           get(properties,"vup",         vup)
-		properties["znear"]            =           get(properties,"znear"      , 0.1) 
-		properties["zfar"]             =           get(properties,"zfar"       , 3.0*Size[3]) 
-		properties["lighting_enabled"] =           get(properties,"lighting_enabled", false)
-		properties["line_color"]       =           get(properties,"line_color", BLACK)
-		properties["line_width"]       =           get(properties,"line_width", 2)
+		properties["znear"]            =           get(properties,"znear"      , 0.001*Size[3]) 
+		properties["zfar"]             =           get(properties,"zfar"       , 10*Size[3]) 
+		properties["lighting_enabled"] =           get(properties,"lighting_enabled", DEFAULT_LIGHTING_ENABLED)
+		properties["line_color"]       =           get(properties,"line_color", DEFAULT_LINE_COLOR)
+		properties["line_width"]       =           get(properties,"line_width", DEFAULT_LINE_WIDTH)
 		properties["show_axis"]        =           get(properties,"show_axis", false)
 	
 	end

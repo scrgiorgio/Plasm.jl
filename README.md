@@ -13,6 +13,7 @@ julia --project=. test/hpc.jl
 julia --project=. test/temple.jl
 julia --project=. test/manhattan.jl
 julia --project=. test/properties.jl
+julia --project=. test/properties2.jl
 julia --project=. test/fenvs.jl
 
 # LAR part
