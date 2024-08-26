@@ -1575,52 +1575,6 @@ end
 
 include("./defaults.jl")
 
-const palette = Dict{Int,Point4d}(
-	1=>WHITE, 2=>RED, 3=>GREEN, 4=>BLUE,
-	5=>CYAN, 6=>MAGENTA, 7=>YELLOW, 8=>ORANGE,
-	9=>PURPLE, 10=>BROWN, 11=>GRAY, 12=>BLACK 
-)
-
-
-const rgb = [
-	77 202 137;
-	130 70 88;
-	198 180 71;
-	133 185 98;
-	175 115 69;
-	227 184 128;
-	144 121 86;
-	203 107 113;
-	231 157 134;
-	146 230 136;
-	79 153 125;
-	187 154 38
-]
-
- const RGBMaya = [[rgb[k,:]' 255]./ 255 for k=1:12]
- const MayaColors = [Point4d(it) for it in RGBMaya]
- const COLORS = MayaColors
-
-function GetColorByName(name)
-
-	return Dict{String,Point4d}(
-		"white"=>WHITE, 
-		"red"=>RED, 
-		"green"=>GREEN, 
-		"blue"=>BLUE,
-		"cyan"=>CYAN, 
-		"magenta"=>MAGENTA, 
-		"yellow"=>YELLOW, 
-		"orange"=>ORANGE,
-		"purple"=>PURPLE, 
-		"brown"=>BROWN, 
-		"gray"=>GRAY, 
-		"black"=>BLACK
-
-	)
-
-end
-
 
 
 # ///////////////////////////////////////////////////////////////////
