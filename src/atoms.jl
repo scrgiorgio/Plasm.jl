@@ -23,13 +23,13 @@ function SELECTATOMS(V,pols)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function DRAWATOMS(V,copEV,copFE,copCF, pols;outer=true)
+function DRAWATOMS(V,copEV,copFE,copCF, pols;outer=true) # V by cols
 #@show (V,copEV,copFE,copCF, pols);
    # Lar computation, with associated dictionaries
    EV = AA(sort)([findnz(copEV[k,:])[1] for k=1:copEV.m]); # vertices per edge
    FE = AA(sort)([findnz(copFE[k,:])[1] for k=1:copFE.m]); # edges per face
    FV = AA(sort)([union(CAT([EV[e] for e in f])) for f in FE]); # verts x face
-   W = [V[:,k] for k=1:size(V,2)];   
+   W = [V[k,:] for k=1:size(V,1)];   
    Wdict = OrderedDict{Any,Int}(zip(W,1:LEN(W)));
    dictEV = Dict{Vector{Int},Int}(collect(zip(EV,1:length(EV))))
    dictFV = Dict{Vector{Int},Int}(collect(zip(FV,1:length(FV))))
