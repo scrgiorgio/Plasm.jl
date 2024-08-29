@@ -23,9 +23,7 @@ obj=PROPERTIES(
 viewer_properties=Properties(
 
   "title"            => "My viewer example",
-
   "background_color" => DEFAULT_BACKGROUND_COLOR,
-
   "show_axis"        => DEFAULT_SHOW_AXIS,
   "show_lines"       => DEFAULT_SHOW_LINES,
   "lighting_enabled" => DEFAULT_LIGHTING_ENABLED,

@@ -1,8 +1,18 @@
 
-export  settestpoints, spaceindex2, testinternalpoint, getinternalpoint, chainbasis2solids, internalpoints, ord, rayintersection, planemap, new2old, bool3d
+export  settestpoints, spaceindex2, testinternalpoint, getinternalpoint, chainbasis2solids, internalpoints, rayintersection, planemap, new2old, bool3d
+
+################################################################################
+#
+#	After the arrangement, extract all the d-cells from (d-1)-coboundary as isolated polyhedra.
+#	Then compute a single interior point for each of them.
+#	Then compare each such point against all input boundaries, in order to compute those which it was interior to. Extend this point membership as 3-cell containment within the relative input solids.
+#	The point membership with a boundary consists in the parity count of the intersection points of a vertical ray starting at the test point, with the boundary surface.
+#
+################################################################################
 
 
 # //////////////////////////////////////////////////////////////////////////////
+# working in 2D ///////////////////////////////////////////////////////////////
 """ Set tile code of boxed point w.r.t nine tiles of 2D plane  """ 
 function setTile(box)
    tiles = [[9,1,5],[8,0,4],[10,2,6]]
@@ -22,7 +32,9 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function pointInPolygonClassification(V,EV)
+# working in 2D ///////////////////////////////////////////////////////////////
+""" Test di contenimento di un punto 2D in un poligono 2D """
+function pointInPolygonClassification(V,EV) 
     function pointInPolygonClassification0(pnt)
         x,y = pnt
         xmin,xmax,ymin,ymax = x,x,y,y
@@ -78,8 +90,9 @@ function pointInPolygonClassification(V,EV)
 end
 
 # //// look for a pair of test point for given atom ////////////////////////////
-function settestpoints(V,EV,FE,FV,Fs, copEV,copFE)
-@show (V,EV,FE,FV,Fs, copEV,copFE);
+# working in 3D ////////////////////////////////////////////////////////////////
+function settestpoints(V, EV,FE,FV,Fs, copEV,copFE) # V by row
+@show (V, EV,FE,FV,Fs, copEV,copFE); # V,copEV,copFE <= arrangement values
 	f = Fs[1]
 	e = findnz(copFE[f,:])[1][1] # first (global) edge of first (global) face
    # f,e relative to atom
@@ -105,6 +118,8 @@ function settestpoints(V,EV,FE,FV,Fs, copEV,copFE)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+# working in 3D ////////////////////////////////////////////////////////////////
+""" Filter preparation to select input faces with possible interction with vertical test ray """
 function spaceindex2(point3d::Array{Float64,1})::Function
 	function spaceindex0(model)::Array{Int,1}
 				V,CV = copy(model[1]),copy(model[2])
@@ -113,7 +128,7 @@ function spaceindex2(point3d::Array{Float64,1})::Function
 		push!(CV, [idx,idx,idx])
 		cellpoints = [ V[:,CV[k]]::Points for k=1:length(CV) ]
 		#----------------------------------------------------------
-		bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints]
+		bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints] #bound boxes
 		xboxdict = coordintervals(1,bboxes)
 		yboxdict = coordintervals(2,bboxes)
 		# xs,ys are IntervalTree type
@@ -139,6 +154,7 @@ function spaceindex2(point3d::Array{Float64,1})::Function
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+""" V,EV,FV original faces (before the space arrangement) """
 function testinternalpoint(V,EV,FV)
 	copEV = lar2cop(EV);
 	copFV = lar2cop(FV);
@@ -148,7 +164,7 @@ function testinternalpoint(V,EV,FV)
 		intersectedfaces = Int64[]
 		# spatial index for possible intersections with ray
 		faces = spaceindex2(testpoint)((V,FV))
-		depot = []
+		depot = [] 
 		# face in faces :  indices of faces of possible intersection with ray
 		for face in faces
 			value = rayintersection(testpoint)(V,FV,face)
@@ -163,7 +179,7 @@ function testinternalpoint(V,EV,FV)
 				push!(intersectedfaces,face)
 			end
 		end
-		return intersectedfaces
+		return intersectedfaces # faces intersected by vertical ray
 	end
 	return testinternalpoint0
 end
@@ -172,7 +188,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 """ return two opposite internal/external points in an atom """
-function getinternalpoint(V,EV,FE,FV,Fs, copEV,copFE)
+function getinternalpoint(V,EV,FE,FV,Fs, copEV,copFE) # V by rows
 	# look at edges for v1=FV[1][1]
 	ptest1, ptest2 = settestpoints(V,EV,FE,FV,Fs, copEV,copFE)
 
@@ -216,6 +232,7 @@ function getinternalpoint(V,EV,FE,FV,Fs, copEV,copFE)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+""" Build 3D polyhedrons in pols from arrangement output (outer+atoms) """
 function chainbasis2solids(V,copEV,copFE,copCF)
 	FEs = Array{Array{Int64,1},1}[]
 	EVs = Array{Array{Array{Int64,1},1},1}[]
@@ -235,7 +252,7 @@ function chainbasis2solids(V,copEV,copFE,copCF)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function internalpoints(V,copEV,copFE,copCF)
+function internalpoints(V,copEV,copFE,copCF) # V by rows
 	# transform each 3-cell in a solid (via model)
    #----------------------------------------------------------------------------
 	U,pols,CF = chainbasis2solids(V,copEV,copFE,copCF) # V by rows; U by columns
@@ -244,59 +261,15 @@ function internalpoints(V,copEV,copFE,copCF)
 	#----------------------------------------------------------------------------
 	innerpoints = []
 	intersectedfaces = []
-	for k=1:length(pols)
+	for k=1:length(atoms)
 		(EV,FV,FE),Fs = atoms[k],CF[k]
+	   EV = union(CAT(EV))
 		point,facenumber = getinternalpoint(V,EV,FE,FV,Fs, copEV,copFE)
 		push!(innerpoints,point)
 		push!(intersectedfaces,facenumber)
 	end
 	return innerpoints,intersectedfaces
 end
-
-# //////////////////////////////////////////////////////////////////////////////
-""" Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
-function ord(hinge::Int, bd1, V::Points,
-             FV::Cells, EV::Cells, FE::Cells)
-	#print_organizer("ord")
-   
-	cells = SparseArrays.findnz(bd1)[1]
-	triangles = []
-
-	function area(v1,v2,v3)
-		u = V[:,v2]-V[:,v1]
-		v = V[:,v3]-V[:,v1]
-		out = LinearAlgebra.norm(cross(u,v)) # actually, to be divided by two
-		return out
-	end
-
-	for f in cells
-		v1,v2 = EV[hinge]
-		index = findfirst(v -> (area(v1,v2,v)≠0), FV[f])
-		v3 = FV[f][index]
-
-		# test if [v1,v2,v3] interior to f
-		while true
-			if interior_to_f([v1, v2, v3],f,V,FV,EV,FE)
-				push!(triangles, [v1,v2,v3])
-				break
-			else
-				index = findnext(v -> (area(v1,v2,v)≠0), FV[f], index+1)
-				v3 = FV[f][index]
-			end
-		end
-	end
-	order = ordering(triangles,V)
-	return [cells[index] for index in order]
-end
-
-################################################################################
-#
-#	After the arrangement, extract all the d-cells from (d-1)-coboundary as isolated polyhedra.
-#	Then compute a single interior point for each of them.
-#	Then compare each such point against all input boundaries, in order to compute those which it was interior to. Extend this point membership as 3-cell containment within the relative input solids.
-#	The point membership with a boundary consists in the parity count of the intersection points of a vertical ray starting at the test point, with the boundary surface.
-#
-################################################################################
 
 # //////////////////////////////////////////////////////////////////////////////
 function rayintersection(point3d)
@@ -311,9 +284,11 @@ function rayintersection(point3d)
 		if (abs(denom) > 1e-8) #1e-6
 			p0l0 = p0 - l0
 			t = dot(p0l0, n) / denom
-			if t>0 return l0 + t*l end
+			if t>0 
+			   return l0 + t*l   # cosa ritorna nel caso else TODO 
+			end
 		else
-			#error("ray and face are parallel")
+			# "ray and face are parallel"
 			return false
 	 	end
 	end
@@ -353,21 +328,8 @@ function new2old(model)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function bool3d(assembly)
-	# input of affine assembly
-   ensemble = LAR(assembly)
-   V,FV,EV = new2old(ensemble)
-   #----------------------------------------------------------------------------
-	#V,FV,EV = struct2lar(assembly)
-	cop_EV = convert(ChainOp, coboundary_0(EV::Cells));
-	cop_FE = coboundary_1(V, FV::Cells, EV::Cells); ## TODO: debug
-	W = convert(Points, V');
-	# generate the 3D space arrangement
-	#----------------------------------------------------------------------------
-	# generate the 3D space arrangement
-	V, copEV, copFE, copCF = space_arrangement( W, cop_EV, cop_FE );
-#	V,CVs,FVs,EVs = pols2tria( permutedims(V), copEV, copFE, copCF );
-#   show_exploded(V,CVs,FVs,EVs)
+# Fundamental algorithm ////////////////////////////////////////////////////////
+function bool3d(assembly::Hpc, W,copEV,copFE,copCF) # W by rows
 	innerpoints, _ = internalpoints(V,copEV,copFE,copCF);
 	#----------------------------------------------------------------------------
 	# associate internal points to (original) faces of 3-cells
@@ -378,7 +340,7 @@ function bool3d(assembly)
 	span(h) = [j for j=1:length(fspans) if fspans[j][1]<=h<=fspans[j][2] ]  # ??
 	#----------------------------------------------------------------------------
 	# test input data for containment of reference points
-	V,FV,EV = new2old(ensemble)
+	V,FV,EV = new2old(LAR(assembly))
 	containmenttest = testinternalpoint(V,EV,FV)
 	# currently copCF contains the outercell in first column ...
 	# TODO remove first row and column, in case (look at file src/)
@@ -396,13 +358,13 @@ function bool3d(assembly)
       boolmatrix[k+1,2:end] = isinternal
 	end
 @show boolmatrix
-	return W, (copEV, copFE, copCF), boolmatrix
+	return boolmatrix
 end
 
 
-function bool3d(expr, assembly)
-   V, (copEV, copFE, copCF), boolmatrix = bool3d(assembly)
-   # TODO please see template "bool2d()" in src/bool2d.jl
-   result = 0
-   return (V, (copEV, copFE, copCF), boolmatrix, result)
-end
+#function bool3d(expr, assembly)
+#   V, (copEV, copFE, copCF), boolmatrix = bool3d(assembly)
+#   # TODO please see template "bool2d()" in src/bool2d.jl
+#   result = 0
+#   return (V, (copEV, copFE, copCF), boolmatrix, result)
+#end

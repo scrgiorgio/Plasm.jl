@@ -1698,6 +1698,44 @@ function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
    return Points(nV), nEV, nFE
 end
 
+
+# //////////////////////////////////////////////////////////////////////////////
+""" Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
+function ord(hinge::Int, bd1, V::Points,
+             FV::Cells, EV::Cells, FE::Cells)
+	#print_organizer("ord")
+   
+	cells = SparseArrays.findnz(bd1)[1]
+	triangles = []
+
+	function area(v1,v2,v3)
+		u = V[:,v2]-V[:,v1]
+		v = V[:,v3]-V[:,v1]
+		out = LinearAlgebra.norm(cross(u,v)) # actually, to be divided by two
+		return out
+	end
+
+	for f in cells
+		v1,v2 = EV[hinge]
+		index = findfirst(v -> (area(v1,v2,v)≠0), FV[f])
+		v3 = FV[f][index]
+
+		# test if [v1,v2,v3] interior to f
+		while true
+			if interior_to_f([v1, v2, v3],f,V,FV,EV,FE)
+				push!(triangles, [v1,v2,v3])
+				break
+			else
+				index = findnext(v -> (area(v1,v2,v)≠0), FV[f], index+1)
+				v3 = FV[f][index]
+			end
+		end
+	end
+	order = ordering(triangles,V)
+	return [cells[index] for index in order]
+end
+
+
 # //////////////////////////////////////////////////////////////////////////////
 """ TGW algorithm implementation (pao) """
 function build_copFC(rV, rcopEV, rcopFE)
