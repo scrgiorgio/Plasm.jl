@@ -14,7 +14,6 @@ Delta_1 = SparseArrays.sparse([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5
 #///////////////////////////////////////////////////////////////////////////////
 V,EV,FV,FE = chaincongruence(W,Delta_0,Delta_1; epsilon=1e-4);
 println(">>>>> final output from chaincongruence")
-@show V,EV,FV,FE;
 mesh = Lar(3,size(V,1),size(V,2),V,Dict(:EV=>EV, :FV=>FV, :FE=>FE))
 VIEWCOMPLEX(mesh)
 

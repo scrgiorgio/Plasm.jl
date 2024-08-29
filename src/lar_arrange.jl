@@ -696,7 +696,6 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function constrained_triangulation2D(V::Points, EV::Cells)
-    #print_organizer("Plasm."*"constrained_triangulation2D")
 	triin = Triangulate.TriangulateIO()    # object generation
 	triin.pointlist = V
 	triin.segmentlist = hcat(EV...)
@@ -984,35 +983,6 @@ finalcells_num = 0
 model = (convert(Points,V'),cop2lar(copEV))
 bigPI = spaceindex(model)
 
-  # multiprocessing of edge fragmentation
-#  if (multiproc == true)
-#      in_chan = Distributed.RemoteChannel(()->Channel{Int64}(0))
-#      out_chan = Distributed.RemoteChannel(()->Channel{Tuple}(0))
-#      ordered_dict = SortedDict{Int64,Tuple}()
-#      @async begin
-#          for i in 1:edgenum
-#              put!(in_chan,i)
-#          end
-#          for p in distributed.workers()
-#              put!(in_chan,-1)
-#          end
-#      end
-#      for p in distributed.workers()
-#          @async Base.remote_do(frag_edge_channel, p, in_chan, out_chan, V, copEV, bigPI)
-#      end
-#      for i in 1:edgenum
-#          frag_done_job = take!(out_chan)
-#          ordered_dict[frag_done_job[1]] = frag_done_job[2]
-#      end
-#      for (dkey, dval) in ordered_dict
-#          i = dkey
-#          v, ev = dval
-#          newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
-#          edge_map[i] = newedges_nums
-#          finalcells_num += size(ev, 1)
-#          rV, rEV = skel_merge(rV, rEV, v, ev)
-#      end
-#  else
       # sequential (iterative) processing of edge fragmentation
       for i in 1:edgenum
           v, ev = frag_edge(V, copEV, i, bigPI)
@@ -1030,39 +1000,8 @@ return V,copEV,sigma,edge_map
 end
 
 """ Build the 2D 1-skeleton of arranged face `sigma` """
-#function planar_arrangement_1( V, copEV,
-#		sigma::Chain=spzeros(Int8, 0),
-#		return_edge_map::Bool=false )
-###print_organizer("planar_arrangement_1")
-#	# data structures initialization
-#	edgenum = size(copEV, 1)
-#	edge_map = Vector{Vector{Int}}(undef,edgenum)
-#	rV = Points(zeros(0, 2))
-#	rEV = SparseArrays.spzeros(Int8, 0, 0)
-#	finalcells_num = 0
-#
-#	# spaceindex computation
-#	model = (convert(Points,V'), cop2lar(copEV))
-#	bigPI = spaceindex(model)#::LAR)
-#
-#    # sequential (iterative) processing of edge fragmentation
-#   for i in 1:edgenum
-#      v, ev = frag_edge(V, copEV, i, bigPI)
-#      newedges_nums = map(x->x+finalcells_num, collect(1:size(ev, 1)))
-#      edge_map[i] = newedges_nums
-#      finalcells_num += size(ev, 1)
-#      rV = convert(Points, rV)
-#      rV, rEV = skel_merge(rV, rEV, v, ev)
-#   end
-#    # merging of close vertices and edges (2D congruence)
-#    V, copEV = rV, rEV
-#    V, copEV = merge_vertices!(V, copEV, edge_map)
-#	return V,copEV,sigma,edge_map
-#end
-
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function permutationOrbits(perm::OrderedDict)
     #print_organizer("Plasm."*"permutationOrbits")
 	out = Array{Int64,1}[]
@@ -1080,7 +1019,6 @@ function permutationOrbits(perm::OrderedDict)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function faces2polygons(copEV,copFE)
     #print_organizer("Plasm."*"faces2polygons")
 	polygons = Array{Array{Int64,1},1}[]
@@ -1125,7 +1063,7 @@ function triangulate2D(V::Points, cc::ChainComplex)::Array{Any, 1}
 		vmap = Dict(zip(fv,1:length(fv))) # vertex map
 		mapv = Dict(zip(1:length(fv),fv)) # inverse vertex map
 		ev = [[vmap[e] for e in edges[k,:]] for k=1:size(edges,1)]
-		trias = triangulate2d(v,ev)
+		trias = TRIANGUATE2D(v,ev)
 		triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
 
         tV = V[:, 1:2]
@@ -1142,7 +1080,6 @@ function triangulate2D(V::Points, cc::ChainComplex)::Array{Any, 1}
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function FV2EVs(copEV::ChainOp, copFE::ChainOp)
     #print_organizer("Plasm."*"FV2EVs")
 	EV = [findnz(copEV[k,:])[1] for k=1:size(copEV,1)]
@@ -1152,7 +1089,6 @@ function FV2EVs(copEV::ChainOp, copFE::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function planar_arrangement(
         V::Points,
         copEV::ChainOp,
@@ -1241,7 +1177,6 @@ CIRCUMFERENCE(1)(12)
 
 # //////////////////////////////////////////////////////////////////////////////
 function show_exploded(V,CVs,FVs,EVs)
-@show (V,CVs,FVs,EVs)
    exploded = explodecells(V, FVs, sx=1.2, sy=1.2, sz=1.2)
    v=[]
    for k in 1:length(exploded)
@@ -1280,10 +1215,7 @@ function testarrangement(V,FV,EV)
 		cop_EV = coboundary_0(EV::Cells)
 		cop_FE = coboundary_1(V, FV::Cells, EV::Cells)
 		W = convert(Points, V');
-      #@show W, cop_EV, cop_FE;
-		V, copEV, copFE, copCF = space_arrangement(
-				W::Points, cop_EV::ChainOp, cop_FE::ChainOp);
-      #@show V, copEV, copFE;
+		V, copEV, copFE, copCF = space_arrangement(W::Points, cop_EV::ChainOp, cop_FE::ChainOp);
 		V = convert(Points, V');
 		V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF); 
 end;
@@ -1484,7 +1416,6 @@ end
 """ Compute the map from vs (at least three) to z=0 """
 # REMARK: will not work when vs[:,1:3] are aligned !!!!  TODO: fix 
 function submanifold_mapping(vs)
-   #@show vs;
     u1 = vs[2,:] - vs[1,:]
     u2 = vs[3,:] - vs[1,:]
     u3 = LinearAlgebra.cross(u1, u2)
@@ -1498,7 +1429,6 @@ end
 #//////////////////////////////////////////////////////////////////////////////
 function face_int(V::Points, EV::ChainOp, face::Cell)
     vs = buildFV(EV, face)     # EV::ChainOp, face::Cell
-#@show vs;
     retV = Points(undef, 0, 3)
     err = 10e-8
     visited_verts = []
@@ -1531,17 +1461,10 @@ function face_int(V::Points, EV::ChainOp, face::Cell)
     for i in 1:enum
         retEV[i, 2*i-1:2*i] = [-1, 1]
     end
-#@show retV, retEV;
     retV, retEV
-# ESEMPIO:
-# vs = [19, 20, 24, 23]
-# (retV, retEV) = (Matrix{Any}(undef, 0, 3), sparse(Int64[], Int64[], Int8[], 0, 0))
-# vs = [17, 19, 23, 21]
-# (retV, retEV) = (Any[0.01580735103001162 0.28058426264671665 0.0; -0.054613822013010384 0.32096378672306647 0.0], sparse([1, 1], [
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 """ Predicate to check membership of `vertex` in `vertices_set` array"""
 function vin(vertex, vertices_set)::Bool
     for v in vertices_set
@@ -1696,7 +1619,6 @@ function build_copFC(rV, rcopEV, rcopFE)
 	FE = [SparseArrays.findnz(copFE[k,:])[1] for k=1:size(copFE,1)]
 	# Initializations
 	m,n = size(copEF)
-	#@show m,n;
 	marks = zeros(Int,n);
 	I = Int[]; J = Int[]; W = Int[];
 	jcol = 0; 
@@ -1721,7 +1643,6 @@ function build_copFC(rV, rcopEV, rcopFE)
 			# for each “hinge” τ cell
 			for τ ∈ (.*)(SparseArrays.findnz(cd2)...)
 				#compute the  coboundary
-				#@show τ;
 				tau = sparsevec([abs(τ)], Int[sign(τ)], m)  # ERROR: index out of bound here!
 				bd1 = transpose(transpose(tau) * copEF)
 				cells2D = SparseArrays.findnz(bd1)[1]
@@ -1729,9 +1650,7 @@ function build_copFC(rV, rcopEV, rcopFE)
 				inters = intersect(cells2D, SparseArrays.findnz(cd1)[1])
 				if inters ≠ []
 					pivot = inters[1]
-					#@show pivot;
 				else
-				    #@show marks;
 					error("no pivot")
 				end
 				# compute the new adj cell
@@ -1747,7 +1666,6 @@ function build_copFC(rV, rcopEV, rcopFE)
 				else
 					corolla[adj] = -(cd1[pivot])
 				end
-				#@show corolla;
 			end
 			# insert corolla cells in current cd1
 			for (k,val) in zip(SparseArrays.findnz(corolla)...)
@@ -1755,7 +1673,6 @@ function build_copFC(rV, rcopEV, rcopFE)
 			end
 			# compute again the boundary of cd1
 			cd2 = copEF * cd1
-#@show "2: ",cd2;
 		end
 		for σ ∈ SparseArrays.findnz(cd1)[1]
 			# update the counters of used cells
@@ -1770,12 +1687,6 @@ function build_copFC(rV, rcopEV, rcopFE)
 		append!(W,vals)
 	end
 	copCF = sparse(J,I,W)
-println("-----------------------------------------------------------------");
-@show copCF;
-println("-----------------------------------------------------------------");
-@show marks;
-println("-----------------------------------------------------------------");
-
 	return copCF
 end
 
@@ -1836,7 +1747,6 @@ function ordering(triangles,V)
 	end
 	pairs = sort(collect(zip(angles,1:length(triangles))))
 	order = [k for (angle,k) in pairs]
-#@show order
 	return order
 end
 
@@ -1962,11 +1872,10 @@ function mytriangulate(V::Points, cc::ChainComplex)
          v = convert(Points, vs'[1:2,:])
          vmap = Dict(zip(fv,1:length(fv))) # vertex map
          mapv = Dict(zip(1:length(fv),fv)) # inverse vertex map
-         trias = triangulate2d(v,edges)  # single face f
+         trias = TRIANGUATE2D(v,edges)  # single face f
          triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
       end
    end
-@show("eccomi")   
    return convert(Vector{Cells}, triangulated_faces)
 end
 
@@ -1991,7 +1900,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ CDT Constrained Delaunay Triangulation """
-function triangulate2d(V::Points, EV::Cells)
+function TRIANGUATE2D(V::Points, EV::Cells)
    points = convert(Array{Float64,2}, V')
 	points_map = Array{Int,1}(collect(1:1:size(points)[1]))
    edges_list = convert(Array{Int,2}, hcat(EV...)')

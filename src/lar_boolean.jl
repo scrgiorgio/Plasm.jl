@@ -92,7 +92,6 @@ end
 # //// look for a pair of test point for given atom ////////////////////////////
 # working in 3D ////////////////////////////////////////////////////////////////
 function settestpoints(V, EV,FE,FV,Fs, copEV,copFE) # V by row
-@show (V, EV,FE,FV,Fs, copEV,copFE); # V,copEV,copFE <= arrangement values
 	f = Fs[1]
 	e = findnz(copFE[f,:])[1][1] # first (global) edge of first (global) face
    # f,e relative to atom
@@ -357,7 +356,6 @@ function bool3d(assembly::Hpc, W,copEV,copFE,copCF) # W by rows
 		isinternal = count .% 2
       boolmatrix[k+1,2:end] = isinternal
 	end
-@show boolmatrix
 	return boolmatrix
 end
 

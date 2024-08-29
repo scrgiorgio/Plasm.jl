@@ -1,11 +1,18 @@
 using Triangulate
 
-export Lar, Hpc, LAR, MKPOLS, HPC,
-  simplex, CUBOIDGRID, GRID1, SKELETON, SQRT, 
-  triangulate2d, lar2triangles,
-  SELECTATOMS, 
-  VIEWCOMPLEX, VIEWCOMPLEX,VIEWCOMPLEX2,DRAWATOMS
+export Lar, 
+   LAR, 
+   HPC,
+   LAR_SIMPLEX, 
+   LAR_CUBOIDGRID, 
+   SKELETON, 
+   TRIANGULATE2D, 
+   LAR2TRIANGLES,  
+   SELECTATOMS, 
+   VIEWCOMPLEX, 
+   DRAWATOMS
 
+# //////////////////////////////////////////////////////////////////////////////////////
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
 mutable struct Lar
   d::Int # intrinsic dimension
@@ -45,24 +52,6 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function MKPOLS(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc  
-	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls)))) 
-	return out 
-end
-
-function MKPOLS(V::Matrix{Float64}, hulls::Vector{Vector{Int}}) 
-	W=[V[:,k] for k=1:size(V,2)]
-	return MKPOLS(W, hulls)
-end
-
-function MKPOLS(V::Union{Vector{Vector{Float64}}, Matrix{Float64}}, cells::Dict{Symbol, AbstractArray}) 
-	v=[]
-	for (__symbol, hulls) in cells
-		push!(v,MKPOLS(V,hulls))
-	end
-	return STRUCT(v)
-end
-
 #NOTE: better use MKPOLS to specify what Hpc you want to build 
 function HPC(lar::Lar)::Hpc 
 
@@ -106,7 +95,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ input old LAR consistent data; output triangulated_faces """
-function lar2triangles(V, EV, FV, FE) 
+function LAR2TRIANGLES(V, EV, FV, FE) 
    V = size(V,1)==3 ? permutedims(V) : V
    triangulated_faces = Vector{Any}(undef, length(FE))
 
@@ -130,7 +119,7 @@ function lar2triangles(V, EV, FV, FE)
       # independent vector triple in face f 
       M = [v1 v2 v3] 
       projected = (points * M)[:,1:2]
-      trias = triangulate2d(permutedims(projected),edges)  # single face f
+      trias = constrained_triangulation2D(permutedims(projected),edges)  # single face f
       triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
 
    end
@@ -139,26 +128,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-"""
-    CUBOIDGRID(shape::Vector{Int})::Lar
-Generate a cuboidal ``d``-complex grid.
-
-The cuboidal grid has dimension ``d ≥ 2`` equal to `LEN(shape)`, andnumber of rows, columns, pages, etc., depending on `shape` ``Vector``.
-# Examples
-```jldoctest
-julia> CUBOIDGRID([1,1])
-Lar(2, 2, 4, [1.0 0.0 0.0 1.0; 0.0 0.0 1.0 1.0], Dict{Symbol, AbstractArray}(:FV => [[1, 2, 3, 4]], :EV => [[3, 4], [2, 3], [1, 2], [1, 4]]))
-
-julia> CUBOIDGRID([2,1])
-Lar(2, 2, 6, [1.0 0.0 … 2.0 2.0; 0.0 0.0 … 0.0 1.0], Dict{Symbol, AbstractArray}(:FV => [[1, 2, 3, 4], [5, 1, 4, 6]], :EV => [[3, 4], [2, 3], [1, 2], [1, 4], [4, 6], [1, 5], [5, 6]]))
-
-julia> CUBOIDGRID([2,1,1])
-Lar(3, 3, 12, [1.0 0.0 … 2.0 2.0; 0.0 0.0 … 0.0 1.0; 0.0 0.0 … 1.0 1.0], Dict{Symbol, AbstractArray}(:CV => [[1, 2, 3, 4, 5, 6, 7, 8], [9, 1, 10, 3, 11, 5, 12, 7]], :FV => [[4, 2, 3, 1], [5, 6, 2, 1], [5, 4, 7, 1], ..., [5, 11, 9, 1], [11, 10, 9, 12], [4, 7, 10, 12], [5, 7, 11, 12]], :EV => [[2, 1], [2, 3], [4, 1], ..., [10, 12], [11, 9], [11, 12]]))
-
-julia> VIEWCOMPLEX(CUBOIDGRID([2,1,1]))
-```
-"""
-function CUBOIDGRID(shape::Vector{Int})::Lar
+function LAR_CUBOIDGRID(shape::Vector{Int})::Lar
    obj = INSL(POWER)(AA(GRID1)(shape))
    if RN(obj) == 2
       geo=ToGeometry(obj)
@@ -193,27 +163,13 @@ function SKELETON(ord::Int)
    return SKELETON0
 end
 
-
-# //////
-# scrgiorgio: commented: don't need the QHull dependency!
-#using QHull
-#export CHULL
-#function CHULL(points::Matrix)
-#   ch = QHull.chull(points)
-#   FV = ch.simplices
-#   pairs = [map(sort,[[i,j],[i,k],[j,k]]) for (i,j,k) in FV]
-#   EV = sort!(union(vcat(pairs...)))
-#   ret = Lar(2, Matrix(points'), Dict(:EV => EV, :FV => FV))
-#end
-
 # //////////////////////////////////////////////////////////////////////////////
-
 function __simplexfacets(simplices)
   @assert hcat(simplices...) isa Matrix
   out = Array{Int64,1}[]
- for simplex in simplices
-   for v in simplex
-     facet = setdiff(simplex,v)
+ for it in simplices
+   for v in it
+     facet = setdiff(it,v)
      push!(out, facet)
    end
  end
@@ -221,29 +177,8 @@ function __simplexfacets(simplices)
  return sort(union(out))
 end
 
-
-# /////////////////////////////////////////////////////////////////////////////
-"""
-    simplex(d; complex=false)::Lar
-Generator of `Lar` simplex object of dimension `d`.
-
-Simplex object of `Lar` type with arbitrary dimension `d`. It is the convex combination of ``d+1`` affinely independent points.
-
-# Arguments 
-- `dim::Integer=1`: the dimensions along which to perform the computation.
--  [`complex=false`]: when `true` the whole `boundary` simplicial complex is generated.
-# Examples
-```julia> simplex(1)
-Lar(1, 1, 2, [0.0 1.0], Dict{Symbol, AbstractArray}(:C1V => [[1, 2]]))
-
-julia> simplex(2)
-Lar(2, 2, 3, [0.0 1.0 0.0; 0.0 0.0 1.0], Dict{Symbol, AbstractArray}(:C2V => [[1, 2, 3]]))
-
-julia> simplex(3, complex=true)
-Lar(3, 3, 4, [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], Dict{Symbol, AbstractArray}(:C3V => [[1, 2, 3, 4]], :C0V => [[1], [2], [3], [4]], :C2V => [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]], :C1V => [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]]))
-```
-"""
-function simplex(d; complex=false)
+# ////////////////////////////////////////////////////////////////
+function LAR_SIMPLEX(d; complex=false)
    V = [zeros(d,1) I]
    CV = [collect(1:d+1)]
    C = Dict(Symbol("C$(d)V") => CV)
@@ -258,7 +193,6 @@ function simplex(d; complex=false)
       return Lar(V,C)
    end
 end  
-
 
 # //////////////////////////////////////////////////////////////////////////////
 function SELECTATOMS(V,pols) 
@@ -281,9 +215,12 @@ function SELECTATOMS(V,pols)
   return outerspace,atoms
 end
 
-
 # ///////////////////////////////////////////////////
-function VIEWCOMPLEX(V , EV,  FV; V_text=nothing, EV_text=nothing,FV_text=nothing, properties::Properties=Properties())
+function VIEWCOMPLEX(V , EV,  FV; 
+   V_text::Vector{String}=nothing, 
+   EV_text::Vector{String}=nothing,
+   FV_text::Vector{String}=nothing, 
+   properties::Properties=Properties())
 
   properties["background_color"] = get(properties,"background_color", DEFAULT_LAR_BACKGROUND_COLOR)
   properties["line_color"]       = get(properties,"line_color"      , DEFAULT_LINE_COLOR)
@@ -358,10 +295,8 @@ function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
   )
 end
 
-
 # //////////////////////////////////////////////////////////////////////////////
 function DRAWATOMS(V,copEV,copFE,copCF, pols;outer=true) # V by cols
-  #@show (V,copEV,copFE,copCF, pols);
     # Lar computation, with associated dictionaries
     EV = AA(sort)([findnz(copEV[k,:])[1] for k=1:copEV.m]); # vertices per edge
     FE = AA(sort)([findnz(copFE[k,:])[1] for k=1:copFE.m]); # edges per face
@@ -372,17 +307,16 @@ function DRAWATOMS(V,copEV,copFE,copCF, pols;outer=true) # V by cols
     dictFV = Dict{Vector{Int},Int}(collect(zip(FV,1:length(FV))))
     # extraction of atoms from arranged space
     outerspace,atoms = SELECTATOMS(permutedims(V),pols)   
-  #@show V
     # Visualization of all atoms
     for k=1:length(atoms)
        localV = (V)
        localEV,localFV = atoms[k] 
        localEV = union(CAT(localEV))
        localFV = AA(sort)(localFV)     
-       VIEWCOMPLEX( localV, localEV, localFV,
-          V_TEXT=[string(Wdict[a])  for a in W],
-          EV_TEXT=[string(dictEV[a]) for a in localEV],
-          FV_TEXT=[string(dictFV[a]) for a in localFV])
+       VIEWCOMPLEX(localV, localEV, localFV,
+          V_text=[string(Wdict[a])  for a in W],
+          EV_text=[string(dictEV[a]) for a in localEV],
+          FV_text=[string(dictFV[a]) for a in localFV])
     end # Visualization of outer space (B-rep)
     if outer==true
        localV=(V)
@@ -390,8 +324,8 @@ function DRAWATOMS(V,copEV,copFE,copCF, pols;outer=true) # V by cols
        localEV = union(CAT(localEV))
        localFV = AA(sort)(localFV)   
        VIEWCOMPLEX( localV, localEV, localFV,
-          V_TEXT=[string(Wdict[a])  for a in W],
-          EV_TEXT=[string(dictEV[a]) for a in localEV],
-          FV_TEXT=[string(dictFV[a]) for a in localFV])
+          V_text=[string(Wdict[a])  for a in W],
+          EV_text=[string(dictEV[a]) for a in localEV],
+          FV_text=[string(dictFV[a]) for a in localFV])
     end
   end

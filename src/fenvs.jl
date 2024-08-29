@@ -1,7 +1,6 @@
 using LinearAlgebra, Combinatorics
 
-export IsPolytope, IsSimplex
-export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
+export SQRT,PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	CAT,ISMAT,INV,EVERY,ID,K,DISTL,DISTR, COMP,AA,EQ,NEQ,LT,LE,GT,GE,
 	ISGT,ISLT,ISGE,ISLE,BIGGER,SMALLER,FILTER,APPLY,INSR,INSL,BIGGEST,SMALLEST,CHARSEQ,STRING,
 	CONS,IF,LIFT,RAISE,ISNUM,ISFUN,ISREAL,ISSEQ, ISSEQOF,VECTSUM,VECTDIFF, SUM,
@@ -13,7 +12,7 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	VECTNORM,INNERPROD,SCALARVECTPROD, MIXEDPROD,UNITVECT,DIRPROJECT,ORTHOPROJECT,FACT,
 	ISREALVECT,ISFUNVECT,ISVECT,ISPOINT,CHOOSE,TRACE,MATHOM,SCALARMATPROD,MATDOTPROD,ORTHO,SUBSEQ,
 	VECT2MAT,VECT2DTOANGLE,CART,POWERSET,ARC,ISPOL,PRINTPOL,PRINT,VIEW,
-	GRID,QUOTE,INTERVALS,CUBOID,CUBE,HEXAHEDRON,SIMPLEX,RN,DIM,ISPOLDIM,MKPOL,
+	GRID,QUOTE,INTERVALS,CUBOID,CUBE,HEXAHEDRON,SIMPLEX,RN,DIM,ISPOLDIM,MKPOL,MKPOLS,
 	MK,UKPOL,UK,OPTIMIZE,TRANSLATE,T,SCALE,S,ROTATE,R,SHEARING,H,
 	MAT,EMBED,STRUCT,HOLLOWCYL,SOLIDCYL,
 	UNION,INTERSECTION,DIFFERENCE,XOR,CONVEXHULL,
@@ -27,9 +26,14 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	TENSORPRODSOLID,BEZIERMANIFOLD,LOCATE,RIF,FRACTALSIMPLEX,MESH,NU_GRID,SEGMENT,SOLIDIFY,EXTRUSION,
 	EX,LEX,SEX,UKPOLF,POLAR,SWEEP,MINKOWSKI,OFFSET,THINSOLID,PLANE,RATIONALBEZIER,ELLIPSE,CURVE_NORMAL,DERBEZIER,
 	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO,PROPERTIES,SQUARE, LINE,MKPOINTS, FRAME2,FRAME3,
-	COLOR,ICOSPHERE,icosphere
+	COLOR,ICOSPHERE,icosphere,GRID1,
+	TORUS, RING, SPHERE,
+	IsPolytope, IsSimplex
 
-export TORUS, RING, SPHERE
+
+import Base.sqrt
+SQRT(f::Function) = x -> f(x)^(1/2) 
+
 
 
 import Base.-  
@@ -49,9 +53,6 @@ import Base.*
 
 import Base.^
 ^(f1::Function, f2::Function) = (x,y) -> f1(x)^f2(y) 
-
-import Base.sqrt
-SQRT(f::Function) = x -> f(x)^(1/2) 
 
 
 
@@ -989,6 +990,25 @@ MK = COMP([MKPOL, CONS([LIST, K([[1]]), K([[1]])])])
 # /////////////////////////////////////////////////////////////////
 function CONVEXHULL(points)
 	return MKPOL(points, [collect(1:length(points))], [[1]])
+end
+
+# /////////////////////////////////////////////////////////////////
+function MKPOLS(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc  
+	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls)))) 
+	return out 
+end
+
+function MKPOLS(V::Matrix{Float64}, hulls::Vector{Vector{Int}}) 
+	W=[V[:,k] for k=1:size(V,2)]
+	return MKPOLS(W, hulls)
+end
+
+function MKPOLS(V::Union{Vector{Vector{Float64}}, Matrix{Float64}}, cells::Dict{Symbol, AbstractArray}) 
+	v=[]
+	for (__symbol, hulls) in cells
+		push!(v,MKPOLS(V,hulls))
+	end
+	return STRUCT(v)
 end
 
 # /////////////////////////////////////////////////////////////////

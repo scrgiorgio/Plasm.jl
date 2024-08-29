@@ -1297,7 +1297,7 @@ end
 
 
 # ///////////////////////////////////////////////////////
-function MyMain()
+function TestHpc()
   TestViewer()
   TestComputeNormal()
   TestGoodTet()
@@ -1314,6 +1314,6 @@ function MyMain()
   println("TestHpc ok")
 end
 
-MyMain()
+TestHpc()
 
 

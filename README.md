@@ -6,11 +6,7 @@
 ## Run tests
 
 ```bash
-
-
 julia --project=. test/hpc.jl
-
-# LAR part
 julia --project=. test/lar.jl
 
 # TODO
