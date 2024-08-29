@@ -140,7 +140,8 @@ function TestDrawAtoms()
   copFE = coboundary_1(V, FV, EV); ## TODO: debug
 
   # generate the 3D space arrangement
-  V, copEV, copFE, copCF = space_arrangement(convert(Points, V'), copEV, copFE )
+  V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE )
+  V=permutedims(V)
 
   # generate and draw the atoms [and the b-rep of outer space]
   atoms,__CF = get_atoms(copEV,copFE,copCF)
@@ -215,9 +216,10 @@ function TestRandomCubes()
 
   copEV = coboundary_0(EV)
   copFE = coboundary_1(V, FV, EV)
-  V, copEV, copFE, copCF = space_arrangement(convert(Points, V'), copEV, copFE)
+  V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE)
+  V=permutedims(V)
 
-  V,CVs,FVs,EVs = pols2tria(convert(Points, V'), copEV, copFE, copCF);
+  V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF);
   SHOWEXPLODED(V, CVs, FVs, EVs)
   
 end
@@ -279,12 +281,13 @@ function TestBool3D()
 	
 	copEV = coboundary_0(EV)
 	copFE = coboundary_1(V, FV, EV)
-	W = convert(Points, V')
-	V, copEV, copFE, copCF = space_arrangement(W, copEV, copFE )
+  V_original=V
+	V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE )
+  V=permutedims(V)
+
 	boolmatrix = bool3d(assembly, V,copEV,copFE,copCF);
 	
-	
-	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF)
+	V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
 	SHOWEXPLODED(V,CVs,FVs,EVs)
 	
 	Matrix(boolmatrix)
@@ -301,15 +304,14 @@ function TestBool3D()
 	AandBandC = .&(A, B, C)
 	AminBminC = .&(A, .!B, .!C) # A - B - C
 	
-	unione = Matrix(copCF)' * Int.(AorBorC); # coord vector of Faces
-	intersection = Matrix(copCF)' * Int.(AandBandC); # coord vector of Faces
-	difference = Matrix(copCF)' * Int.(AminBminC); # coord vector of Faces
+	unione       = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
+	intersection = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
+	difference   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
 	
-	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF) # whole assembly
-	Fs = difference
-	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF, Fs) # part of assembly
-	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF, intersection) # subassembly
-	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF, unione) # subassembly
+	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF) 
+	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF, difference) 
+	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF, intersection) 
+	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF, unione)
 	
 	GL.VIEW(GL.GLExplode(V,FVs,1.5,1.5,1.5,99,1))
 	GL.VIEW(GL.GLExplode(V,EVs,1.,1.,1.,1,1))

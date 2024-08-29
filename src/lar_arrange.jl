@@ -10,7 +10,7 @@ using StaticArrays
 export arrange2D, Points, Cells, Cell, Chain, ChainOp, ChainComplex,
     bbox, FV2EVs, cop2lar, lar2cop, characteristicMatrix, boundary_1, coboundary_0,
     constrained_triangulation2D, point_in_face, buildFV, pointInPolygonClassification, setTile, spaceindex, testpoint,
-    coboundary_1, space_arrangement
+    coboundary_1
 
 const Points = Matrix
 const Cells = Vector{Vector{Int}}
@@ -986,12 +986,7 @@ function frag_edge(V, EV::ChainOp, edge_idx::Int, bigPI)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
-function planar_arrangement_1(V, copEV,
-    sigma::Chain=spzeros(Int8, 0),
-    return_edge_map::Bool=false,
-    multiproc::Bool=false)
-    #print_organizer("Plasm."*"planar_arrangement_1")
+function planar_arrangement_1(V, copEV, sigma::Chain=spzeros(Int8, 0), return_edge_map::Bool=false, multiproc::Bool=false)
 
     # data structures initialization
     edgenum = size(copEV, 1)
@@ -1001,7 +996,7 @@ function planar_arrangement_1(V, copEV,
     finalcells_num = 0
 
     # spaceindex computation
-    model = (convert(Points, V'), cop2lar(copEV))
+    model = (permutedims(V), cop2lar(copEV))
     bigPI = spaceindex(model)
 
     # sequential (iterative) processing of edge fragmentation
@@ -1170,13 +1165,11 @@ coboundary_0(EV::Cells) = convert(ChainOp, LinearAlgebra.transpose(boundary_1(EV
 function arrange2D(V, EV)
     copEV = coboundary_0(EV::Cells)
     cop_EW = convert(ChainOp, copEV)
-    W = convert(Points, V')
-    V, copEV, copFE = planar_arrangement(W::Points, cop_EW::ChainOp)
+    V, copEV, copFE = planar_arrangement(permutedims(V), cop_EW::ChainOp)
     EVs = FV2EVs(copEV, copFE) # polygonal face fragments
     triangulated_faces = triangulate2D(V, [copEV, copFE])
-    FVs = convert(Array{Cells}, triangulated_faces)
-    V = convert(Points, V')
-    return V, FVs, EVs, copEV, copFE
+    FVs = convert(Array{Cells}, triangulated_faces) 
+    return permutedims(V), FVs, EVs, copEV, copFE
 end
 
 
@@ -1292,8 +1285,10 @@ function coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exteri
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export space_arrangement
 """ Main function of arrangement pipeline """
 function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
+    V=permutedims(V)
     fs_num = size(FE, 1)
     # strange but necessary cycle of computations to get FV::Cells algebraically
     FV = (abs.(FE) * abs.(EV)) .÷ 2
@@ -1318,7 +1313,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
     rFE = SparseArrays.blockdiag(depot_FE...)
     rV, rcopEV, rcopFE = Plasm.merge_vertices(rV, rEV, rFE)
     rcopCF = build_copFC(rV, rcopEV, rcopFE)
-    return rV, rcopEV, rcopFE, rcopCF
+    return permutedims(rV), rcopEV, rcopFE, rcopCF
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -1446,7 +1441,7 @@ function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
     newverts = zeros(Int, vertsnum)
     # KDTree constructor needs an explicit array of Float64
     V = Matrix(V)
-    W = convert(Points, LinearAlgebra.transpose(V))
+    W = permutedims(V)
     kdtree = KDTree(W)
     # remove vertices congruent to a single representative
     todelete = []
@@ -1557,7 +1552,7 @@ end
 function build_copFC(rV, rcopEV, rcopFE)
 
     # G&F -> Pao data structures
-    V = convert(Points, rV')
+    V = permutedims(rV)
     EV = Plasm.cop2lar(rcopEV)
     fe = Plasm.cop2lar(rcopFE)
     fv = [union([EV[e] for e in fe[f]]...) for f = 1:length(fe)]
@@ -1734,8 +1729,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 export pols2tria
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
-function pols2tria(W, copEV, copFE, copCF) # W by columns
-    V = convert(Points, W')
+function pols2tria(V, copEV, copFE, copCF) # W by columns
     triangulated_faces = mytriangulate(V, [copEV, copFE])
     EVs = FV2EVs(copEV, copFE) # polygonal face fragments
     FVs = convert(Array{Cells}, triangulated_faces)
@@ -1748,15 +1742,14 @@ function pols2tria(W, copEV, copFE, copCF) # W by columns
         end
         push!(CVs, obj)
     end
-    V = convert(Points, V')
-    return V, CVs, FVs, EVs
+    return permutedims(V), CVs, FVs, EVs
 end
 
 # ///////////////////////////////////////////////////////////////
 ## Fs is the signed coord vector of a subassembly
 ## the logic is to compute the corresponding reduced coboundary matrices
 ## and finally call the standard method of the function.
-function pols2tria(W, copEV, copFE, copCF, Fs) # W by columns
+function pols2tria(V, copEV, copFE, copCF, Fs) 
     # make copies of coboundary operators
 
     # compute the reduced copCF
@@ -1792,9 +1785,9 @@ function pols2tria(W, copEV, copFE, copCF, Fs) # W by columns
     newEV = sparse(triples[1, :], triples[2, :], triples[3, :])
     copEV = convert(SparseMatrixCSC{Int8,Int64}, newEV)
 
-    #W = convert(Points,W') # BOH...!!
+
     # finally compute the cells, faces, and edges of subassembly
-    V, CVs, FVs, EVs = pols2tria(W, copEV, copFE, copCF)
+    V, CVs, FVs, EVs = pols2tria(V, copEV, copFE, copCF)
     return V, CVs, FVs, EVs
 end
 
