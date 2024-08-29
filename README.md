@@ -8,11 +8,6 @@
 ```bash
 julia --project=. test/hpc.jl
 julia --project=. test/lar.jl
-
-# TODO
-julia --project=. test/lar_randomlines.jl
-julia --project=. test/lar_randombubbles.jl
-julia --project=. test/lar_randomcubes.jl
 ```
 
 ## Developing Plasm.jl

@@ -1,8 +1,6 @@
 using Plasm
-using ViewerGL
 
 import Random
-
 
 # ///////////////////////////////////////////////////////
 function TestToLAR()
@@ -122,50 +120,47 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestTriangulation()
-
   (V, copEV, copFE, copCF) = ([0.70710678118655 0.70710678118655 0.0; 2.829225697485796e-17 0.0 0.0; -0.70710678118655 0.70710678118655 0.0; 0.0 1.4142135623731 0.0; 0.4142135623731001 1.0 0.0; 1.0683217716804808e-17 1.0 0.0; 0.70710678118655 0.70710678118655 1.0; 0.0 0.0 1.0; 0.0 1.4142135623731 1.0; 0.4142135623731001 1.0 1.0; -0.70710678118655 0.70710678118655 1.0; 0.0 1.0 1.0; 1.0 0.0 0.0; 1.0 1.0 0.0; 1.0 0.0 1.0; 1.0 1.0 1.0], sparse([1, 5, 10, 1, 2, 6, 9, 20, 2, 3, 16, 3, 4, 13, 4, 5, 7, 14, 21, 6, 7, 27, 8, 10, 11, 8, 9, 15, 18, 23, 12, 13, 17, 11, 12, 14, 19, 28, 15, 16, 17, 18, 19, 27, 20, 22, 24, 21, 22, 26, 23, 24, 25, 25, 26, 28], [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 8, 8, 9, 9, 9, 10, 10, 10, 10, 10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15, 16, 16, 16], Int8[-1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, 1, 1, -1, -1, 1, -1, 1, 1, -1, -1, -1, -1, 1, -1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1], 28, 16), sparse([2, 3, 10, 1, 6, 1, 7, 1, 4, 2, 5, 10, 1, 2, 13, 1, 2, 15, 3, 8, 16, 3, 6, 11, 13, 3, 5, 5, 8, 16, 4, 9, 4, 7, 4, 5, 14, 15, 6, 9, 6, 7, 7, 9, 8, 9, 13, 8, 9, 15, 10, 11, 10, 14, 10, 12, 11, 16, 11, 12, 12, 16, 12, 14, 13, 15, 14, 16], [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 9, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 14, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 18, 19, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28], Int8[-1, 1, 1, -1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1, 1, 1, 1, -1, -1, -1, 1, 1, -1], 16, 28), sparse([2, 4, 2, 3, 1, 3, 2, 4, 1, 3, 2, 4, 2, 4, 2, 3, 2, 4, 1, 2, 1, 2, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2], [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16], [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, 1, -1, 1, -1], 4, 16));
-  
   EV = AA(sort)([findnz(copEV[k,:])[1] for k=1:copEV.m]); # vertices per edge
   FE = AA(sort)([findnz(copFE[k,:])[1] for k=1:copFE.m]); # edges per face
   FV = [union(CAT([EV[e]  for e in FE[f]])) for f=1:length(FE)]; # verts x face
-  
   triangulated_faces = LAR2TRIANGLES(V, EV, FV, FE)
 end   
 
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestDrawAtoms()
-  # generate a 3D space arrangement
   cube = CUBE(1)
-  assembly = STRUCT(cube, R(1,2)(π/4), cube)	
-  global V,FV,EV = new2old(LAR(assembly)) # V by columns
+  assembly = STRUCT(cube, R(1,2)(π/4), cube)
+  lar=LAR(assembly)
+
+  V,FV,EV = lar.V, lar.C[:FV], lar.C[:EV]	 
   # initialization
-  cop_EV = convert(ChainOp, coboundary_0(EV::Cells))
-  cop_FE = coboundary_1(V, FV::Cells, EV::Cells); ## TODO: debug
+  copEV = coboundary_0(EV)
+  copFE = coboundary_1(V, FV, EV); ## TODO: debug
   W = convert(Points, V')
+
   # generate the 3D space arrangement
-  V, copEV, copFE, copCF = space_arrangement( W, cop_EV, cop_FE )
+  V, copEV, copFE, copCF = space_arrangement( W, copEV, copFE )
+
   # generate and draw the atoms [and the b-rep of outer space]
-  V,pols,_ = chainbasis2solids(V,copEV,copFE,copCF)
-  DRAWATOMS(V,copEV,copFE,copCF, pols;outer=true)
+  atoms,__CF = get_atoms(copEV,copFE,copCF)
+  VIEWATOMS(V,copEV,copFE,copCF, atoms; view_outer=true)
 end
-
-
-# ////////////////////////////////////////////////////////
-function RandomLine(size_min::Float64,size_max::Float64)
-  size = size_min+rand()*(size_max-size_min)
-  return STRUCT(
-    T(1,2)(rand(2)...), 
-    S([1,2])([size,size]), 
-    R([1,2])(2*pi*rand()),
-    Plasm.SQUARE(1)
-  )
-end
-
 
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestRandomLines()
+
+  function RandomLine(size_min::Float64,size_max::Float64)
+    size = size_min+rand()*(size_max-size_min)
+    return STRUCT(
+      T(1,2)(rand(2)...), 
+      S([1,2])([size,size]), 
+      R([1,2])(2*pi*rand()),
+      Plasm.SQUARE(1)
+    )
+  end
 
   hpc = STRUCT([RandomLine(2.0,3.0) for I in 1:6])
   # VIEW(hpc)
@@ -199,44 +194,49 @@ end
 
 
 
-# ////////////////////////////////////////////////////////////
-function RandomCube(size_min::Float64,size_max::Float64)
-  size = size_min+rand()*(size_max-size_min)
-  return STRUCT(
-    T(1,2,3)(rand(3)...), 
-    S([1,2,3])([size,size,size]), 
-    R([1,2])(2*pi*rand()),
-    R([2,3])(2*pi*rand()),
-    R([1,3])(2*pi*rand()),
-    Plasm.CUBE(1) 
-  )
-end
-
 # //////////////////////////////////////////////////////////////////////////////
 function TestRandomCubes()
+
+  function RandomCube(size_min::Float64,size_max::Float64)
+    size = size_min+rand()*(size_max-size_min)
+    return STRUCT(
+      T(1,2,3)(rand(3)...), 
+      S([1,2,3])([size,size,size]), 
+      R([1,2])(2*pi*rand()),
+      R([2,3])(2*pi*rand()),
+      R([1,3])(2*pi*rand()),
+      Plasm.CUBE(1) 
+    )
+  end
+
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
   lar = LAR(hpc)
   
   V, EV, FV  = lar.V, lar.C[:EV], lar.C[:FV]
-  V,CVs,FVs,EVs = testarrangement(V,FV,EV)
-  show_exploded(V,CVs,FVs,EVs)
+
+  copEV = coboundary_0(EV)
+  copFE = coboundary_1(V, FV, EV)
+  V, copEV, copFE, copCF = space_arrangement(convert(Points, V'), copEV, copFE)
+
+  V,CVs,FVs,EVs = pols2tria(convert(Points, V'), copEV, copFE, copCF);
+  SHOWEXPLODED(V, CVs, FVs, EVs)
   
 end
 
 
-# //////////////////////////////////////////////////////////
-function RandomBubble()
-  vs = rand()
-  vt = rand(2)
-  return STRUCT(
-    T(1,2)(vt...),
-    S([1,2])([0.25*vs, 0.25*vs]), 
-    CIRCUMFERENCE(1)(rand(3:32))
-  )
-end
-
 # ////////////////////////////////////////////////////////
 function TestRandomBubbles()
+
+  function RandomBubble()
+    vs = rand()
+    vt = rand(2)
+    return STRUCT(
+      T(1,2)(vt...),
+      S([1,2])([0.25*vs, 0.25*vs]), 
+      CIRCUMFERENCE(1)(rand(3:32))
+    )
+  end
+
   hpc = STRUCT([RandomBubble() for I in 1:50])
   VIEW(hpc)
   
@@ -275,17 +275,18 @@ function TestBool3D()
 		 R(1,3)(pi/4), T(1,2,3)(.5,.5,.5), cube, 
 		 R(2,3)(pi/5), T(1,2,3)(.5,.5,.5), cube);
 	
-	V,FV,EV = new2old(LAR(assembly))
+  lar=LAR(assembly)
+	V,FV,EV = new2old()
 	
-	cop_EV = convert(ChainOp, coboundary_0(EV::Cells))
-	cop_FE = coboundary_1(V, FV::Cells, EV::Cells)
+	copEV = coboundary_0(EV)
+	copFE = coboundary_1(V, FV, EV)
 	W = convert(Points, V')
-	V, copEV, copFE, copCF = space_arrangement(W, cop_EV, cop_FE )
+	V, copEV, copFE, copCF = space_arrangement(W, copEV, copFE )
 	boolmatrix = bool3d(assembly, V,copEV,copFE,copCF);
 	
 	
 	V,CVs,FVs,EVs = pols2tria(W, copEV, copFE, copCF)
-	show_exploded(V,CVs,FVs,EVs)
+	SHOWEXPLODED(V,CVs,FVs,EVs)
 	
 	Matrix(boolmatrix)
 	
@@ -320,18 +321,20 @@ end
 function TestLar()
   Random.seed!(0)
   
-  # TestToLAR()
+  # basic lar
+  TestToLAR()
   
-  # arrangements
-  #TestRandomLines()
-  #TestRandomCubes()
-  #TestRandomBubbles()
+  # arrangements 2d
+  TestRandomLines()
+  TestRandomBubbles()
+
+  # arrangmenets3d
+  TestRandomCubes()
 
   # BROKEN
-  #TestTriangulation()
-  #TestDrawAtoms()
-
-  TestBool3D()
+  # TestTriangulation()
+  # TestDrawAtoms()
+  # TestBool3D()
 
   println("TestLAR ok")
 end
