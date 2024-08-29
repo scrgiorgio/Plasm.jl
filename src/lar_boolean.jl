@@ -1,5 +1,5 @@
 
-export settestpoints, spaceindex2, testinternalpoint, getinternalpoint, internalpoints, rayintersection, planemap, bool3d
+export settestpoints, testinternalpoint, getinternalpoint, internalpoints, rayintersection, planemap, bool3d
 
 ################################################################################
 #	After the arrangement, extract all the d-cells from (d-1)-coboundary as isolated polyhedra.
@@ -11,36 +11,33 @@ export settestpoints, spaceindex2, testinternalpoint, getinternalpoint, internal
 
 # //////////////////////////////////////////////////////////////////////////////
 # working in 2D ///////////////////////////////////////////////////////////////
-""" Set tile code of boxed point w.r.t nine tiles of 2D plane  """
-function setTile(box)
-  tiles = [[9, 1, 5], [8, 0, 4], [10, 2, 6]]
-  b1, b2, b3, b4 = box
-  """ code point position w.r.t query box using Bitwise OR """
-  function tileCode(point)
-    x, y = point
-    code = 0
-    if y > b1
-      code = code | 1
-    end
-    if y < b2
-      code = code | 2
-    end
-    if x > b3
-      code = code | 4
-    end
-    if x < b4
-      code = code | 8
-    end
-    return code
-  end
-  return tileCode
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-# working in 2D ///////////////////////////////////////////////////////////////
 """ Test di contenimento di un punto 2D in un poligono 2D """
 function pointInPolygonClassification(V, EV)
+
+  function setTile(box)
+    tiles = [[9, 1, 5], [8, 0, 4], [10, 2, 6]]
+    b1, b2, b3, b4 = box
+    """ code point position w.r.t query box using Bitwise OR """
+    function tileCode(point)
+      x, y = point
+      code = 0
+      if y > b1
+        code = code | 1
+      end
+      if y < b2
+        code = code | 2
+      end
+      if x > b3
+        code = code | 4
+      end
+      if x < b4
+        code = code | 8
+      end
+      return code
+    end
+    return tileCode
+  end
+
   function pointInPolygonClassification0(pnt)
     x, y = pnt
     xmin, xmax, ymin, ymax = x, x, y, y
@@ -147,46 +144,47 @@ function settestpoints(V, EV, FE, FV, Fs, copEV, copFE) # V by row
   # it is not known if angle(f1,f2) < π;  hence return two opposite points
   return ptest1, ptest2
 end
-
 # //////////////////////////////////////////////////////////////////////////////
 # working in 3D ////////////////////////////////////////////////////////////////
-""" Filter preparation to select input faces with possible interction with vertical test ray """
-function spaceindex2(point3d::Array{Float64,1})::Function
-  function spaceindex0(model)::Array{Int,1}
-    V, CV = copy(model[1]), copy(model[2])
-    V = [V point3d]
-    dim, idx = size(V)
-    push!(CV, [idx, idx, idx])
-    cellpoints = [V[:, CV[k]]::Points for k = 1:length(CV)]
-    #----------------------------------------------------------
-    bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints] #bound boxes
-    xboxdict = coordintervals(1, bboxes)
-    yboxdict = coordintervals(2, bboxes)
-    # xs,ys are IntervalTree type
-    xs = IntervalTrees.IntervalMap{Float64,Array}()
-    for (key, boxset) in xboxdict
-      xs[tuple(key...)] = boxset
-    end
-    ys = IntervalTrees.IntervalMap{Float64,Array}()
-    for (key, boxset) in yboxdict
-      ys[tuple(key...)] = boxset
-    end
-    xcovers = boxcovering(bboxes, 1, xs)
-    ycovers = boxcovering(bboxes, 2, ys)
-    covers = [intersect(pair...) for pair in zip(xcovers, ycovers)]
 
-    # add new code part
-
-    # remove each cell from its cover
-    pointcover = setdiff(covers[end], [idx + 1])
-    return pointcover[1:end-1]
-  end
-  return spaceindex0
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ V,EV,FV original faces (before the space arrangement) """
 function testinternalpoint(V, EV, FV)
+
+    """ Filter preparation to select input faces with possible interction with vertical test ray """
+  function spaceindex2(point3d::Array{Float64,1})::Function
+    function spaceindex0(model)::Array{Int,1}
+      V, CV = copy(model[1]), copy(model[2])
+      V = [V point3d]
+      dim, idx = size(V)
+      push!(CV, [idx, idx, idx])
+      cellpoints = [V[:, CV[k]]::Points for k = 1:length(CV)]
+      #----------------------------------------------------------
+      bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints] #bound boxes
+      xboxdict = coordintervals(1, bboxes)
+      yboxdict = coordintervals(2, bboxes)
+      # xs,ys are IntervalTree type
+      xs = IntervalTrees.IntervalMap{Float64,Array}()
+      for (key, boxset) in xboxdict
+        xs[tuple(key...)] = boxset
+      end
+      ys = IntervalTrees.IntervalMap{Float64,Array}()
+      for (key, boxset) in yboxdict
+        ys[tuple(key...)] = boxset
+      end
+      xcovers = boxcovering(bboxes, 1, xs)
+      ycovers = boxcovering(bboxes, 2, ys)
+      covers = [intersect(pair...) for pair in zip(xcovers, ycovers)]
+
+      # add new code part
+
+      # remove each cell from its cover
+      pointcover = setdiff(covers[end], [idx + 1])
+      return pointcover[1:end-1]
+    end
+    return spaceindex0
+  end
   copEV = lar2cop(EV)
   copFV = lar2cop(FV)
   copFE = copFV * copEV' .÷ 2

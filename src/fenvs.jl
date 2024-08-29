@@ -2942,18 +2942,6 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-"""
-    SPHERE(radius=1.0::Number)(subds=[16,32]::Vector{Int})
-Generate a polyhedral approximation of a spherical surface in 3D.
-Maximum correct refinement is LAR(SPHERE(2)([73,40]))
-
-# Examples
-```jldoctest
-julia> VIEW(SPHERE()())
-
-julia> VIEWCOMPLEX(LAR(SPHERE(2)([4,8])))
-```
-"""
 function SPHERE(radius=1.0::Number)
   function SPHERE0(subds=[16, 32]::Vector{Int})
     N, M = subds
@@ -2967,17 +2955,6 @@ function SPHERE(radius=1.0::Number)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-"""
-    TORUS(radii::Vector=[1.0,2])(subds::Vector{Int}=[16,32]):Hpc
-Generate polyhedral approximations of a torus surface in 3D.
-
-# Examples
-```jldoctest
-julia> VIEW(TORUS()())
-
-julia> VIEWCOMPLEX(LAR(TORUS([1,2.])([4,8])))
-```
-"""
 function TORUS(radii=[1.0, 2]::Vector)
   r1, r2 = radii
   function TORUS0(subds=[16, 32]::Vector{Int})

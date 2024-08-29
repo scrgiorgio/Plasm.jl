@@ -540,7 +540,6 @@ function TestProperties2()
     "zfar"             => 100.0,
     "walk_speed"       => 10.0,
 
-    # LAR VIEWCOMPLEX  specific
     "text_v_color"      => DEFAULT_TEXT_V_COLOR,
     "text_ev_color"     => DEFAULT_TEXT_EV_COLOR,
     "text_fv_color"     => DEFAULT_TEXT_FV_COLOR,
