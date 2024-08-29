@@ -8,12 +8,10 @@ using NearestNeighbors
 using StaticArrays
 
 export arrange2D, Points, Cells, Cell, Chain, ChainOp, ChainComplex,
-bbox, FV2EVs, cop2lar, lar2cop, characteristicMatrix, boundary_1, coboundary_0,
-constrained_triangulation2D, point_in_face, buildFV, pointInPolygonClassification, setTile, spaceindex,testpoint
+    bbox, FV2EVs, cop2lar, lar2cop, characteristicMatrix, boundary_1, coboundary_0,
+    constrained_triangulation2D, point_in_face, buildFV, pointInPolygonClassification, setTile, spaceindex,testpoint
 
 export testarrangement, coboundary_1, space_arrangement, pols2tria, show_exploded
-
-#export print_organizer
 
 const Points = Matrix
 const Cells = Vector{Vector{Int}}
@@ -22,17 +20,6 @@ const Chain = SparseVector{Int8,Int}
 const ChainOp = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
 
-# //// calldict: Global variable. Dictionary of function names /////////////////
-# //// To compute the histogram of function calls  /////////////////////////////
-
-#function #print_organizer(function_name)
-#   if calldict[function_name] == 0
-#      calldict[function_name] = 1
-#   else 
-#      calldict[function_name] += 1
-#   end
-#   #println(function_name)
-#end
 
 # //////////////////////////////////////////////////////////////////////////////
 """

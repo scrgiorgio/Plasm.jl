@@ -1,5 +1,6 @@
 using LinearAlgebra, Combinatorics
 
+export IsPolytope, IsSimplex
 export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	CAT,ISMAT,INV,EVERY,ID,K,DISTL,DISTR, COMP,AA,EQ,NEQ,LT,LE,GT,GE,
 	ISGT,ISLT,ISGE,ISLE,BIGGER,SMALLER,FILTER,APPLY,INSR,INSL,BIGGEST,SMALLEST,CHARSEQ,STRING,
@@ -28,11 +29,63 @@ export PI,COS,LEN,AND,OR,ToFloat64,C,ATAN2,MOD,ADD,MEANPOINT,SKEW,
 	BEZIERSTRIPE,BSPLINE,NUBSPLINE,DISPLAYNUBSPLINE,RATIONALBSPLINE,NURBSPLINE,DISPLAYNURBSPLINE,HOMO,PROPERTIES,SQUARE, LINE,MKPOINTS, FRAME2,FRAME3,
 	COLOR,ICOSPHERE,icosphere
 
+export TORUS, RING, SPHERE
+
+
+import Base.-  
+-(f::Function, g::Function) = (x...) -> f(x...) - g(x...)  
+
+import Base.+  
++(f::Function, g::Function) = (x...) -> f(x...) + g(x...)  
+
+import Base./  
+/(f::Function, g::Function) = (x...) -> f(x...) / g(x...)  
+
+import Base.*  
+*(f::Function, g::Function) = (x...) -> f(x...) * g(x...)  
+
+import Base.*
+*(pol1::Hpc, pol2::Hpc) = Power(pol1, pol2)
+
+import Base.^
+^(f1::Function, f2::Function) = (x,y) -> f1(x)^f2(y) 
+
+import Base.sqrt
+SQRT(f::Function) = x -> f(x)^(1/2) 
+
+
+
 PI = pi
 COS = cos
 LEN = length
 AND = all
 OR = any
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+    IsPolytope
+Plasm predicate `Expr -> Bool` in pure FL style.
+
+Polytopes are the generalization of three-dimensional polyhedra to any number of dimensions.
+"""
+IsPolytope = AND ∘ CONS([  # pure FL style
+   ISPOL, 
+   EQ ∘ CONS([LEN ∘ S2 ∘ UKPOL, K(1)])
+])
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+    IsSimplex
+Plasm predicate `Expr -> Bool` in pure FL style.
+
+generalization of the notion of a triangle or tetrahedron to arbitrary dimensions.
+"""
+IsSimplex = AND ∘ CONS([  # pure FL style
+   IsPolytope, 
+   EQ ∘ CONS([LEN ∘ S1 ∘ UKPOL, RN + K(1)]) 
+])
+
 
 
 # /////////////////////////////////////////////////////////////////
@@ -2843,3 +2896,63 @@ function icosphere(level::Int64=1)
    if level >= 2  obj1 = ICOSPHERE(obj0); return ICOSPHERE(obj1) end
 end
 
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+    SPHERE(radius=1.0::Number)(subds=[16,32]::Vector{Int})
+Generate a polyhedral approximation of a spherical surface in 3D.
+Maximum correct refinement is LAR(SPHERE(2)([73,40]))
+
+# Examples
+```jldoctest
+julia> VIEW(SPHERE()())
+
+julia> VIEWCOMPLEX(LAR(SPHERE(2)([4,8])))
+```
+"""
+function SPHERE(radius=1.0::Number)
+	function SPHERE0(subds=[16,32]::Vector{Int})
+		N, M = subds
+		domain = T(1,2)(-pi/2, -pi)(Power(INTERVALS(pi)(N), INTERVALS(2*pi)(M)))
+		fx = p -> radius * (-cos(p[1])) * sin(p[2])
+		fy = p -> radius * cos(p[1]) * cos(p[2])
+		fz = p -> radius * sin(p[1])
+		return MAP([fx, fy, fz])(domain)
+	end
+	return SPHERE0
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+    TORUS(radii::Vector=[1.0,2])(subds::Vector{Int}=[16,32]):Hpc
+Generate polyhedral approximations of a torus surface in 3D.
+
+# Examples
+```jldoctest
+julia> VIEW(TORUS()())
+
+julia> VIEWCOMPLEX(LAR(TORUS([1,2.])([4,8])))
+```
+"""
+function TORUS(radii=[1.0,2]::Vector)
+	r1, r2 = radii
+	function TORUS0(subds=[16,32]::Vector{Int})
+		N, M = subds
+		a = 0.5*(r2-r1)
+		c = 0.5*(r1+r2)
+		domain = Power(INTERVALS(2*pi)(N), INTERVALS(2*pi)(M))
+		fx = p -> (c+a*cos(p[2])) * cos(p[1])
+		fy = p -> (c+a*cos(p[2])) * sin(p[1])
+		fz = p -> a*sin(p[2])
+		return MAP([fx, fy, fz])(domain)
+	end
+	return TORUS0
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+    GRID1(n::Int)::Hpc
+Generate a 1D object of `Hpc` type with `n` unit segments.
+```
+"""
+GRID1(n) = QUOTE(DIESIS(n)(1.0))

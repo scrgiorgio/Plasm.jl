@@ -25,7 +25,7 @@ end
    @test SIMPLEX(20).childs[1].points[1] == zeros(20)
 end
 
-simplexfacets
+
 
 # //////////////////////////////////////////////////////////////////////////////
 @testset "CUBOID" begin

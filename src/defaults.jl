@@ -85,7 +85,6 @@ DEFAULT_TEXT_SCALING=(0.250,0.375)
 #	12=>BLACK 
 #)
 
-
 const MAYA01 = Point4d( 77/255.0, 202/255.0, 137/255.0, 1.0)
 const MAYA02 = Point4d(130/255.0,  70/255.0,  88/255.0, 1.0)
 const MAYA03 = Point4d(198/255.0, 180/255.0,  71/255.0, 1.0)
