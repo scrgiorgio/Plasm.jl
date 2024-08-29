@@ -62,31 +62,6 @@ AND = all
 OR = any
 
 
-# //////////////////////////////////////////////////////////////////////////////
-"""
-    IsPolytope
-Plasm predicate `Expr -> Bool` in pure FL style.
-
-Polytopes are the generalization of three-dimensional polyhedra to any number of dimensions.
-"""
-IsPolytope = AND ∘ CONS([  # pure FL style
-   ISPOL, 
-   EQ ∘ CONS([LEN ∘ S2 ∘ UKPOL, K(1)])
-])
-
-# //////////////////////////////////////////////////////////////////////////////
-"""
-    IsSimplex
-Plasm predicate `Expr -> Bool` in pure FL style.
-
-generalization of the notion of a triangle or tetrahedron to arbitrary dimensions.
-"""
-IsSimplex = AND ∘ CONS([  # pure FL style
-   IsPolytope, 
-   EQ ∘ CONS([LEN ∘ S1 ∘ UKPOL, RN + K(1)]) 
-])
-
-
 
 # /////////////////////////////////////////////////////////////////
 function ToFloat64(value)
@@ -870,6 +845,8 @@ function ISPOL(obj)
 end
 
 
+
+
 # /////////////////////////////////////////////////////////////////
 VIEW=View
 
@@ -1028,6 +1005,32 @@ UK = COMP([COMP([S1, S1]), UKPOL])
 
 # /////////////////////////////////////////////////////////////////
 OPTIMIZE(pol) = pol
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+    IsPolytope
+Plasm predicate `Expr -> Bool` in pure FL style.
+
+Polytopes are the generalization of three-dimensional polyhedra to any number of dimensions.
+"""
+IsPolytope = AND ∘ CONS([  # pure FL style
+   ISPOL, 
+   EQ ∘ CONS([LEN ∘ S2 ∘ UKPOL, K(1)])
+])
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+    IsSimplex
+Plasm predicate `Expr -> Bool` in pure FL style.
+
+generalization of the notion of a triangle or tetrahedron to arbitrary dimensions.
+"""
+IsSimplex = AND ∘ CONS([  # pure FL style
+   IsPolytope, 
+   EQ ∘ CONS([LEN ∘ S1 ∘ UKPOL, RN + K(1)]) 
+])
+
 
 # /////////////////////////////////////////////////////////////////
 function TRANSLATE(axis,values, pol::Hpc)

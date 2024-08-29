@@ -1,9 +1,10 @@
 using Triangulate
 
-export Lar, Hpc, LAR, MKPOLS, HPC
-export simplex, CUBOIDGRID, GRID1, SKELETON, ViewCuboidGrid, VIEWCOMPLEX, VIEWCOMPLEX,SQRT, VIEWCOMPLEX2
-export triangulate2d, lar2triangles
-export SELECTATOMS, DRAWATOMS
+export Lar, Hpc, LAR, MKPOLS, HPC,
+  simplex, CUBOIDGRID, GRID1, SKELETON, SQRT, 
+  triangulate2d, lar2triangles,
+  SELECTATOMS, 
+  VIEWCOMPLEX, VIEWCOMPLEX,VIEWCOMPLEX2,DRAWATOMS
 
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
 mutable struct Lar

@@ -7,28 +7,16 @@
 
 ```bash
 
-# core
-julia --project=. test/viewer.jl
+
 julia --project=. test/hpc.jl
-julia --project=. test/temple.jl
-julia --project=. test/manhattan.jl
-julia --project=. test/properties.jl
-julia --project=. test/properties2.jl
-julia --project=. test/fenvs.jl
 
 # LAR part
 julia --project=. test/lar.jl
-julia --project=. test/complex.jl
 
-julia --project=. test/randomlines.jl
-julia --project=. test/randombubbles.jl
-julia --project=. test/randomcubes.jl
-
-julia --project=. test/congruence.jl
-julia --project=. test/3tubes3d.jl
-<!-- julia --project=. test/bool3d-1.jl -->
-julia --project=. test/lar2triangles.jl
-julia --project=. test/atoms.jl
+# TODO
+julia --project=. test/lar_randomlines.jl
+julia --project=. test/lar_randombubbles.jl
+julia --project=. test/lar_randomcubes.jl
 ```
 
 ## Developing Plasm.jl
@@ -71,7 +59,7 @@ julia
 activate .
 
 # add packages
-add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStructures SparseArrays NearestNeighbors Triangulate IntervalTrees QHull CoordinateTransformations Rotations GeometryBasics Colors MeshCat FileIO MeshIO Meshing IJulia 
+add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStructures SparseArrays NearestNeighbors Triangulate IntervalTrees CoordinateTransformations Rotations GeometryBasics Colors MeshCat FileIO MeshIO Meshing IJulia 
 
 # exit package MODE
 # CTRL+C 

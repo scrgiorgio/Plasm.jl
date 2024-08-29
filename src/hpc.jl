@@ -7,8 +7,9 @@ export ComputeTriangleNormal,GoodTetOrientation,
 	ToSimplicialForm,ToBoundaryForm,ToGeometry,
 	View,
 	GetBatchesForHpc,GetBatchesForGeometry,ComputeCentroid, 
-	HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE, 
-	Lar, Hpc, LAR, MKPOLS, HPC
+	HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
+
+export InitPythonHullCode
 
 import Base.:(==)
 import Base.:*
@@ -1104,12 +1105,15 @@ function ToBoundaryForm(self::Hpc)
 	return MkPol(POINTS,FACES)
 end
 
-using PyCall
-export InitToLAR
+
+
 
 
 # ////////////////////////////////////////////////////////////
-function InitToLAR()
+using PyCall
+export InitPythonHullCode
+
+function InitPythonHullCode()
 
 	# ALL PYTHON CODE HERE
 	# resolving a problem of scipy spatial which always triangulate the output
@@ -1428,81 +1432,4 @@ function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
 
 	return ret
 end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-# Linear Algebraic Representation . Data type for Cellular and Chain Complex.
-mutable struct Lar
-  d::Int # intrinsic dimension
-  m::Int # embedding dimension (rows of V)
-  n::Int # number of vertices  (columns of V)
-  V::Matrix{Float64} # object geometry
-  C::Dict{Symbol, AbstractArray} # object topology (C for cells)
-
-  # inner constructors
-  Lar() = new( -1, 0, 0, Matrix{Float64}(undef,0,0), Dict{Symbol, AbstractArray}() )
-  Lar(m::Int,n::Int) = new( m,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() )
-  Lar(d::Int,m::Int,n::Int) = new( d,m,n, Matrix(undef,m,n), Dict{Symbol,AbstractArray}() ) 
-  Lar(V::Matrix) = begin m, n = size(V); new( m,m,n, V, Dict{Symbol,AbstractArray}() ) end
-  Lar(V::Matrix,C::Dict) = begin m,n = size(V); new( m,m,n, V, C )  end
-  Lar(d::Int,V::Matrix,C::Dict) = begin m,n = size(V); new( d,m,n, V, C )  end
-  Lar(d,m,n, V,C) = new( d,m,n, V,C )
-end
-
-
-
-# //////////////////////////////////////////////////////////////////////////////
-# from Hpc -> Lar (trying to keep as many information as possible, still unifying to a unique geometry)
-function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
-	geo=ToGeometry(obj, precision=precision)
-	n=length(geo.points)    # number of vertices  (columns of V)
-	m=length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
-	ret=Lar()
-	ret.d=m
-	ret.n=n
-	ret.m=m 
-	ret.V=hcat(geo.points...)
-	ret.C[:EV]=geo.edges
-	ret.C[:FV]=geo.faces
-	ret.C[:CV]=geo.hulls
-	return ret
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-function MKPOLS(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc  
-	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls)))) 
-	return out 
-end
-
-function MKPOLS(V::Matrix{Float64}, hulls::Vector{Vector{Int}}) 
-	W=[V[:,k] for k=1:size(V,2)]
-	return MKPOLS(W, hulls)
-end
-
-function MKPOLS(V::Union{Vector{Vector{Float64}}, Matrix{Float64}}, cells::Dict{Symbol, AbstractArray}) 
-	v=[]
-	for (__symbol, hulls) in cells
-		push!(v,MKPOLS(V,hulls))
-	end
-	return STRUCT(v)
-end
-
-#NOTE: better use MKPOLS to specify what Hpc you want to build 
-function HPC(lar::Lar)::Hpc 
-
-	if :FV in keys(lar.C) && length(lar.C[:FV])
-		return MKPOLS(lar.V, lar.C[:FV])
-
-	elseif :EV in keys(lar.C) && length(lar.C[:EV])
-		return MKPOLS(lar.V, lar.C[:EV])
-
-	else
-		error("Empty Lar")
-	end
-
-end
-
-
-
 

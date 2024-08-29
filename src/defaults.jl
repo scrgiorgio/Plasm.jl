@@ -69,22 +69,6 @@ DEFAULT_FV_FONTSIZE=0.08
 
 DEFAULT_TEXT_SCALING=(0.250,0.375)
 
-# not used anymore
-#const palette = Dict{Int,Point4d}(
-#	1=>WHITE, 
-#	2=>RED, 
-#	3=>GREEN, 
-#	4=>BLUE,
-#	5=>CYAN, 
-#	6=>MAGENTA, 
-#	7=>YELLOW, 
-#	8=>ORANGE,
-#	9=>PURPLE, 
-#	10=>BROWN, 
-#	11=>GRAY, 
-#	12=>BLACK 
-#)
-
 const MAYA01 = Point4d( 77/255.0, 202/255.0, 137/255.0, 1.0)
 const MAYA02 = Point4d(130/255.0,  70/255.0,  88/255.0, 1.0)
 const MAYA03 = Point4d(198/255.0, 180/255.0,  71/255.0, 1.0)
