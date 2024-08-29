@@ -138,10 +138,9 @@ function TestDrawAtoms()
   # initialization
   copEV = coboundary_0(EV)
   copFE = coboundary_1(V, FV, EV); ## TODO: debug
-  W = convert(Points, V')
 
   # generate the 3D space arrangement
-  V, copEV, copFE, copCF = space_arrangement( W, copEV, copFE )
+  V, copEV, copFE, copCF = space_arrangement(convert(Points, V'), copEV, copFE )
 
   # generate and draw the atoms [and the b-rep of outer space]
   atoms,__CF = get_atoms(copEV,copFE,copCF)

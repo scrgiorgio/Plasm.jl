@@ -356,22 +356,16 @@ end
 export VIEWATOMS
 function VIEWATOMS(V, copEV, copFE, copCF, atoms; view_outer=true)
 
-   # vertices per edge
-   EV = AA(sort)([findnz(copEV[k, :])[1] for k = 1:copEV.m])
+   # per row
+   num_vertices=size(V,1)
 
-   # edges per face
-   FE = AA(sort)([findnz(copFE[k, :])[1] for k = 1:copFE.m])
-
-   # verts per face
+   EV = AA(sort)(cop2lar(copEV))
+   FE = AA(sort)(cop2lar(copFE))
    FV = AA(sort)([union(CAT([EV[e] for e in f])) for f in FE])
-
-   # W = permutedims(V)
 
    ev_text = Dict{Vector{Int},Int}(collect(zip(EV, 1:length(EV))))
    fv_text = Dict{Vector{Int},Int}(collect(zip(FV, 1:length(FV))))
 
-
-   # extraction of atoms from arranged space
    outerspace, __others = SELECTATOMS(V, atoms)
 
    # Visualization of all atoms
@@ -383,22 +377,14 @@ function VIEWATOMS(V, copEV, copFE, copCF, atoms; view_outer=true)
       end
 
       atom_EV, atom_FV = atom
-      @show(atom_EV,atom_FV)
       atom_EV = [sort(it) for it in union(CAT(atom_EV))]
       atom_FV = [sort(it) for it in atom_FV] 
 
-      #@show(V)
-      #@show(atom_EV)
-      #@show(atom_FV)
-
       VIEWCOMPLEX(permutedims(V), atom_EV, atom_FV,
-         V_text=["v" for it in 1:size(V,1)],
-         EV_text=["e" for it in atom_EV],
-         FV_text=["f" for it in atom_FV])
-
-         #,V_text=[string(I)   for I in 1::len(atom_V)]
-         #,EV_text=[string(ev_text[it]) for it in atom_EV]
-         #,FV_text=[string(fv_text[it]) for it in atom_FV]
+      V_text=[string(I) for I in 1:num_vertices],
+         EV_text=[string(ev_text[it]) for it in atom_EV],
+         FV_text=[string(fv_text[it]) for it in atom_FV]
+      )
    end
 
 end
