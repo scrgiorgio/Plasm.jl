@@ -282,38 +282,6 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 
-function componentgraph(V, copEV, bicon_comps)
-    #print_organizer("Plasm."*"componentgraph")
-    # arrangement of isolated components
-    n = size(bicon_comps, 1)
-    shells = Array{Chain,1}(undef, n)
-    boundaries = Array{ChainOp,1}(undef, n)
-    EVs = Array{ChainOp,1}(undef, n)
-    # for each component
-    for p in 1:n
-        ev = copEV[sort(bicon_comps[p]), :]
-        # computation of 2-cells
-        fe = minimal_2cycles(V, ev)
-        # exterior cycle
-        shell_num = get_external_cycle(V, ev, fe)
-        # decompose each fe (co-boundary local to component)
-        EVs[p] = ev
-        tokeep = setdiff(1:fe.m, shell_num)
-        boundaries[p] = fe[tokeep, :]
-        shells[p] = fe[shell_num, :]
-    end
-    # computation of bounding boxes of isolated components
-    shell_bboxes = []
-    for i in 1:n
-        vs_indexes = (abs.(EVs[i]') * abs.(shells[i])).nzind
-        push!(shell_bboxes, bbox(V[vs_indexes, :]))
-    end
-    # computation and reduction of containment graph
-    containment_graph = pre_containment_test(shell_bboxes)
-    containment_graph = prune_containment_graph(n, V, EVs, shells, containment_graph)
-    transitive_reduction!(containment_graph)
-    return n, containment_graph, V, EVs, boundaries, shells, shell_bboxes
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 
@@ -1008,46 +976,34 @@ function FV2EVs(copEV::ChainOp, copFE::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function planar_arrangement(
-    V::Points,
-    copEV::ChainOp,
-    sigma::Chain=spzeros(Int8, 0),
-    return_edge_map::Bool=false,
-    multiproc::Bool=false)
+function planar_arrangement(V::Points,copEV::ChainOp,sigma::Chain=spzeros(Int8, 0))
 
+    # planar_arrangement_1
 
+    # data structures initialization
+    edgenum = size(copEV, 1)
+    edge_map = Array{Array{Int,1},1}(undef, edgenum)
+    rV = Points(zeros(0, 2))
+    rEV = SparseArrays.spzeros(Int8, 0, 0)
+    finalcells_num = 0
 
-    function planar_arrangement_1(V, copEV, sigma::Chain=spzeros(Int8, 0), return_edge_map::Bool=false, multiproc::Bool=false)
+    # space index computation
+    model = (permutedims(V), cop2lar(copEV))
+    bigPI = spaceindex(model)
 
-        # data structures initialization
-        edgenum = size(copEV, 1)
-        edge_map = Array{Array{Int,1},1}(undef, edgenum)
-        rV = Points(zeros(0, 2))
-        rEV = SparseArrays.spzeros(Int8, 0, 0)
-        finalcells_num = 0
-    
-        # space index computation
-        model = (permutedims(V), cop2lar(copEV))
-        bigPI = spaceindex(model)
-    
-        # sequential (iterative) processing of edge fragmentation
-        for i in 1:edgenum
-            v, ev = frag_edge(V, copEV, i, bigPI)
-            newedges_nums = map(x -> x + finalcells_num, collect(1:size(ev, 1)))
-            edge_map[i] = newedges_nums
-            finalcells_num += size(ev, 1)
-            rV = convert(Points, rV)
-            rV, rEV = skel_merge(rV, rEV, v, ev)
-        end
-        #  end
-        # merging of close vertices and edges (2D congruence)
-        V, copEV = rV, rEV
-        V, copEV = merge_vertices!(V, copEV, edge_map)
-        return V, copEV, sigma, edge_map
+    # sequential (iterative) processing of edge fragmentation
+    for i in 1:edgenum
+        v, ev = frag_edge(V, copEV, i, bigPI)
+        newedges_nums = map(x -> x + finalcells_num, collect(1:size(ev, 1)))
+        edge_map[i] = newedges_nums
+        finalcells_num += size(ev, 1)
+        rV = convert(Points, rV)
+        rV, rEV = skel_merge(rV, rEV, v, ev)
     end
-
-    #planar_arrangement_1
-    V, copEV, sigma, edge_map = planar_arrangement_1(V, copEV, sigma, return_edge_map, multiproc)
+    #  end
+    # merging of close vertices and edges (2D congruence)
+    V, copEV = rV, rEV
+    V, copEV = merge_vertices!(V, copEV, edge_map)
 
     # cleandecomposition
     if sigma.n > 0
@@ -1059,12 +1015,7 @@ function planar_arrangement(
     # V,bicon_comps = biconnectedComponent((V,EV))
 
     if isempty(bicon_comps)
-        #print_organizer("Plasm."*"No biconnected components found.")
-        if (return_edge_map)
-            return (nothing, nothing, nothing, nothing)
-        else
-            return (nothing, nothing, nothing)
-        end
+        return (nothing, nothing, nothing)
     end
 
     function planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma::Chain=spzeros(Int8, 0))
@@ -1089,7 +1040,38 @@ function planar_arrangement(
     
         bicon_comps = biconnected_components(copEV)
     
-        # component graph
+        function componentgraph(V, copEV, bicon_comps)
+            # arrangement of isolated components
+            n = size(bicon_comps, 1)
+            shells = Array{Chain,1}(undef, n)
+            boundaries = Array{ChainOp,1}(undef, n)
+            EVs = Array{ChainOp,1}(undef, n)
+            # for each component
+            for p in 1:n
+                ev = copEV[sort(bicon_comps[p]), :]
+                # computation of 2-cells
+                fe = minimal_2cycles(V, ev)
+                # exterior cycle
+                shell_num = get_external_cycle(V, ev, fe)
+                # decompose each fe (co-boundary local to component)
+                EVs[p] = ev
+                tokeep = setdiff(1:fe.m, shell_num)
+                boundaries[p] = fe[tokeep, :]
+                shells[p] = fe[shell_num, :]
+            end
+            # computation of bounding boxes of isolated components
+            shell_bboxes = []
+            for i in 1:n
+                vs_indexes = (abs.(EVs[i]') * abs.(shells[i])).nzind
+                push!(shell_bboxes, bbox(V[vs_indexes, :]))
+            end
+            # computation and reduction of containment graph
+            containment_graph = pre_containment_test(shell_bboxes)
+            containment_graph = prune_containment_graph(n, V, EVs, shells, containment_graph)
+            transitive_reduction!(containment_graph)
+            return n, containment_graph, V, EVs, boundaries, shells, shell_bboxes
+        end
+
         n, containment_graph, V, EVs, boundaries, shells, shell_bboxes = componentgraph(V, copEV, bicon_comps)
     
         copEV, FE = cell_merging(
@@ -1100,12 +1082,7 @@ function planar_arrangement(
 
 
     #Planar_arrangement_2
-    V, copEV, FE = planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma)
-    if (return_edge_map)
-        return V, copEV, FE, edge_map
-    else
-        return V, copEV, FE
-    end
+    return planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
