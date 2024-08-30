@@ -8,6 +8,8 @@
 ```
 convert(Points
 permutedims(V)
+
+findnz
 ```
 
 ## Run tests

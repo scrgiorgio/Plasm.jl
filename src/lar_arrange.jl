@@ -7,11 +7,6 @@ using IntervalTrees
 using NearestNeighbors
 using StaticArrays
 
-export arrange2D, Points, Cells, Cell, Chain, ChainOp, ChainComplex,
-    bbox, FV2EVs, cop2lar, lar2cop, characteristicMatrix, boundary_1, coboundary_0,
-    constrained_triangulation2D, point_in_face, buildFV, pointInPolygonClassification, setTile, spaceindex, testpoint,
-    coboundary_1
-
 const Points = Matrix
 const Cells = Vector{Vector{Int}}
 const Cell = SparseVector{Int8,Int}
@@ -19,7 +14,10 @@ const Chain = SparseVector{Int8,Int}
 const ChainOp = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
 
+export Points, Cells, Cell, Chain, ChainOp, ChainComplex
+
 # //////////////////////////////////////////////////////////////////////////////
+export bbox
 """
     bbox(vertices::Points)
 
@@ -418,6 +416,7 @@ function boxcovering(bboxes, index, tree)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export lar2cop
 function lar2cop(CV::Cells)::ChainOp
     I = Int[]
     J = Int[]
@@ -433,10 +432,10 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-
+export point_in_face
 """ Test of point containment in a polygon face """
 function point_in_face(point, V::Points, copEV::ChainOp)
-    #print_organizer("point_in_face")
+    
     function pointInPolygonClassification(V, EV)
 
         """ Accumulator of partial increments when halfline crosses vertices """
@@ -628,6 +627,7 @@ function intersect_edges(V::Points, edge1::Cell, edge2::Cell)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export cop2lar
 function cop2lar(cop::ChainOp)::Cells
     #print_organizer("Plasm."*"cop2lar")
     [findnz(cop[k, :])[1] for k = 1:size(cop, 1)]
@@ -658,6 +658,7 @@ function skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp,
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export buildFV
 function buildFV(EV::Cells, face::Cell)
     return buildFV(build_copEV(EV), face)
 end
@@ -720,6 +721,7 @@ function face_area(V::Points, EV::ChainOp, face::Cell)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export constrained_triangulation2D
 function constrained_triangulation2D(V::Points, EV::Cells)
     triin = Triangulate.TriangulateIO()    # object generation
     triin.pointlist = V
@@ -995,7 +997,7 @@ function planar_arrangement_1(V, copEV, sigma::Chain=spzeros(Int8, 0), return_ed
     rEV = SparseArrays.spzeros(Int8, 0, 0)
     finalcells_num = 0
 
-    # spaceindex computation
+    # space index computation
     model = (permutedims(V), cop2lar(copEV))
     bigPI = spaceindex(model)
 
@@ -1093,6 +1095,7 @@ function triangulate2D(V::Points, cc::ChainComplex)::Array{Any,1}
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export FV2EVs
 function FV2EVs(copEV::ChainOp, copFE::ChainOp)
     EV = [findnz(copEV[k, :])[1] for k = 1:size(copEV, 1)]
     FE = [findnz(copFE[k, :])[1] for k = 1:size(copFE, 1)]
@@ -1138,6 +1141,7 @@ function planar_arrangement(
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export characteristicMatrix
 function characteristicMatrix(FV::Cells)::ChainOp
     I, J, V = Int64[], Int64[], Int8[]
     for f = 1:length(FV)
@@ -1151,6 +1155,7 @@ function characteristicMatrix(FV::Cells)::ChainOp
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export boundary_1
 function boundary_1(EV::Cells)::ChainOp
     out = characteristicMatrix(EV)'
     for e = 1:length(EV)
@@ -1159,9 +1164,11 @@ function boundary_1(EV::Cells)::ChainOp
     return out
 end
 
+export coboundary_0
 coboundary_0(EV::Cells) = convert(ChainOp, LinearAlgebra.transpose(boundary_1(EV::Cells)))
 
 # //////////////////////////////////////////////////////////////////////////////
+export arrange2D
 function arrange2D(V, EV)
     copEV = coboundary_0(EV::Cells)
     cop_EW = convert(ChainOp, copEV)
@@ -1203,6 +1210,7 @@ function u_coboundary_1(FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+export coboundary_1
 function coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool)::ChainOp
 
     copFE = u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex)
@@ -1275,7 +1283,6 @@ function coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bo
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////
 function coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
     # generate unsigned operator's sparse matrix
     copFV = characteristicMatrix(FV)
@@ -1293,8 +1300,8 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
     # strange but necessary cycle of computations to get FV::Cells algebraically
     FV = (abs.(FE) * abs.(EV)) .÷ 2
     FV = convert(ChainOp, FV)
-    model = V', Plasm.cop2lar(FV)
-    sp_idx = Plasm.spaceindex(model)
+    model = V', cop2lar(FV)
+    sp_idx = spaceindex(model)
     rV = Points(undef, 0, 3)
     rEV = SparseArrays.spzeros(Int8, 0, 0)
     rFE = SparseArrays.spzeros(Int8, 0, 0)
@@ -1317,7 +1324,6 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Main to build the multidimensional `spaceindex(model)` for any d-cell type """
 function spaceindex(model)::Vector{Vector{Int}}
     V, CV = model[1:2]
     dim = size(V, 1)
@@ -1553,8 +1559,8 @@ function build_copFC(rV, rcopEV, rcopFE)
 
     # G&F -> Pao data structures
     V = permutedims(rV)
-    EV = Plasm.cop2lar(rcopEV)
-    fe = Plasm.cop2lar(rcopFE)
+    EV = cop2lar(rcopEV)
+    fe = cop2lar(rcopFE)
     fv = [union([EV[e] for e in fe[f]]...) for f = 1:length(fe)]
     FV = convert(Cells, fv)
     copFE = rcopFE    # alias useful for algorithm testing 

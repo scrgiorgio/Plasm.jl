@@ -11,6 +11,7 @@ export settestpoints, testinternalpoint, getinternalpoint, internalpoints, rayin
 
 # //////////////////////////////////////////////////////////////////////////////
 # working in 2D ///////////////////////////////////////////////////////////////
+export pointInPolygonClassification
 """ Test di contenimento di un punto 2D in un poligono 2D """
 function pointInPolygonClassification(V, EV)
 
