@@ -1,35 +1,3 @@
-using LinearAlgebra
-using SparseArrays
-using DataStructures
-using NearestNeighbors
-using Triangulate
-using IntervalTrees
-using NearestNeighbors
-using StaticArrays
-
-const Points = Matrix{Float64}
-const Cells = Vector{Vector{Int}}
-const Cell = SparseVector{Int8,Int}
-const Chain = SparseVector{Int8,Int}
-const ChainOp = SparseMatrixCSC{Int8,Int}
-const ChainComplex = Vector{ChainOp}
-
-export Points, Cells, Cell, Chain, ChainOp, ChainComplex
-
-# //////////////////////////////////////////////////////////////////////////////
-export bbox
-"""
-		bbox(vertices::Points)
-
-The axis aligned *bounding box* of the provided Matrix of n-dim `vertices`.
-The box is returned as the pair of `Points` of two opposite corners.
-"""
-function bbox(vertices::Points)
-	minimum = mapslices(x -> min(x...), vertices, dims=1)
-	maximum = mapslices(x -> max(x...), vertices, dims=1)
-	minimum, maximum
-end
-
 # //////////////////////////////////////////////////////////////////////////////
 function get_external_cycle(V_row::Points, EV::ChainOp, FE::ChainOp)
 	FV = abs.(FE) * EV
@@ -65,11 +33,6 @@ function get_external_cycle(V_row::Points, EV::ChainOp, FE::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-"""
-	 minimal_cycles(V::Points, EV::ChainOp)(V::Points, EV::ChainOp)
-	 
-Interface of TGW algorithm in 2D
-"""
 function minimal_cycles(angles_fn::Function, verbose=true)
 	# External interface of TGW algorithm in 2D
 	function _minimal_cycles(V::Points,
@@ -176,7 +139,6 @@ function minimal_cycles(angles_fn::Function, verbose=true)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function minimal_2cycles(V::Points, EV::ChainOp)
 
 	function edge_angle(v::Int, e::Int)
@@ -197,14 +159,6 @@ function minimal_2cycles(V::Points, EV::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function bbox_contains(container, contained)
-	b1_min, b1_max = container
-	b2_min, b2_max = contained
-	all(map((i, j, k, l) -> i <= j <= k <= l, b1_min, b2_min, b2_max, b1_max))
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-
 function prune_containment_graph(n, V, EVs, shells, graph)
 
 	for i in 1:n
@@ -230,7 +184,6 @@ function prune_containment_graph(n, V, EVs, shells, graph)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function transitive_reduction!(graph)
 	n = size(graph, 1)
 	for j in 1:n
@@ -247,7 +200,6 @@ function transitive_reduction!(graph)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function pre_containment_test(bboxes)
 	n = length(bboxes)
 	containment_graph = spzeros(Int8, n, n)
@@ -264,10 +216,6 @@ function pre_containment_test(bboxes)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
-
-# //////////////////////////////////////////////////////////////////////////////
-
 function cell_merging(n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
 	function bboxes(V::Points, indexes::ChainOp)
 		boxes = Array{Tuple{Any,Any}}(undef, indexes.n)
@@ -325,60 +273,6 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 
-function boundingbox(vertices::Points)
-	minimum = mapslices(x -> min(x...), vertices, dims=2)
-	maximum = mapslices(x -> max(x...), vertices, dims=2)
-	return minimum, maximum
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-
-""" Make dictionary of 1D boxes for IntervalTrees construction """
-function coordintervals(coord, bboxes)
-	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()
-	for (h, box) in enumerate(bboxes)
-		key = box[coord, :]
-		if haskey(boxdict, key) == false
-			boxdict[key] = [h]
-		else
-			push!(boxdict[key], h)
-		end
-	end
-	return boxdict
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-
-function boxcovering(bboxes, index, tree)
-	covers = [[] for k = 1:length(bboxes)]
-	for (i, boundingbox) in enumerate(bboxes)
-		extent = bboxes[i][index, :]
-		iterator = IntervalTrees.intersect(tree, tuple(extent...))
-		for x in iterator
-			append!(covers[i], x.value)
-		end
-	end
-	return covers
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-export lar2cop
-function lar2cop(CV::Cells)::ChainOp
-	I = Int[]
-	J = Int[]
-	Value = Int8[]
-	for k = 1:size(CV, 1)
-		n = length(CV[k])
-		append!(I, k * ones(Int, n))
-		append!(J, CV[k])
-		append!(Value, ones(Int, n))
-	end
-	return SparseArrays.sparse(I, J, Value)
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-export point_in_face
 """ Test of point containment in a polygon face """
 function point_in_face(point, V_row::Points, copEV::ChainOp)
 
@@ -508,6 +402,7 @@ function point_in_face(point, V_row::Points, copEV::ChainOp)
 
 	return pointInPolygonClassification(V_row, copEV)(point) == "p_in"
 end
+export point_in_face
 
 # //////////////////////////////////////////////////////////////////////////////
 function delete_edges(edges_to_del, V_row::Points, EV::ChainOp)
@@ -567,14 +462,8 @@ function intersect_edges(V::Points, edge1::Cell, edge2::Cell)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-export cop2lar
-function cop2lar(cop::ChainOp)::Cells
-	[findnz(cop[k, :])[1] for k = 1:size(cop, 1)]
-end
-
-# //////////////////////////////////////////////////////////////////////////////
 """
-		skel_merge(V1::Points, EV1::ChainOp, V2::Points, EV2::ChainOp)
+skel_merge(V1::Points, EV1::ChainOp, V2::Points, EV2::ChainOp)
 
 Merge two **1-skeletons**
 """
@@ -585,23 +474,17 @@ function skel_merge(V1::Points, EV1::ChainOp, V2::Points, EV2::ChainOp)
 end
 
 """
-		skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp, V2::Points, EV2::ChainOp, FE2::ChainOp)
+skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp, V2::Points, EV2::ChainOp, FE2::ChainOp)
 
 Merge two **2-skeletons**
 """
-function skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp,
-	V2::Points, EV2::ChainOp, FE2::ChainOp)
+function skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp,V2::Points, EV2::ChainOp, FE2::ChainOp)
 	FE = blockdiag(FE1, FE2)
 	V, EV = skel_merge(V1, EV1, V2, EV2)
 	return V, EV, FE
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-export buildFV
-function buildFV(EV::Cells, face::Cell)
-	return buildFV(build_copEV(EV), face)
-end
-
 function buildFV(copEV::ChainOp, face::Cell)
 	startv = -1
 	nextv = 0
@@ -624,12 +507,14 @@ function buildFV(copEV::ChainOp, face::Cell)
 
 	return vs[1:end-1]
 end
+export buildFV
 
+function buildFV(EV::Cells, face::Cell)
+	return buildFV(build_copEV(EV), face)
+end
 
 # //////////////////////////////////////////////////////////////////////////////
-function face_area(V::Points, EV::Cells, face::Cell)
-	return face_area(V, build_copEV(EV), face)
-end
+
 
 function face_area(V::Points, EV::ChainOp, face::Cell)
 	function triangle_area(triangle_points::Points)
@@ -656,19 +541,9 @@ function face_area(V::Points, EV::ChainOp, face::Cell)
 	return area
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-export constrained_triangulation2D
-function constrained_triangulation2D(V::Points, EV::Cells)
-	triin = Triangulate.TriangulateIO()
-	triin.pointlist = V # Triangulate wants the by-col representation as LAR
-	triin.segmentlist = hcat(EV...)
-	(triout, vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
-	ret = Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
-	return ret
+function face_area(V::Points, EV::Cells, face::Cell)
+	return face_area(V, build_copEV(EV), face)
 end
-
-
-
 
 # //////////////////////////////////////////////////////////////////////////////
 function biconnected_components(EV::ChainOp)
@@ -888,11 +763,6 @@ function frag_edge(V, EV::ChainOp, edge_idx::Int, bigPI)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
-
-""" Build the 2D 1-skeleton of arranged face `sigma` """
-
-# //////////////////////////////////////////////////////////////////////////////
 function permutationOrbits(perm::OrderedDict)
 	out = Array{Int64,1}[]
 	while perm ≠ Dict()
@@ -924,16 +794,6 @@ function faces2polygons(copEV, copFE)
 	return polygons, cycles
 end
 
-
-
-# //////////////////////////////////////////////////////////////////////////////
-export FV2EVs
-function FV2EVs(copEV::ChainOp, copFE::ChainOp)
-	EV = [findnz(copEV[k, :])[1] for k = 1:size(copEV, 1)]
-	FE = [findnz(copFE[k, :])[1] for k = 1:size(copFE, 1)]
-	EVs = [[EV[e] for e in fe] for fe in FE]
-	return EVs
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8, 0))
@@ -1043,38 +903,8 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 	return planar_arrangement_2(V_row, copEV, bicon_comps, edge_map, sigma)
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-export characteristicMatrix
-function characteristicMatrix(FV::Cells)::ChainOp
-	I, J, V = Int64[], Int64[], Int8[]
-	for f = 1:length(FV)
-		for k in FV[f]
-			push!(I, f)
-			push!(J, k)
-			push!(V, 1)
-		end
-	end
-	return sparse(I, J, V)
-end
 
 # //////////////////////////////////////////////////////////////////////////////
-export boundary_1
-function boundary_1(EV::Cells)::ChainOp
-	out = characteristicMatrix(EV)'
-	for e = 1:length(EV)
-		out[EV[e][1], e] = -1
-	end
-	return out
-end
-
-export coboundary_0
-function coboundary_0(EV::Cells)::ChainOp
-	return convert(ChainOp, LinearAlgebra.transpose(boundary_1(EV::Cells)))
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-export arrange2D
 function arrange2D(V, EV)
 
 	copEV = coboundary_0(EV::Cells)
@@ -1125,8 +955,7 @@ function arrange2D(V, EV)
 	FVs = convert(Array{Cells}, triangulated_faces)
 	return V, FVs, EVs, copEV, copFE
 end
-
-
+export arrange2D
 
 # //////////////////////////////////////////////////////////////////////////////
 function u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex=true::Bool)::ChainOp
@@ -1242,7 +1071,6 @@ function coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exteri
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-export space_arrangement
 """ Main function of arrangement pipeline """
 function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 
@@ -1299,6 +1127,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	# historically arrangement works internally by using by-row vertices
 	return BYCOL(rV), rcopEV, rcopFE, rcopCF
 end
+export space_arrangement
 
 # //////////////////////////////////////////////////////////////////////////////
 function spaceindex(V::Matrix{Float64}, CV)::Vector{Vector{Int}}
@@ -1348,7 +1177,7 @@ function face_int(V::Points, EV::ChainOp, face::Cell)
 			if -err <= alpha <= 1 + err
 				p = o + alpha * d
 				if -err < alpha < err || 1 - err < alpha < 1 + err
-					if !(vin(p, visited_verts))
+					if !(is_visited_vertex(p, visited_verts))
 						push!(visited_verts, p)
 						retV = [retV; reshape(p, 1, 3)]
 					end
@@ -1372,25 +1201,6 @@ function face_int(V::Points, EV::ChainOp, face::Cell)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Predicate to check membership of `vertex` in `vertices_set` array"""
-function vin(vertex, vertices_set)::Bool
-	for v in vertices_set
-		if vequals(vertex, v)
-			return true
-		end
-	end
-	return false
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-""" Predicate to check equality of two vertices (only used above) """
-function vequals(v1, v2)
-	err = 10e-8
-	return length(v1) == length(v2) && all(map((x1, x2) -> -err < x1 - x2 < err, v1, v2))
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-
 """ Task to iteratively add new local components to the global 2-skeleton """
 # Remark: sensible to `err`; works w `err=1e-6`, "ERROR: no pivot" with `err=1e-7`
 function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
@@ -1468,7 +1278,6 @@ function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
 	end
 	return Points(nV), nEV, nFE
 end
-
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
@@ -1685,7 +1494,28 @@ function myprev(cycle, pivot, marks)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-export pols2tria
+""" Coherently orient the edges of f face """
+function vcycle(copEV::ChainOp, copFE::ChainOp, f::Int)
+	edges, signs = findnz(copFE[f, :])
+	vpairs = [s > 0 ? findnz(copEV[e, :])[1] :
+						reverse(findnz(copEV[e, :])[1])
+						for (e, s) in zip(edges, signs)]
+	a = [pair for pair in vpairs if length(pair) == 2]
+	function mycat(a::Cells)
+		out = []
+		for cell in a
+			append!(out, cell)
+		end
+		return out
+	end
+	vs = collect(Set(mycat(a)))
+	vdict = Dict(zip(vs, 1:length(vs)))
+	edges = [[vdict[pair[1]], vdict[pair[2]]] for pair in vpairs if length(pair) == 2]
+	return vs, edges
+end
+export vcycle
+
+
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
 function pols2tria(V, copEV, copFE, copCF) # W by columns
 	V_row = BYROW(V)
@@ -1737,6 +1567,7 @@ function pols2tria(V, copEV, copFE, copCF) # W by columns
 	end
 	return V, CVs, FVs, EVs
 end
+export pols2tria
 
 # ///////////////////////////////////////////////////////////////
 ## Fs is the signed coord vector of a subassembly
@@ -1778,46 +1609,4 @@ function pols2tria(V, copEV, copFE, copCF, Fs)
 	# finally compute the cells, faces, and edges of subassembly
 	return pols2tria(V, copEV, copFE, copCF)
 end
-
-# //////////////////////////////////////////////////////////////////////////////
-""" Coherently orient the edges of f face """
-function vcycle(copEV::ChainOp, copFE::ChainOp, f::Int)
-	edges, signs = findnz(copFE[f, :])
-	vpairs = [s > 0 ? findnz(copEV[e, :])[1] :
-						reverse(findnz(copEV[e, :])[1])
-						for (e, s) in zip(edges, signs)]
-	a = [pair for pair in vpairs if length(pair) == 2]
-	function mycat(a::Cells)
-		out = []
-		for cell in a
-			append!(out, cell)
-		end
-		return out
-	end
-	vs = collect(Set(mycat(a)))
-	vdict = Dict(zip(vs, 1:length(vs)))
-	edges = [[vdict[pair[1]], vdict[pair[2]]] for pair in vpairs if length(pair) == 2]
-	return vs, edges
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-""" CDT Constrained Delaunay Triangulation """
-function TRIANGUATE2D(V::Points, EV::Cells)
-	V_row = BYROW(V)
-	num_vertices=size(V_row)[1]
-	points_map = Array{Int,1}(collect(1:1:num_vertices))
-	edges_list = convert(Array{Int,2}, hcat(EV...)')
-	trias = constrained_triangulation2D(V, EV)
-	ret = Array{Int,1}[]
-	for (u, v, w) in trias
-		point = (V_row[u, :] + V_row[v, :] + V_row[w, :]) ./ 3
-		copEV = lar2cop(EV)
-		inner = point_in_face(point, V_row, copEV)
-		if inner
-			push!(ret, [u, v, w])
-		end
-	end
-	return ret
-end
-
 

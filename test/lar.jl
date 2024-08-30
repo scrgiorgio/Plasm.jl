@@ -246,7 +246,7 @@ function TestRandomCubes()
   copFE = coboundary_1(V, FV, EV)
   V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE)
   V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF);
-  SHOWEXPLODED(V, CVs, FVs, EVs)
+  VIEWEXPLODED(V, CVs, FVs, EVs)
   
 end
 
@@ -311,7 +311,7 @@ function TestBool3D()
 
 	boolmatrix = bool3d(assembly, V,copEV,copFE,copCF);
 	V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
-	SHOWEXPLODED(V,CVs,FVs,EVs)
+	VIEWEXPLODED(V,CVs,FVs,EVs)
 	
 	Matrix(boolmatrix)
 	
