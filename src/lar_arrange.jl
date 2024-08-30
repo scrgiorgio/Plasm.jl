@@ -7,7 +7,7 @@ using IntervalTrees
 using NearestNeighbors
 using StaticArrays
 
-const Points = Matrix
+const Points = Matrix{Float64}
 const Cells = Vector{Vector{Int}}
 const Cell = SparseVector{Int8,Int}
 const Chain = SparseVector{Int8,Int}
@@ -528,7 +528,6 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function delete_edges(todel, V::Points, EV::ChainOp)
-    #print_organizer("Plasm."*"delete_edges")
     tokeep = setdiff(collect(1:EV.m), todel)
     EV = EV[tokeep, :]
 
@@ -684,16 +683,15 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 export constrained_triangulation2D
 function constrained_triangulation2D(V::Points, EV::Cells)
-    triin = Triangulate.TriangulateIO()    # object generation
-    triin.pointlist = V
+    triin = Triangulate.TriangulateIO()
+    triin.pointlist = BYROW(V)
     triin.segmentlist = hcat(EV...)
     (triout, vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
-    trias = Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
-    return trias
+    ret = Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
+    return ret
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -981,8 +979,7 @@ function planar_arrangement(V::Points,copEV::ChainOp,sigma::Chain=spzeros(Int8, 
     finalcells_num = 0
 
     # space index computation
-    model = (permutedims(V), cop2lar(copEV))
-    bigPI = spaceindex(model)
+    bigPI = spaceindex(V, cop2lar(copEV))
 
     # sequential (iterative) processing of edge fragmentation
     for i in 1:edgenum
@@ -1309,8 +1306,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
     # strange but necessary cycle of computations to get FV::Cells algebraically
     FV = (abs.(FE) * abs.(EV)) .÷ 2
     FV = convert(ChainOp, FV)
-    model = V', cop2lar(FV)
-    sp_idx = spaceindex(model)
+    sp_idx = spaceindex(V, cop2lar(FV))
     rV = Points(undef, 0, 3)
     rEV = SparseArrays.spzeros(Int8, 0, 0)
     rFE = SparseArrays.spzeros(Int8, 0, 0)
@@ -1335,8 +1331,8 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function spaceindex(model)::Vector{Vector{Int}}
-    V, CV = model[1:2]
+function spaceindex(V::Matrix{Float64}, CV)::Vector{Vector{Int}}
+    V=BYROW(V)
     dim = size(V, 1)
     cellpoints = [V[:, CV[k]] for k = 1:LEN(CV)]
     bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints]
@@ -1841,17 +1837,17 @@ function TRIANGUATE2D(V::Points, EV::Cells)
     points = convert(Array{Float64,2}, V')
     points_map = Array{Int,1}(collect(1:1:size(points)[1]))
     edges_list = convert(Array{Int,2}, hcat(EV...)')
-    trias = constrained_triangulation2D(V, EV)
-    innertriangles = Array{Int,1}[]
+    trias = constrained_triangulation2D(permutedims(V), EV)
+    ret = Array{Int,1}[]
     for (u, v, w) in trias
         point = (points[u, :] + points[v, :] + points[w, :]) ./ 3
         copEV = lar2cop(EV)
         inner = point_in_face(point, points, copEV)
         if inner
-            push!(innertriangles, [u, v, w])
+            push!(ret, [u, v, w])
         end
     end
-    return innertriangles
+    return ret
 end
 
 

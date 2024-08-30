@@ -195,7 +195,7 @@ function TestRandomLines()
   
   lar = LAR(hpc)
   V, EV  = lar.V, lar.C[:EV]
-  V,FVs,EVs = Plasm.arrange2D(V,EV)
+  V,FVs,EVs = arrange2D(V,EV)
   
   function ViewColored(V,cells, scale=1.2, line_width=3)
     exploded = explodecells(V, cells, sx=scale, sy=scale, sz=scale)
@@ -269,8 +269,7 @@ function TestRandomBubbles()
   
   lar = LAR(hpc)
   V, EV  = lar.V, lar.C[:EV]
-  
-  V,FVs,EVs = Plasm.arrange2D(V,EV)
+  V,FVs,EVs = arrange2D(V,EV)
   
   function ViewColored(V,cells, scale=1.2, line_width=3)
     exploded = explodecells(V, cells, sx=scale, sy=scale, sz=scale)
