@@ -733,36 +733,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma::Chain=spzeros(Int8, 0))
-    #print_organizer("Plasm."*"planar_arrangement_2")
 
-    edges = sort(union(bicon_comps...))
-    todel = sort(setdiff(collect(1:size(copEV, 1)), edges))
-
-    for i in reverse(todel)
-        for row in edge_map
-
-            filter!(x -> x != i, row)
-
-            for j in 1:length(row)
-                if row[j] > i
-                    row[j] -= 1
-                end
-            end
-        end
-    end
-
-
-    bicon_comps = biconnected_components(copEV)
-
-    # component graph
-    n, containment_graph, V, EVs, boundaries, shells, shell_bboxes = componentgraph(V, copEV, bicon_comps)
-
-    copEV, FE = cell_merging(
-        n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
-
-    return V, copEV, FE
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 function biconnected_components(EV::ChainOp)
@@ -989,34 +960,7 @@ function frag_edge(V, EV::ChainOp, edge_idx::Int, bigPI)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function planar_arrangement_1(V, copEV, sigma::Chain=spzeros(Int8, 0), return_edge_map::Bool=false, multiproc::Bool=false)
 
-    # data structures initialization
-    edgenum = size(copEV, 1)
-    edge_map = Array{Array{Int,1},1}(undef, edgenum)
-    rV = Points(zeros(0, 2))
-    rEV = SparseArrays.spzeros(Int8, 0, 0)
-    finalcells_num = 0
-
-    # space index computation
-    model = (permutedims(V), cop2lar(copEV))
-    bigPI = spaceindex(model)
-
-    # sequential (iterative) processing of edge fragmentation
-    for i in 1:edgenum
-        v, ev = frag_edge(V, copEV, i, bigPI)
-        newedges_nums = map(x -> x + finalcells_num, collect(1:size(ev, 1)))
-        edge_map[i] = newedges_nums
-        finalcells_num += size(ev, 1)
-        rV = convert(Points, rV)
-        rV, rEV = skel_merge(rV, rEV, v, ev)
-    end
-    #  end
-    # merging of close vertices and edges (2D congruence)
-    V, copEV = rV, rEV
-    V, copEV = merge_vertices!(V, copEV, edge_map)
-    return V, copEV, sigma, edge_map
-end
 
 """ Build the 2D 1-skeleton of arranged face `sigma` """
 
@@ -1052,48 +996,7 @@ function faces2polygons(copEV, copFE)
     return polygons, cycles
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-function triangulate2D(V::Points, cc::ChainComplex)::Array{Any,1}
-    copEV, copFE = cc
-    triangulated_faces = Array{Any,1}(undef, copFE.m)
-    if size(V, 2) == 2
-        V = [V zeros(size(V, 1), 1)]
-    end
 
-    polygons, edgecycles = faces2polygons(copEV, copFE) #new
-
-    for f in 1:copFE.m
-        edges_idxs = copFE[f, :].nzind
-        edge_num = length(edges_idxs)
-        edges = Array{Int,1}[] #zeros(Int, edge_num, 2)
-
-        # fv = buildFV(copEV, copFE[f, :])
-        fv = union(polygons[f]...)
-        vs = V[fv, :]
-        edges = union(edgecycles[f]...)
-        edges = convert(Array{Int,2}, hcat(edges...)')
-
-        # triangulated_faces[f] = Triangle.constrained_triangulation(
-        # 	vs, fv, edges, fill(true, edge_num))
-        v = convert(Points, vs'[1:2, :])
-        vmap = Dict(zip(fv, 1:length(fv))) # vertex map
-        mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
-        ev = [[vmap[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
-        trias = TRIANGUATE2D(v, ev)
-        triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
-
-        tV = V[:, 1:2]
-
-        area = face_area(tV, copEV, copFE[f, :])
-        if area < 0
-            for i in 1:length(triangulated_faces[f])
-                triangulated_faces[f][i] = triangulated_faces[f][i][end:-1:1]
-            end
-        end
-    end
-
-    return triangulated_faces
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 export FV2EVs
@@ -1111,6 +1014,37 @@ function planar_arrangement(
     sigma::Chain=spzeros(Int8, 0),
     return_edge_map::Bool=false,
     multiproc::Bool=false)
+
+
+
+    function planar_arrangement_1(V, copEV, sigma::Chain=spzeros(Int8, 0), return_edge_map::Bool=false, multiproc::Bool=false)
+
+        # data structures initialization
+        edgenum = size(copEV, 1)
+        edge_map = Array{Array{Int,1},1}(undef, edgenum)
+        rV = Points(zeros(0, 2))
+        rEV = SparseArrays.spzeros(Int8, 0, 0)
+        finalcells_num = 0
+    
+        # space index computation
+        model = (permutedims(V), cop2lar(copEV))
+        bigPI = spaceindex(model)
+    
+        # sequential (iterative) processing of edge fragmentation
+        for i in 1:edgenum
+            v, ev = frag_edge(V, copEV, i, bigPI)
+            newedges_nums = map(x -> x + finalcells_num, collect(1:size(ev, 1)))
+            edge_map[i] = newedges_nums
+            finalcells_num += size(ev, 1)
+            rV = convert(Points, rV)
+            rV, rEV = skel_merge(rV, rEV, v, ev)
+        end
+        #  end
+        # merging of close vertices and edges (2D congruence)
+        V, copEV = rV, rEV
+        V, copEV = merge_vertices!(V, copEV, edge_map)
+        return V, copEV, sigma, edge_map
+    end
 
     #planar_arrangement_1
     V, copEV, sigma, edge_map = planar_arrangement_1(V, copEV, sigma, return_edge_map, multiproc)
@@ -1132,6 +1066,39 @@ function planar_arrangement(
             return (nothing, nothing, nothing)
         end
     end
+
+    function planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma::Chain=spzeros(Int8, 0))
+        #print_organizer("Plasm."*"planar_arrangement_2")
+    
+        edges = sort(union(bicon_comps...))
+        todel = sort(setdiff(collect(1:size(copEV, 1)), edges))
+    
+        for i in reverse(todel)
+            for row in edge_map
+    
+                filter!(x -> x != i, row)
+    
+                for j in 1:length(row)
+                    if row[j] > i
+                        row[j] -= 1
+                    end
+                end
+            end
+        end
+    
+    
+        bicon_comps = biconnected_components(copEV)
+    
+        # component graph
+        n, containment_graph, V, EVs, boundaries, shells, shell_bboxes = componentgraph(V, copEV, bicon_comps)
+    
+        copEV, FE = cell_merging(
+            n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
+    
+        return V, copEV, FE
+    end
+
+
     #Planar_arrangement_2
     V, copEV, FE = planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma)
     if (return_edge_map)
@@ -1174,6 +1141,49 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 export arrange2D
 function arrange2D(V, EV)
+
+    function triangulate2D(V::Points, cc::ChainComplex)::Array{Any,1}
+        copEV, copFE = cc
+        triangulated_faces = Array{Any,1}(undef, copFE.m)
+        if size(V, 2) == 2
+            V = [V zeros(size(V, 1), 1)]
+        end
+    
+        polygons, edgecycles = faces2polygons(copEV, copFE) #new
+    
+        for f in 1:copFE.m
+            edges_idxs = copFE[f, :].nzind
+            edge_num = length(edges_idxs)
+            edges = Array{Int,1}[] #zeros(Int, edge_num, 2)
+    
+            # fv = buildFV(copEV, copFE[f, :])
+            fv = union(polygons[f]...)
+            vs = V[fv, :]
+            edges = union(edgecycles[f]...)
+            edges = convert(Array{Int,2}, hcat(edges...)')
+    
+            # triangulated_faces[f] = Triangle.constrained_triangulation(
+            # 	vs, fv, edges, fill(true, edge_num))
+            v = convert(Points, vs'[1:2, :])
+            vmap = Dict(zip(fv, 1:length(fv))) # vertex map
+            mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
+            ev = [[vmap[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
+            trias = TRIANGUATE2D(v, ev)
+            triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
+    
+            tV = V[:, 1:2]
+    
+            area = face_area(tV, copEV, copFE[f, :])
+            if area < 0
+                for i in 1:length(triangulated_faces[f])
+                    triangulated_faces[f][i] = triangulated_faces[f][i][end:-1:1]
+                end
+            end
+        end
+    
+        return triangulated_faces
+    end
+
     copEV = coboundary_0(EV::Cells)
     cop_EW = convert(ChainOp, copEV)
     V, copEV, copFE = planar_arrangement(permutedims(V), cop_EW::ChainOp)

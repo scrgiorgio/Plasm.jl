@@ -366,7 +366,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function bool3d(assembly::Hpc, W, copEV, copFE, copCF) # W by rows
+function bool3d(V, copEV, copFE, copCF, assembly::Hpc) 
   innerpoints, _ = internalpoints(V, copEV, copFE, copCF)
 
   # associate internal points to (original) faces of 3-cells
