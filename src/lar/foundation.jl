@@ -145,7 +145,6 @@ end
 export FV2EVs
 
 # //////////////////////////////////////////////////////////////////////////////
-
 """
 bbox(vertices::Points)
 
@@ -206,38 +205,33 @@ export coordintervals
 # all triangulation part
 # //////////////////////////////////////////////////////////////////////////////
 
-""" CDT Constrained Delaunay Triangulation """
-function TRIANGUATE2D(V::Points, EV::Cells)
+function constrained_triangulation2D(V::Points, EV::Cells)
+	triin = Triangulate.TriangulateIO()
+	triin.pointlist = V # scrgiorgio: by-col representation as LAR
+	triin.segmentlist = hcat(EV...)
+	(triout, __vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
+	return Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
+end
+
+
+function TRIANGULATE2D(V::Points, EV::Cells)
+	num_vertices=size(V,2)
+	copEV = lar2cop(EV)
 	V_row = BYROW(V)
-	num_vertices=size(V_row)[1]
-	points_map = Array{Int,1}(collect(1:1:num_vertices))
-	edges_list = convert(Array{Int,2}, hcat(EV...)')
 	trias = constrained_triangulation2D(V, EV)
 	ret = Array{Int,1}[]
 	for (u, v, w) in trias
-		point = (V_row[u, :] + V_row[v, :] + V_row[w, :]) ./ 3
-		copEV = lar2cop(EV)
-		inner = point_in_face(point, V_row, copEV)
-		if inner
+		centroid = (V_row[u, :] + V_row[v, :] + V_row[w, :]) ./ 3
+		if point_in_face(centroid, V_row, copEV)
 			push!(ret, [u, v, w])
 		end
 	end
 	return ret
 end
-export TRIANGUATE2D
-
-function constrained_triangulation2D(V::Points, EV::Cells)
-	triin = Triangulate.TriangulateIO()
-	triin.pointlist = V # Triangulate wants the by-col representation as LAR
-	triin.segmentlist = hcat(EV...)
-	(triout, vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
-	ret = Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
-	return ret
-end
-export constrained_triangulation2D
+export TRIANGULATE2D
 
 """ input old LAR consistent data; output triangulated_faces """
-function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells)
+function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells;err = 1e-8)
 
 	""" return ordered vertices  and edges of the 1-cycle f """
 	function __find_cycle(EV, FE, f::Int)
@@ -263,7 +257,7 @@ function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells)
 		return Array{Int}(ordered[1:end-1]), edges
 	end
 
-	triangulated_faces = Vector{Any}(undef, length(FE))
+	triangles_per_face = Vector{Any}(undef, length(FE))
 
 	for edges_idxs in FE
 		edge_num = length(edges_idxs)
@@ -276,21 +270,20 @@ function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells)
 		v1 = LinearAlgebra.normalize(points[2, :] - points[1, :])
 		v2 = [0, 0, 0]
 		v3 = [0, 0, 0]
-		err = 1e-8
 		i = 3
 		while -err < LinearAlgebra.norm(v3) < err
 			v2 = LinearAlgebra.normalize(points[i, :] - points[1, :])
 			v3 = LinearAlgebra.cross(v1, v2)
 			i = i % size(points, 1) + 1
 		end
+		
 		# independent vector triple in face f 
 		M = [v1 v2 v3]
 		projected = BYCOL((points*M)[:, 1:2])
-		trias = constrained_triangulation2D(projected, edges)  # single face f
-		triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
-
+		triangles_per_face[f] = [[mapv[v] for v in t] for t in constrained_triangulation2D(projected, edges)]
 	end
-	return triangulated_faces
+
+	return triangles_per_face
 end
 export LAR2TRIANGLES
 

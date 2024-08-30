@@ -915,7 +915,7 @@ function arrange2D(V, EV)
 	V_row = BYROW(V)
 
 	# triangulate
-	triangulated_faces = Array{Any,1}(undef, copFE.m)
+	triangles_per_face = Array{Any,1}(undef, copFE.m)
 	if size(V_row, 2) == 2
 		V_row = [V_row zeros(size(V_row, 1), 1)]
 	end
@@ -933,26 +933,23 @@ function arrange2D(V, EV)
 		edges = union(edgecycles[f]...)
 		edges = convert(Array{Int,2}, hcat(edges...)')
 
-		# triangulated_faces[f] = Triangle.constrained_triangulation(
-		# 	vs, fv, edges, fill(true, edge_num))
 		v = convert(Points, vs'[1:2, :])
 		vmap = Dict(zip(fv, 1:length(fv))) # vertex map
 		mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
 		ev = [[vmap[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
-		trias = TRIANGUATE2D(v, ev)
-		triangulated_faces[f] = [[mapv[jt] for jt in tria] for tria in trias]
+		triangles_per_face[f] = [[mapv[jt] for jt in triangle] for triangle in TRIANGULATE2D(v, ev)]
 
 		tV = V_row[:, 1:2]
 
 		area = face_area(tV, copEV, copFE[f, :])
 		if area < 0
-			for i in 1:length(triangulated_faces[f])
-				triangulated_faces[f][i] = triangulated_faces[f][i][end:-1:1]
+			for i in 1:length(triangles_per_face[f])
+				triangles_per_face[f][i] = triangles_per_face[f][i][end:-1:1]
 			end
 		end
 	end
 
-	FVs = convert(Array{Cells}, triangulated_faces)
+	FVs = convert(Array{Cells}, triangles_per_face)
 	return V, FVs, EVs, copEV, copFE
 end
 export arrange2D
@@ -1520,8 +1517,7 @@ export vcycle
 function pols2tria(V, copEV, copFE, copCF) # W by columns
 	V_row = BYROW(V)
 
-	# triangulate
-	triangulated_faces = Vector{Any}(undef, copFE.m)
+	triangles_per_face = Vector{Any}(undef, copFE.m)
 
 	for f in 1:copFE.m
 		if f % 10 == 0
@@ -1548,20 +1544,19 @@ function pols2tria(V, copEV, copFE, copCF) # W by columns
 			v = convert(Points, vs'[1:2, :])
 			vmap = Dict(zip(fv, 1:length(fv))) # vertex map
 			mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
-			trias = TRIANGUATE2D(v, edges)  # single face f
-			triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
+			triangles_per_face[f] = [[mapv[v] for v in tria] for tria in TRIANGULATE2D(v, edges)]
 		end
 	end
-	triangulated_faces = convert(Vector{Cells}, triangulated_faces)
+	triangles_per_face = convert(Vector{Cells}, triangles_per_face)
 
-	EVs = FV2EVs(copEV, copFE) # polygonal face fragments
-	FVs = convert(Array{Cells}, triangulated_faces)
+	# polygonal face fragments
+	EVs = FV2EVs(copEV, copFE) 
+	FVs = convert(Array{Cells}, triangles_per_face)
 	CVs = []
 	for cell in 1:copCF.m
 		obj = []
 		for f in copCF[cell, :].nzind
-			triangles = triangulated_faces[f]
-			append!(obj, triangles)
+			append!(obj, triangles_per_face[f])
 		end
 		push!(CVs, obj)
 	end
