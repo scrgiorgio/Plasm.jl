@@ -969,6 +969,8 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function planar_arrangement(V::Points,copEV::ChainOp,sigma::Chain=spzeros(Int8, 0))
 
+    V=BYROW(V)
+
     # planar_arrangement_1
 
     # data structures initialization
@@ -1067,7 +1069,7 @@ function planar_arrangement(V::Points,copEV::ChainOp,sigma::Chain=spzeros(Int8, 
         copEV, FE = cell_merging(
             n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
     
-        return V, copEV, FE
+        return BYCOL(V), copEV, FE
     end
 
 
@@ -1109,55 +1111,53 @@ end
 export arrange2D
 function arrange2D(V, EV)
 
-    function triangulate2D(V::Points, cc::ChainComplex)::Array{Any,1}
-        copEV, copFE = cc
-        triangulated_faces = Array{Any,1}(undef, copFE.m)
-        if size(V, 2) == 2
-            V = [V zeros(size(V, 1), 1)]
-        end
-    
-        polygons, edgecycles = faces2polygons(copEV, copFE) #new
-    
-        for f in 1:copFE.m
-            edges_idxs = copFE[f, :].nzind
-            edge_num = length(edges_idxs)
-            edges = Array{Int,1}[] #zeros(Int, edge_num, 2)
-    
-            # fv = buildFV(copEV, copFE[f, :])
-            fv = union(polygons[f]...)
-            vs = V[fv, :]
-            edges = union(edgecycles[f]...)
-            edges = convert(Array{Int,2}, hcat(edges...)')
-    
-            # triangulated_faces[f] = Triangle.constrained_triangulation(
-            # 	vs, fv, edges, fill(true, edge_num))
-            v = convert(Points, vs'[1:2, :])
-            vmap = Dict(zip(fv, 1:length(fv))) # vertex map
-            mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
-            ev = [[vmap[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
-            trias = TRIANGUATE2D(v, ev)
-            triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
-    
-            tV = V[:, 1:2]
-    
-            area = face_area(tV, copEV, copFE[f, :])
-            if area < 0
-                for i in 1:length(triangulated_faces[f])
-                    triangulated_faces[f][i] = triangulated_faces[f][i][end:-1:1]
-                end
-            end
-        end
-    
-        return triangulated_faces
-    end
-
     copEV = coboundary_0(EV::Cells)
     cop_EW = convert(ChainOp, copEV)
-    V, copEV, copFE = planar_arrangement(permutedims(V), cop_EW::ChainOp)
+    V, copEV, copFE = planar_arrangement(V, cop_EW::ChainOp)
     EVs = FV2EVs(copEV, copFE) # polygonal face fragments
-    triangulated_faces = triangulate2D(V, [copEV, copFE])
+
+    V_row=BYROW(V)
+
+    # triangulate
+    triangulated_faces = Array{Any,1}(undef, copFE.m)
+    if size(V_row, 2) == 2
+        V_row = [V_row zeros(size(V_row, 1), 1)]
+    end
+
+    polygons, edgecycles = faces2polygons(copEV, copFE) #new
+
+    for f in 1:copFE.m
+        edges_idxs = copFE[f, :].nzind
+        edge_num = length(edges_idxs)
+        edges = Array{Int,1}[] #zeros(Int, edge_num, 2)
+
+        # fv = buildFV(copEV, copFE[f, :])
+        fv = union(polygons[f]...)
+        vs = V_row[fv, :]
+        edges = union(edgecycles[f]...)
+        edges = convert(Array{Int,2}, hcat(edges...)')
+
+        # triangulated_faces[f] = Triangle.constrained_triangulation(
+        # 	vs, fv, edges, fill(true, edge_num))
+        v = convert(Points, vs'[1:2, :])
+        vmap = Dict(zip(fv, 1:length(fv))) # vertex map
+        mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
+        ev = [[vmap[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
+        trias = TRIANGUATE2D(v, ev)
+        triangulated_faces[f] = [[mapv[jt] for jt in tria] for tria in trias]
+
+        tV = V_row[:, 1:2]
+
+        area = face_area(tV, copEV, copFE[f, :])
+        if area < 0
+            for i in 1:length(triangulated_faces[f])
+                triangulated_faces[f][i] = triangulated_faces[f][i][end:-1:1]
+            end
+        end
+    end
+
     FVs = convert(Array{Cells}, triangulated_faces) 
-    return permutedims(V), FVs, EVs, copEV, copFE
+    return V, FVs, EVs, copEV, copFE
 end
 
 
@@ -1293,7 +1293,8 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
         end
         # computation of 2D arrangement of sigma face
         sV = sV[:, 1:2]
-        nV, nEV, nFE = planar_arrangement(sV, sEV, sparsevec(ones(Int8, length(sigmavs))))
+        nV, nEV, nFE = planar_arrangement(permutedims(sV), sEV, sparsevec(ones(Int8, length(sigmavs))))
+        nV=permutedims(nV)
         nvsize = size(nV, 1)
         # return each 2D complex in 3D
         nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
@@ -1720,8 +1721,7 @@ export pols2tria
 function pols2tria(V, copEV, copFE, copCF) # W by columns
     V_row=BYROW(V)
 
-
-
+    # triangulate
     triangulated_faces = Vector{Any}(undef, copFE.m)
 
     for f in 1:copFE.m
