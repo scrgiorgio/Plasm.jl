@@ -31,14 +31,7 @@ function bbox(vertices::Points)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
-""" 
-   get_external_cycle(V::Points, EV::ChainOp, FE::ChainOp)
-   
-Find external cycles (area < 0) in chain complex (FE already computed).
-"""
 function get_external_cycle(V::Points, EV::ChainOp, FE::ChainOp)
-    #print_organizer("Plasm."*"get_external_cycle")
     FV = abs.(FE) * EV
     vs = sparsevec(mapslices(sum, abs.(EV), dims=1)').nzind
     minv_x1 = maxv_x1 = minv_x2 = maxv_x2 = pop!(vs)
@@ -1287,6 +1280,29 @@ export space_arrangement
 """ Main function of arrangement pipeline """
 function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 
+    function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
+        vs_num = size(V, 1)
+        # 2D transformation of `sigma` face
+        sigmavs = (abs.(FE[sigma:sigma, :])*abs.(EV))[1, :].nzind # sigma vertex indices
+        sV = V[sigmavs, :]
+        sEV = EV[FE[sigma, :].nzind, sigmavs]
+        M = submanifold_mapping(sV)
+        tV = ([V ones(vs_num)]*M)[:, 1:3]  # folle convertire *tutti* i vertici
+        sV = tV[sigmavs, :]
+        # `sigma` face intersection with faces in `sp_idx[sigma]`, i.e., in `bigpi`
+        for i in sp_idx[sigma]
+            tmpV, tmpEV = face_int(tV, EV, FE[i, :]) # va in loop qui dentro
+            sV, sEV = skel_merge(sV, sEV, tmpV, tmpEV)
+        end
+        # computation of 2D arrangement of sigma face
+        sV = sV[:, 1:2]
+        nV, nEV, nFE = planar_arrangement(sV, sEV, sparsevec(ones(Int8, length(sigmavs))))
+        nvsize = size(nV, 1)
+        # return each 2D complex in 3D
+        nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
+        return nV, nEV, nFE
+    end
+
     # historically arrangement works internally by using by-row vertices
     V=BYROW(V)
     fs_num = size(FE, 1)
@@ -1303,7 +1319,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
     depot_FE = Array{ChainOp,1}(undef, fs_num)
     for sigma in 1:fs_num
         print(sigma, "/", fs_num, "\r")
-        nV, nEV, nFE = Plasm.frag_face(V, EV, FE, sp_idx, sigma)
+        nV, nEV, nFE = frag_face(V, EV, FE, sp_idx, sigma)
         depot_V[sigma] = nV
         depot_EV[sigma] = nEV
         depot_FE[sigma] = nFE
@@ -1336,30 +1352,6 @@ function spaceindex(model)::Vector{Vector{Int}}
     covers = [reduce(intersect, [covers[h][k] for h = 1:dim]) for k = 1:length(CV)]
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-""" Splitting of `sigma` face against faces in `sp_idx[sigma]` """
-function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
-    vs_num = size(V, 1)
-    # 2D transformation of `sigma` face
-    sigmavs = (abs.(FE[sigma:sigma, :])*abs.(EV))[1, :].nzind # sigma vertex indices
-    sV = V[sigmavs, :]
-    sEV = EV[FE[sigma, :].nzind, sigmavs]
-    M = submanifold_mapping(sV)
-    tV = ([V ones(vs_num)]*M)[:, 1:3]  # folle convertire *tutti* i vertici
-    sV = tV[sigmavs, :]
-    # `sigma` face intersection with faces in `sp_idx[sigma]`, i.e., in `bigpi`
-    for i in sp_idx[sigma]
-        tmpV, tmpEV = face_int(tV, EV, FE[i, :]) # va in loop qui dentro
-        sV, sEV = skel_merge(sV, sEV, tmpV, tmpEV)
-    end
-    # computation of 2D arrangement of sigma face
-    sV = sV[:, 1:2]
-    nV, nEV, nFE = planar_arrangement(sV, sEV, sparsevec(ones(Int8, length(sigmavs))))
-    nvsize = size(nV, 1)
-    # return each 2D complex in 3D
-    nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
-    return nV, nEV, nFE
-end
 
 #//////////////////////////////////////////////////////////////////////////////
 """ Compute the map from vs (at least three) to z=0 """

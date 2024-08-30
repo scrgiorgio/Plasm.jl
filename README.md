@@ -7,6 +7,7 @@
 
 ```
 convert(Points
+convert(Array{Float64
 permutedims(V)
 
 findnz
