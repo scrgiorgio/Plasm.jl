@@ -1743,7 +1743,43 @@ end
 export pols2tria
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
 function pols2tria(V, copEV, copFE, copCF) # W by columns
-    triangulated_faces = mytriangulate(V, [copEV, copFE])
+    V_row=BYROW(V)
+
+
+
+    triangulated_faces = Vector{Any}(undef, copFE.m)
+
+    for f in 1:copFE.m
+        if f % 10 == 0
+            print(".")
+        end
+        edges_idxs = copFE[f, :].nzind
+        edge_num = length(edges_idxs)
+        edges = zeros(Int, edge_num, 2)
+        fv, edges = vcycle(copEV, copFE, f)
+        if fv ≠ []
+            vs = V_row[fv, :]
+            v1 = LinearAlgebra.normalize(vs[2, :] - vs[1, :])
+            v2 = [0, 0, 0]
+            v3 = [0, 0, 0]
+            err = 1e-8
+            i = 3
+            while -err < LinearAlgebra.norm(v3) < err
+                v2 = LinearAlgebra.normalize(vs[i, :] - vs[1, :])
+                v3 = LinearAlgebra.cross(v1, v2)
+                i = i % size(vs, 1) + 1
+            end
+            M = reshape([v1; v2; v3], 3, 3)
+            vs = (vs*M)[:, 1:2]
+            v = convert(Points, vs'[1:2, :])
+            vmap = Dict(zip(fv, 1:length(fv))) # vertex map
+            mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
+            trias = TRIANGUATE2D(v, edges)  # single face f
+            triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
+        end
+    end
+    triangulated_faces = convert(Vector{Cells}, triangulated_faces)
+
     EVs = FV2EVs(copEV, copFE) # polygonal face fragments
     FVs = convert(Array{Cells}, triangulated_faces)
     CVs = []
@@ -1755,7 +1791,7 @@ function pols2tria(V, copEV, copFE, copCF) # W by columns
         end
         push!(CVs, obj)
     end
-    return permutedims(V), CVs, FVs, EVs
+    return V, CVs, FVs, EVs
 end
 
 # ///////////////////////////////////////////////////////////////
@@ -1791,56 +1827,12 @@ function pols2tria(V, copEV, copFE, copCF, Fs)
     EVtriples = findnz(copEV)
     triples = [triple for triple in zip(EVtriples...)]
     newtriples = [(row, col, val) for (row, col, val) in triples if row in keys(edgedict)]
-    # newcol = collect(Set([col for (row,col,val) in newtriples]))
-    # vertdict = Dict( zip(newcol, 1:length(newcol)))
-    # triples = hcat([[edgedict[row],vertdict[col],val] for (row,col,val) in newtriples]...)
     triples = hcat([[edgedict[row], col, val] for (row, col, val) in newtriples]...)
     newEV = sparse(triples[1, :], triples[2, :], triples[3, :])
     copEV = convert(SparseMatrixCSC{Int8,Int64}, newEV)
 
-
     # finally compute the cells, faces, and edges of subassembly
-    V, CVs, FVs, EVs = pols2tria(V, copEV, copFE, copCF)
-    return V, CVs, FVs, EVs
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-""" map 3D faces in z=0 and triangulate them; return a 3D Vector{Cells}  """
-function mytriangulate(V::Points, cc::ChainComplex)
-    copEV, copFE = cc[1:2]
-
-    triangulated_faces = Vector{Any}(undef, copFE.m)
-
-    for f in 1:copFE.m
-        if f % 10 == 0
-            print(".")
-        end
-        edges_idxs = copFE[f, :].nzind
-        edge_num = length(edges_idxs)
-        edges = zeros(Int, edge_num, 2)
-        fv, edges = vcycle(copEV, copFE, f)
-        if fv ≠ []
-            vs = V[fv, :]
-            v1 = LinearAlgebra.normalize(vs[2, :] - vs[1, :])
-            v2 = [0, 0, 0]
-            v3 = [0, 0, 0]
-            err = 1e-8
-            i = 3
-            while -err < LinearAlgebra.norm(v3) < err
-                v2 = LinearAlgebra.normalize(vs[i, :] - vs[1, :])
-                v3 = LinearAlgebra.cross(v1, v2)
-                i = i % size(vs, 1) + 1
-            end
-            M = reshape([v1; v2; v3], 3, 3)
-            vs = (vs*M)[:, 1:2]
-            v = convert(Points, vs'[1:2, :])
-            vmap = Dict(zip(fv, 1:length(fv))) # vertex map
-            mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
-            trias = TRIANGUATE2D(v, edges)  # single face f
-            triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
-        end
-    end
-    return convert(Vector{Cells}, triangulated_faces)
+    return pols2tria(V, copEV, copFE, copCF)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
