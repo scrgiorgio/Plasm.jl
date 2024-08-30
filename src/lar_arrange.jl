@@ -912,9 +912,10 @@ function merge_vertices!(V::Points, EV::ChainOp, edge_map, err=1e-4)
     vertsnum = size(V, 1)
     edgenum = size(EV, 1)
     newverts = zeros(Int, vertsnum)
+    
     # NearestNeighbors.KDTree constructor needs an explicit array of Float64
     V = Array{Float64,2}(V)
-    kdtree = NearestNeighbors.KDTree(permutedims(V))
+    kdtree = NearestNeighbors.KDTree(BYROW(V))
 
     # merge congruent vertices
     todelete = []
@@ -1165,7 +1166,10 @@ function boundary_1(EV::Cells)::ChainOp
 end
 
 export coboundary_0
-coboundary_0(EV::Cells) = convert(ChainOp, LinearAlgebra.transpose(boundary_1(EV::Cells)))
+function coboundary_0(EV::Cells)::ChainOp
+    return convert(ChainOp, LinearAlgebra.transpose(boundary_1(EV::Cells)))
+end
+
 
 # //////////////////////////////////////////////////////////////////////////////
 export arrange2D
@@ -1295,7 +1299,9 @@ end
 export space_arrangement
 """ Main function of arrangement pipeline """
 function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
-    V=permutedims(V)
+
+    # historically arrangement works internally by using by-row vertices
+    V=BYROW(V)
     fs_num = size(FE, 1)
     # strange but necessary cycle of computations to get FV::Cells algebraically
     FV = (abs.(FE) * abs.(EV)) .÷ 2
@@ -1320,7 +1326,9 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
     rFE = SparseArrays.blockdiag(depot_FE...)
     rV, rcopEV, rcopFE = Plasm.merge_vertices(rV, rEV, rFE)
     rcopCF = build_copFC(rV, rcopEV, rcopFE)
-    return permutedims(rV), rcopEV, rcopFE, rcopCF
+
+    # historically arrangement works internally by using by-row vertices
+    return BYCOL(rV), rcopEV, rcopFE, rcopCF
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -1447,8 +1455,7 @@ function merge_vertices(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
     newverts = zeros(Int, vertsnum)
     # KDTree constructor needs an explicit array of Float64
     V = Matrix(V)
-    W = permutedims(V)
-    kdtree = KDTree(W)
+    kdtree = KDTree(BYROW(V))
     # remove vertices congruent to a single representative
     todelete = []
     i = 1
@@ -1863,12 +1870,12 @@ function TRIANGUATE2D(V::Points, EV::Cells)
     points = convert(Array{Float64,2}, V')
     points_map = Array{Int,1}(collect(1:1:size(points)[1]))
     edges_list = convert(Array{Int,2}, hcat(EV...)')
-    trias = constrained_triangulation2D(V::Points, EV::Cells)
+    trias = constrained_triangulation2D(V, EV)
     innertriangles = Array{Int,1}[]
     for (u, v, w) in trias
         point = (points[u, :] + points[v, :] + points[w, :]) ./ 3
         copEV = lar2cop(EV)
-        inner = point_in_face(point, points::Points, copEV::ChainOp)
+        inner = point_in_face(point, points, copEV)
         if inner
             push!(innertriangles, [u, v, w])
         end

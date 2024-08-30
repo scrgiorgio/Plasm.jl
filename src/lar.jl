@@ -6,13 +6,16 @@ mutable struct Lar
    # intrinsic dimension
    d::Int
 
-   # embedding dimension (rows of V)
+   # embedding dimension (number of rows of V==size(V,1))
    m::Int
 
-   # number of vertices  (columns of V)
+   # number of vertices  (number of cols of V==size(V,2))
    n::Int
 
    # object geometry
+   # always stored by column i.e. a point is a column and
+   #     x1 x2 x3 ...
+   #     y1 y2 y3 ...
    V::Matrix{Float64}
 
    # object topology (C for cells)
@@ -49,6 +52,17 @@ mutable struct Lar
    Lar(d, m, n, V, C) = new(d, m, n, V, C)
 end
 
+# convert a vertex matrix from by-col (LAR default) to by-col
+export BYROW
+function BYROW(V::Matrix{Float64})::Matrix{Float64}
+   return permutedims(V)
+end
+
+# convert a vertex matrix from by-row to by-col (LAR default)
+export BYCOL
+function BYCOL(V::Matrix{Float64})::Matrix{Float64}
+   return permutedims(V)
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 # from Hpc -> Lar (trying to keep as many information as possible, still unifying to a unique geometry)
@@ -115,15 +129,13 @@ function LAR2TRIANGLES(V, EV, FV, FE)
       return Array{Int}(ordered[1:end-1]), edges
    end
 
-   V = size(V, 1) == 3 ? permutedims(V) : V
    triangulated_faces = Vector{Any}(undef, length(FE))
 
-   for f in 1:length(FE)
-      edges_idxs = FE[f]
+   for edges_idxs in FE
       edge_num = length(edges_idxs)
       fv, edges = __find_cycle(EV, FE, f)
       # look for independent vector triple
-      points = V[fv, :]
+      points = V[:, fv]
       vmap = Dict(zip(fv, 1:length(fv))) # vertex map
       mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
       edges = [[vmap[A], vmap[B]] for (A, B) in edges]
@@ -206,7 +218,7 @@ function SELECTATOMS(V, pols)
    for pol in pols
       ev = pol[1] # atom edges (pairs of vertex indices)
       verts = sort(union(CAT(CAT(ev)))) # atom vertices (vertex indices)
-      v = V[verts, :] # atom points 
+      v = V[:,verts] 
       xbox = bbox(v) # maxmin of first coordinate
       push!(bboxes, xbox)
    end
@@ -223,7 +235,10 @@ end
 
 # ///////////////////////////////////////////////////
 export VIEWCOMPLEX
-function VIEWCOMPLEX(V, EV::Vector{Vector{Int64}}, FV::Vector{Vector{Int64}};
+function VIEWCOMPLEX(
+   V, 
+   EV::Vector{Vector{Int64}}, 
+   FV::Vector{Vector{Int64}};
    V_text::Vector{String}=nothing,
    EV_text::Vector{String}=nothing,
    FV_text::Vector{String}=nothing,
@@ -264,14 +279,15 @@ function VIEWCOMPLEX(V, EV::Vector{Vector{Int64}}, FV::Vector{Vector{Int64}};
    batches = Vector{GLBatch}()
    append!(batches, GetBatchesForHpc(obj))
 
-   W = [V[:, k] for k = 1:size(V, 2)]
+   num_vertices=size(V, 2)
+   vertices = [V[:, I] for I = 1:num_vertices]
 
    # show vertices
    if properties["text_v_color"][4] > 0.0 && properties["v_fontsize"] > 0
-      for I in eachindex(W)
+      for I in eachindex(vertices)
          append!(batches, GLText(
             (I in used_vertices ? V_text[I] : ""),
-            center=ComputeCentroid([W[it] for it in [I]]),
+            center=ComputeCentroid([vertices[it] for it in [I]]),
             color=properties["text_v_color"],
             fontsize=properties["v_fontsize"]))
       end
@@ -281,7 +297,7 @@ function VIEWCOMPLEX(V, EV::Vector{Vector{Int64}}, FV::Vector{Vector{Int64}};
    if !isnothing(EV) && properties["text_ev_color"][4] > 0.0 && properties["ev_fontsize"] > 0
       for I in eachindex(EV)
          append!(batches, GLText(EV_text[I],
-            center=ComputeCentroid([W[it] for it in EV[I]]),
+            center=ComputeCentroid([vertices[it] for it in EV[I]]),
             color=properties["text_ev_color"],
             fontsize=properties["ev_fontsize"]))
       end
@@ -292,7 +308,7 @@ function VIEWCOMPLEX(V, EV::Vector{Vector{Int64}}, FV::Vector{Vector{Int64}};
       for I in eachindex(FV)
          append!(batches,
             GLText(FV_text[I],
-               center=ComputeCentroid([W[it] for it in FV[I]]),
+               center=ComputeCentroid([vertices[it] for it in FV[I]]),
                color=properties["text_fv_color"],
                fontsize=properties["fv_fontsize"]))
       end
@@ -357,7 +373,7 @@ export VIEWATOMS
 function VIEWATOMS(V, copEV, copFE, copCF, atoms; view_outer=true)
 
    # per row
-   num_vertices=size(V,1)
+   num_vertices=size(V,2)
 
    EV = AA(sort)(cop2lar(copEV))
    FE = AA(sort)(cop2lar(copFE))
@@ -380,8 +396,11 @@ function VIEWATOMS(V, copEV, copFE, copCF, atoms; view_outer=true)
       atom_EV = [sort(it) for it in union(CAT(atom_EV))]
       atom_FV = [sort(it) for it in atom_FV] 
 
-      VIEWCOMPLEX(permutedims(V), atom_EV, atom_FV,
-      V_text=[string(I) for I in 1:num_vertices],
+      VIEWCOMPLEX(
+         V, 
+         atom_EV, 
+         atom_FV,
+         V_text=[string(I) for I in 1:num_vertices],
          EV_text=[string(ev_text[it]) for it in atom_EV],
          FV_text=[string(fv_text[it]) for it in atom_FV]
       )
