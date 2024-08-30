@@ -3,15 +3,6 @@
 export Lar
 mutable struct Lar
 
-	# intrinsic dimension
-	d::Int
-
-	# embedding dimension (number of rows of V==size(V,1))
-	m::Int
-
-	# number of vertices  (number of cols of V==size(V,2))
-	n::Int
-
 	# object geometry
 	# always stored by column i.e. a point is a column and
 	#     x1 x2 x3 ...
@@ -22,34 +13,18 @@ mutable struct Lar
 	C::Dict{Symbol,AbstractArray}
 
 	# constructor
-	Lar() = new(-1, 0, 0, Matrix{Float64}(undef, 0, 0), Dict{Symbol,AbstractArray}())
-
-	# constructor
-	Lar(m::Int, n::Int) = new(m, m, n, Matrix(undef, m, n), Dict{Symbol,AbstractArray}())
-
-	# constructor
-	Lar(d::Int, m::Int, n::Int) = new(d, m, n, Matrix(undef, m, n), Dict{Symbol,AbstractArray}())
-
-	# constructor
-	Lar(V::Matrix) = begin
-		m, n = size(V)
-		new(m, m, n, V, Dict{Symbol,AbstractArray}())
+	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,AbstractArray}()) = begin
+		new(V, C)
 	end
 
-	# constructor
-	Lar(V::Matrix, C::Dict) = begin
-		m, n = size(V)
-		new(m, m, n, V, C)
-	end
+end
 
-	# constructor
-	Lar(d::Int, V::Matrix, C::Dict) = begin
-		m, n = size(V)
-		new(d, m, n, V, C)
-	end
+function PDIM(lar::Lar)
+	return size(lar.V,1)
+end
 
-	# constructor
-	Lar(d, m, n, V, C) = new(d, m, n, V, C)
+function NVERS(lar::Lar)
+	return size(lar.V,2)
 end
 
 # convert a vertex matrix from by-col (LAR default) to by-col
@@ -72,9 +47,6 @@ function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	n = length(geo.points)    # number of vertices  (columns of V)
 	m = length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
 	ret = Lar()
-	ret.d = m
-	ret.n = n
-	ret.m = m
 	ret.V = hcat(geo.points...)
 	ret.C[:EV] = geo.edges
 	ret.C[:FV] = geo.faces

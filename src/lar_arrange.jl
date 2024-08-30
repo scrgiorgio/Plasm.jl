@@ -31,19 +31,19 @@ function bbox(vertices::Points)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function get_external_cycle(V::Points, EV::ChainOp, FE::ChainOp)
+function get_external_cycle(V_row::Points, EV::ChainOp, FE::ChainOp)
 	FV = abs.(FE) * EV
 	vs = sparsevec(mapslices(sum, abs.(EV), dims=1)').nzind
 	minv_x1 = maxv_x1 = minv_x2 = maxv_x2 = pop!(vs)
 	for i in vs
-		if V[i, 1] > V[maxv_x1, 1]
+		if V_row[i, 1] > V_row[maxv_x1, 1]
 			maxv_x1 = i
-		elseif V[i, 1] < V[minv_x1, 1]
+		elseif V_row[i, 1] < V_row[minv_x1, 1]
 			minv_x1 = i
 		end
-		if V[i, 2] > V[maxv_x2, 2]
+		if V_row[i, 2] > V_row[maxv_x2, 2]
 			maxv_x2 = i
-		elseif V[i, 2] < V[minv_x2, 2]
+		elseif V_row[i, 2] < V_row[minv_x2, 2]
 			minv_x2 = i
 		end
 	end
@@ -57,7 +57,7 @@ function get_external_cycle(V::Points, EV::ChainOp, FE::ChainOp)
 		return cells[1]
 	else
 		for c in cells
-			if face_area(V, EV, FE[c, :]) < 0
+			if face_area(V_row, EV, FE[c, :]) < 0
 				return c
 			end
 		end
@@ -71,11 +71,9 @@ end
 Interface of TGW algorithm in 2D
 """
 function minimal_cycles(angles_fn::Function, verbose=true)
-	#print_organizer("Plasm."*"minimal_cycles")
 	# External interface of TGW algorithm in 2D
 	function _minimal_cycles(V::Points,
 		ld_bounds::ChainOp)  # , EV)
-		#print_organizer("Plasm."*"_minimal_cycles")
 
 		lld_cellsnum, ld_cellsnum = size(ld_bounds)
 		count_marks = zeros(Int64, ld_cellsnum)
@@ -85,7 +83,6 @@ function minimal_cycles(angles_fn::Function, verbose=true)
 		angles = Array{Array{Int64,1},1}(undef, lld_cellsnum)
 
 		function get_seed_cell()
-			#print_organizer("Plasm."*"get_seed_cell")
 			s = -1
 			for i in 1:ld_cellsnum
 				if count_marks[i] == 0
@@ -108,7 +105,6 @@ function minimal_cycles(angles_fn::Function, verbose=true)
 		end
 
 		function nextprev(lld::Int64, ld::Int64, norp)
-			#print_organizer("Plasm."*"nextprev")
 			as = angles[lld]
 			#ne = findfirst(as, ld)  (findfirst(isequal(v), A), 0)[1]
 			ne = (findfirst(isequal(ld), as), 0)[1]
@@ -182,7 +178,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function minimal_2cycles(V::Points, EV::ChainOp)
-	#print_organizer("Plasm."*"minimal_2cycles")
 
 	function edge_angle(v::Int, e::Int)
 		edge = EV[e, :]
@@ -202,9 +197,7 @@ function minimal_2cycles(V::Points, EV::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
 function bbox_contains(container, contained)
-	#print_organizer("Plasm."*"bbox_contains")
 	b1_min, b1_max = container
 	b2_min, b2_max = contained
 	all(map((i, j, k, l) -> i <= j <= k <= l, b1_min, b2_min, b2_max, b1_max))
@@ -213,7 +206,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function prune_containment_graph(n, V, EVs, shells, graph)
-	#print_organizer("Plasm."*"prune_containment_graph")
 
 	for i in 1:n
 		an_edge = shells[i].nzind[1]
@@ -240,7 +232,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function transitive_reduction!(graph)
-	#print_organizer("Plasm."*"transitive_reduction")
 	n = size(graph, 1)
 	for j in 1:n
 		for i in 1:n
@@ -258,7 +249,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function pre_containment_test(bboxes)
-	#print_organizer("Plasm."*"pre_containment_test")
 	n = length(bboxes)
 	containment_graph = spzeros(Int8, n, n)
 
@@ -279,9 +269,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function cell_merging(n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
-	#print_organizer("Plasm."*"cell_merging")
 	function bboxes(V::Points, indexes::ChainOp)
-		#print_organizer("Plasm."*"bboxes")
 		boxes = Array{Tuple{Any,Any}}(undef, indexes.n)
 		for i in 1:indexes.n
 			v_inds = indexes[:, i].nzind
@@ -338,7 +326,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function boundingbox(vertices::Points)
-	#print_organizer("Plasm."*"boundingbox")
 	minimum = mapslices(x -> min(x...), vertices, dims=2)
 	maximum = mapslices(x -> max(x...), vertices, dims=2)
 	return minimum, maximum
@@ -348,7 +335,6 @@ end
 
 """ Make dictionary of 1D boxes for IntervalTrees construction """
 function coordintervals(coord, bboxes)
-	#print_organizer("Plasm."*"boundingbox")
 	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()
 	for (h, box) in enumerate(bboxes)
 		key = box[coord, :]
@@ -364,7 +350,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 
 function boxcovering(bboxes, index, tree)
-	#print_organizer("Plasm."*"boxcovering")
 	covers = [[] for k = 1:length(bboxes)]
 	for (i, boundingbox) in enumerate(bboxes)
 		extent = bboxes[i][index, :]
@@ -395,9 +380,9 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 export point_in_face
 """ Test of point containment in a polygon face """
-function point_in_face(point, V::Points, copEV::ChainOp)
+function point_in_face(point, V_row::Points, copEV::ChainOp)
 
-	function pointInPolygonClassification(V, EV)
+	function pointInPolygonClassification(V_row, EV)
 
 		""" Accumulator of partial increments when halfline crosses vertices """
 		function crossingTest(new, old, status, count)
@@ -447,7 +432,7 @@ function point_in_face(point, V::Points, copEV::ChainOp)
 
 			for k in 1:EV.m # loop on polygon edges
 				edge = EV[k, :]
-				p1, p2 = V[edge.nzind[1], :], V[edge.nzind[2], :]
+				p1, p2 = V_row[edge.nzind[1], :], V_row[edge.nzind[2], :]
 				(x1, y1), (x2, y2) = p1, p2
 				c1, c2 = tilecode(p1), tilecode(p2)
 				c_edge, c_un, c_int = xor(c1, c2), c1 | c2, c1 & c2
@@ -521,34 +506,29 @@ function point_in_face(point, V::Points, copEV::ChainOp)
 		return pointInPolygonClassification0
 	end
 
-	return pointInPolygonClassification(V, copEV)(point) == "p_in"
-	inner = !(pointInPolygonClassification(V, copEV)(point) == "p_out")
-	return inner
+	return pointInPolygonClassification(V_row, copEV)(point) == "p_in"
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function delete_edges(todel, V::Points, EV::ChainOp)
-	tokeep = setdiff(collect(1:EV.m), todel)
-	EV = EV[tokeep, :]
+function delete_edges(edges_to_del, V_row::Points, EV::ChainOp)
 
-	vertinds = 1:EV.n
-	todel = Array{Int,1}()
-	for i in vertinds
+	edges_to_keep = setdiff(collect(1:EV.m), edges_to_del)
+	EV = EV[edges_to_keep, :]
+
+	all_edges = 1:EV.n
+	edges_to_del = Array{Int,1}()
+	for i in all_edges
 		if length(EV[:, i].nzind) == 0
-			push!(todel, i)
+			push!(edges_to_del, i)
 		end
 	end
 
-	tokeep = setdiff(vertinds, todel)
-	EV = EV[:, tokeep]
-	V = V[tokeep, :]
-
-	return V, EV
+	edges_to_keep = setdiff(all_edges, edges_to_del)
+	return V_row[edges_to_keep, :], EV[:, edges_to_keep]
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 function intersect_edges(V::Points, edge1::Cell, edge2::Cell)
-	#print_organizer("Plasm."*"intersect_edges")
 	err = 10e-8
 
 	x1, y1, x2, y2 = vcat(map(c -> V[c, :], edge1.nzind)...)
@@ -589,7 +569,6 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 export cop2lar
 function cop2lar(cop::ChainOp)::Cells
-	#print_organizer("Plasm."*"cop2lar")
 	[findnz(cop[k, :])[1] for k = 1:size(cop, 1)]
 end
 
@@ -649,14 +628,11 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function face_area(V::Points, EV::Cells, face::Cell)
-	#print_organizer("Plasm."*"face_area")
 	return face_area(V, build_copEV(EV), face)
 end
 
 function face_area(V::Points, EV::ChainOp, face::Cell)
-	#print_organizer("Plasm."*"face_area")
 	function triangle_area(triangle_points::Points)
-		#print_organizer("Plasm."*"triangle_area")
 		ret = ones(3, 3)
 		ret[:, 1:2] = triangle_points
 		return 0.5 * det(ret)
@@ -696,7 +672,6 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function biconnected_components(EV::ChainOp)
-	#print_organizer("Plasm."*"biconnected_components")
 
 	ps = Array{Tuple{Int,Int,Int},1}()
 	es = Array{Tuple{Int,Int},1}()
@@ -706,7 +681,6 @@ function biconnected_components(EV::ChainOp)
 	hivtx = 1
 
 	function an_edge(point) # TODO: fix bug
-		#print_organizer("Plasm."*"an_edge")
 		# error? : BoundsError: attempt to access 0×0 SparseMatrix ...
 		edges = setdiff(EV[:, point].nzind, todel)
 		if length(edges) == 0
@@ -716,12 +690,10 @@ function biconnected_components(EV::ChainOp)
 	end
 
 	function get_head(edge, tail)
-		#print_organizer("Plasm."*"get_head")
 		setdiff(EV[edge, :].nzind, [tail])[1]
 	end
 
 	function v_to_vi(v)
-		#print_organizer("Plasm."*"v_to_vi")
 		i = findfirst(t -> t[1] == v, ps)
 		# seems findfirst changed from 0 to Nothing
 		if typeof(i) == Nothing
@@ -798,7 +770,7 @@ function biconnected_components(EV::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function cleandecomposition(V, copEV, sigma, edge_map)
+function cleandecomposition(V_row, copEV, sigma, edge_map)
 	# Deletes edges outside sigma area
 	todel = []
 	new_edges = []
@@ -808,10 +780,10 @@ function cleandecomposition(V, copEV, sigma, edge_map)
 		if !(e in new_edges)
 
 			vidxs = copEV[e, :].nzind
-			v1, v2 = map(i -> V[vidxs[i], :], [1, 2])
+			v1, v2 = map(i -> V_row[vidxs[i], :], [1, 2])
 			centroid = 0.5 * (v1 + v2)
 
-			if !point_in_face(centroid, V, ev)
+			if !point_in_face(centroid, V_row, ev)
 				push!(todel, e)
 			end
 		end
@@ -819,9 +791,7 @@ function cleandecomposition(V, copEV, sigma, edge_map)
 
 	for i in reverse(todel)
 		for row in edge_map
-
 			filter!(x -> x != i, row)
-
 			for j in 1:length(row)
 				if row[j] > i
 					row[j] -= 1
@@ -830,15 +800,14 @@ function cleandecomposition(V, copEV, sigma, edge_map)
 		end
 	end
 
-	V, copEV = delete_edges(todel, V, copEV)
-	return V, copEV
+	V_row, copEV = delete_edges(todel, V_row, copEV)
+	return V_row, copEV
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 using NearestNeighbors
 
 function merge_vertices!(V::Points, EV::ChainOp, edge_map, err=1e-4)
-	#print_organizer("Plasm."*"merge_vertices")
 	vertsnum = size(V, 1)
 	edgenum = size(EV, 1)
 	newverts = zeros(Int, vertsnum)
@@ -969,7 +938,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8, 0))
 
-	V = BYROW(V)
+	V_row = BYROW(V)
 
 	# planar_arrangement_1
 
@@ -981,11 +950,11 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 	finalcells_num = 0
 
 	# space index computation
-	bigPI = spaceindex(V, cop2lar(copEV))
+	bigPI = spaceindex(V_row, cop2lar(copEV))
 
 	# sequential (iterative) processing of edge fragmentation
 	for i in 1:edgenum
-		v, ev = frag_edge(V, copEV, i, bigPI)
+		v, ev = frag_edge(V_row, copEV, i, bigPI)
 		newedges_nums = map(x -> x + finalcells_num, collect(1:size(ev, 1)))
 		edge_map[i] = newedges_nums
 		finalcells_num += size(ev, 1)
@@ -994,24 +963,21 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 	end
 	#  end
 	# merging of close vertices and edges (2D congruence)
-	V, copEV = rV, rEV
-	V, copEV = merge_vertices!(V, copEV, edge_map)
+	V_row, copEV = rV, rEV
+	V_row, copEV = merge_vertices!(V_row, copEV, edge_map)
 
 	# cleandecomposition
 	if sigma.n > 0
-		V, copEV = cleandecomposition(V, copEV, sigma, edge_map)
+		V_row, copEV = cleandecomposition(V_row, copEV, sigma, edge_map)
 	end
 
 	bicon_comps = biconnected_components(copEV)
-	# EV = cop2lar(copEV)
-	# V,bicon_comps = biconnectedComponent((V,EV))
 
 	if isempty(bicon_comps)
 		return (nothing, nothing, nothing)
 	end
 
-	function planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma::Chain=spzeros(Int8, 0))
-		#print_organizer("Plasm."*"planar_arrangement_2")
+	function planar_arrangement_2(V_row, copEV, bicon_comps, edge_map, sigma::Chain=spzeros(Int8, 0))
 
 		edges = sort(union(bicon_comps...))
 		todel = sort(setdiff(collect(1:size(copEV, 1)), edges))
@@ -1032,7 +998,7 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 
 		bicon_comps = biconnected_components(copEV)
 
-		function componentgraph(V, copEV, bicon_comps)
+		function componentgraph(V_row, copEV, bicon_comps)
 			# arrangement of isolated components
 			n = size(bicon_comps, 1)
 			shells = Array{Chain,1}(undef, n)
@@ -1042,9 +1008,9 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 			for p in 1:n
 				ev = copEV[sort(bicon_comps[p]), :]
 				# computation of 2-cells
-				fe = minimal_2cycles(V, ev)
+				fe = minimal_2cycles(V_row, ev)
 				# exterior cycle
-				shell_num = get_external_cycle(V, ev, fe)
+				shell_num = get_external_cycle(V_row, ev, fe)
 				# decompose each fe (co-boundary local to component)
 				EVs[p] = ev
 				tokeep = setdiff(1:fe.m, shell_num)
@@ -1055,26 +1021,26 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 			shell_bboxes = []
 			for i in 1:n
 				vs_indexes = (abs.(EVs[i]') * abs.(shells[i])).nzind
-				push!(shell_bboxes, bbox(V[vs_indexes, :]))
+				push!(shell_bboxes, bbox(V_row[vs_indexes, :]))
 			end
 			# computation and reduction of containment graph
 			containment_graph = pre_containment_test(shell_bboxes)
-			containment_graph = prune_containment_graph(n, V, EVs, shells, containment_graph)
+			containment_graph = prune_containment_graph(n, V_row, EVs, shells, containment_graph)
 			transitive_reduction!(containment_graph)
-			return n, containment_graph, V, EVs, boundaries, shells, shell_bboxes
+			return n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes
 		end
 
-		n, containment_graph, V, EVs, boundaries, shells, shell_bboxes = componentgraph(V, copEV, bicon_comps)
+		n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes = componentgraph(V_row, copEV, bicon_comps)
 
 		copEV, FE = cell_merging(
-			n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
+			n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes)
 
-		return BYCOL(V), copEV, FE
+		return BYCOL(V_row), copEV, FE
 	end
 
 
 	#Planar_arrangement_2
-	return planar_arrangement_2(V, copEV, bicon_comps, edge_map, sigma)
+	return planar_arrangement_2(V_row, copEV, bicon_comps, edge_map, sigma)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -1241,12 +1207,15 @@ function coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bo
 			copFE[f, e] = cycle[e]
 		end
 	end
-	if exterior && size(V, 1) == 2
+
+	pdim=size(V, 1)
+
+	if exterior &&  pdim == 2
 		# put matrix in form: first row outer cell; with opposite sign )
-		V = convert(Array{Float64,2}, transpose(V))
+		V_row  = BYROW(V)
 		EV = convert(ChainOp, SparseArrays.transpose(boundary_1(EV)))
 
-		outer = get_external_cycle(V::Points, copEV::ChainOp, copFE::ChainOp)
+		outer = get_external_cycle(V_row, copEV, copFE)
 		copFE = [-copFE[outer:outer, :]; copFE[1:outer-1, :]; copFE[outer+1:end, :]]
 		# induce coherent orientation of matrix rows (see examples/orient2d.jl)
 		for k = 1:size(copFE, 2)
@@ -1834,15 +1803,16 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ CDT Constrained Delaunay Triangulation """
 function TRIANGUATE2D(V::Points, EV::Cells)
-	points = convert(Array{Float64,2}, V')
-	points_map = Array{Int,1}(collect(1:1:size(points)[1]))
+	V_row = BYROW(V)
+	num_vertices=size(V_row)[1]
+	points_map = Array{Int,1}(collect(1:1:num_vertices))
 	edges_list = convert(Array{Int,2}, hcat(EV...)')
 	trias = constrained_triangulation2D(V, EV)
 	ret = Array{Int,1}[]
 	for (u, v, w) in trias
-		point = (points[u, :] + points[v, :] + points[w, :]) ./ 3
+		point = (V_row[u, :] + V_row[v, :] + V_row[w, :]) ./ 3
 		copEV = lar2cop(EV)
-		inner = point_in_face(point, points, copEV)
+		inner = point_in_face(point, V_row, copEV)
 		if inner
 			push!(ret, [u, v, w])
 		end
