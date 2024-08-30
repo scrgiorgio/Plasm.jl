@@ -684,7 +684,7 @@ end
 export constrained_triangulation2D
 function constrained_triangulation2D(V::Points, EV::Cells)
 	triin = Triangulate.TriangulateIO()
-	triin.pointlist = BYROW(V)
+	triin.pointlist = V # Triangulate wants the by-col representation as LAR
 	triin.segmentlist = hcat(EV...)
 	(triout, vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
 	ret = Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
@@ -1293,8 +1293,8 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 		end
 		# computation of 2D arrangement of sigma face
 		sV = sV[:, 1:2]
-		nV, nEV, nFE = planar_arrangement(permutedims(sV), sEV, sparsevec(ones(Int8, length(sigmavs))))
-		nV = permutedims(nV)
+		nV, nEV, nFE = planar_arrangement(BYCOL(sV), sEV, sparsevec(ones(Int8, length(sigmavs))))
+		nV = BYROW(nV)
 		nvsize = size(nV, 1)
 		# return each 2D complex in 3D
 		nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
@@ -1538,17 +1538,17 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ TGW algorithm implementation (pao) """
-function build_copFC(rV, rcopEV, rcopFE)
+function build_copFC(V_row, rcopEV, rcopFE)
 
 	# G&F -> Pao data structures
-	V = permutedims(rV)
+	V = BYCOL(V_row)
+	num_vertices=size(V, 2)
 	EV = cop2lar(rcopEV)
 	fe = cop2lar(rcopFE)
 	fv = [union([EV[e] for e in fe[f]]...) for f = 1:length(fe)]
 	FV = convert(Cells, fv)
 	copFE = rcopFE    # alias useful for algorithm testing 
-	VV = [[v] for v = 1:size(V, 2)]
-	model = (V, [VV, EV, FV])
+	VV = [[index] for index = 1:num_vertices]
 
 	copEF = transpose(copFE)
 	FE = [SparseArrays.findnz(copFE[k, :])[1] for k = 1:size(copFE, 1)]
@@ -1837,7 +1837,7 @@ function TRIANGUATE2D(V::Points, EV::Cells)
 	points = convert(Array{Float64,2}, V')
 	points_map = Array{Int,1}(collect(1:1:size(points)[1]))
 	edges_list = convert(Array{Int,2}, hcat(EV...)')
-	trias = constrained_triangulation2D(permutedims(V), EV)
+	trias = constrained_triangulation2D(V, EV)
 	ret = Array{Int,1}[]
 	for (u, v, w) in trias
 		point = (points[u, :] + points[v, :] + points[w, :]) ./ 3

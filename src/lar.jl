@@ -151,7 +151,7 @@ function LAR2TRIANGLES(V, EV, FV, FE)
 		end
 		# independent vector triple in face f 
 		M = [v1 v2 v3]
-		projected = (points*M)[:, 1:2]
+		projected = BYCOL((points*M)[:, 1:2])
 		trias = constrained_triangulation2D(projected, edges)  # single face f
 		triangulated_faces[f] = [[mapv[v] for v in tria] for tria in trias]
 

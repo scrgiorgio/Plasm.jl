@@ -309,7 +309,7 @@ function TestBool3D()
   V_original=V
 	V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE )
 
-	boolmatrix = bool3d(assembly, permutedims(V),copEV,copFE,copCF);
+	boolmatrix = bool3d(assembly, V,copEV,copFE,copCF);
 	V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
 	SHOWEXPLODED(V,CVs,FVs,EVs)
 	

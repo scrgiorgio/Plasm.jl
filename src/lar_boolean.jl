@@ -367,6 +367,9 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function bool3d(V, copEV, copFE, copCF, assembly::Hpc)
+
+	V=BYROW(V)
+
 	innerpoints, _ = internalpoints(V, copEV, copFE, copCF)
 
 	# associate internal points to (original) faces of 3-cells
@@ -400,6 +403,7 @@ function bool3d(V, copEV, copFE, copCF, assembly::Hpc)
 		isinternal = count .% 2
 		boolmatrix[k+1, 2:end] = isinternal
 	end
+	
 	return boolmatrix
 end
 
