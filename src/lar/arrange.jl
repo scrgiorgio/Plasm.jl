@@ -976,8 +976,8 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function u_coboundary_1(FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
-	copFV = characteristicMatrix(FV)
-	copEV = characteristicMatrix(EV)
+	copFV = lar2cop(FV)
+	copEV = lar2cop(EV)
 	out = u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex::Bool)
 	return out
 end
@@ -1061,8 +1061,8 @@ end
 
 function coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
 	# generate unsigned operator's sparse matrix
-	copFV = characteristicMatrix(FV)
-	copEV = characteristicMatrix(EV)
+	copFV = lar2cop(FV)
+	copEV = lar2cop(EV)
 	# greedy generation of incidence signs
 	return coboundary_1(V, copFV::ChainOp, copEV::ChainOp, convex, exterior)
 end

@@ -5,33 +5,19 @@ const ChainOp      = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
 export Chain, ChainOp, ChainComplex
 
-function characteristicMatrix(FV::Cells)::ChainOp
-	I, J, V = Int64[], Int64[], Int8[]
-	for f = 1:length(FV)
-		for k in FV[f]
-			push!(I, f)
-			push!(J, k)
+function lar2cop(cells::Cells)::ChainOp
+	I, J, V = Int[], Int[], Int[]
+	for (C,cell) in enumerate(cells)
+		for K in cell
+			push!(I, C)
+			push!(J, K)
 			push!(V, 1)
 		end
 	end
 	return sparse(I, J, V)
 end
-export characteristicMatrix
-
-""" converte dense represantation to sparse"""
-function lar2cop(CV::Cells)::ChainOp
-	I = Int[]
-	J = Int[]
-	Value = Int8[]
-	for k = 1:size(CV, 1)
-		n = length(CV[k])
-		append!(I, k * ones(Int, n))
-		append!(J, CV[k])
-		append!(Value, ones(Int, n))
-	end
-	return SparseArrays.sparse(I, J, Value)
-end
 export lar2cop
+
 
 """ converte sparse represantation to dense"""
 function cop2lar(cop::ChainOp)::Cells
@@ -40,7 +26,7 @@ end
 export cop2lar
 
 function boundary_1(EV::Cells)::ChainOp
-	out = characteristicMatrix(EV)'
+	out = lar2cop(EV)'
 	for e = 1:length(EV)
 		out[EV[e][1], e] = -1
 	end
