@@ -423,7 +423,7 @@ function delete_edges(edges_to_del, V_row::Points, EV::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function intersect_edges(V::Points, edge1::Cell, edge2::Cell)
+function intersect_edges(V::Points, edge1::Chain, edge2::Chain)
 	err = 10e-8
 
 	x1, y1, x2, y2 = vcat(map(c -> V[c, :], edge1.nzind)...)
@@ -485,7 +485,7 @@ function skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp,V2::Points, EV2::Chai
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function buildFV(copEV::ChainOp, face::Cell)
+function buildFV(copEV::ChainOp, face::Chain)
 	startv = -1
 	nextv = 0
 	edge = 0
@@ -509,14 +509,14 @@ function buildFV(copEV::ChainOp, face::Cell)
 end
 export buildFV
 
-function buildFV(EV::Cells, face::Cell)
+function buildFV(EV::Cells, face::Chain)
 	return buildFV(build_copEV(EV), face)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 
 
-function face_area(V::Points, EV::ChainOp, face::Cell)
+function face_area(V::Points, EV::ChainOp, face::Chain)
 	function triangle_area(triangle_points::Points)
 		ret = ones(3, 3)
 		ret[:, 1:2] = triangle_points
@@ -541,7 +541,7 @@ function face_area(V::Points, EV::ChainOp, face::Cell)
 	return area
 end
 
-function face_area(V::Points, EV::Cells, face::Cell)
+function face_area(V::Points, EV::Cells, face::Chain)
 	return face_area(V, build_copEV(EV), face)
 end
 
@@ -1160,8 +1160,8 @@ function submanifold_mapping(vs)
 end
 
 #//////////////////////////////////////////////////////////////////////////////
-function face_int(V::Points, EV::ChainOp, face::Cell)
-	vs = buildFV(EV, face)     # EV::ChainOp, face::Cell
+function face_int(V::Points, EV::ChainOp, face::Chain)
+	vs = buildFV(EV, face)     # EV::ChainOp, face::Chain
 	retV = Points(undef, 0, 3)
 	err = 10e-8
 	visited_verts = []

@@ -1,7 +1,9 @@
+using Triangulate
+
 # //////////////////////////////////////////////////////////////////////
 function constrained_triangulation2D(V::Points, EV::Cells)
 	triin = Triangulate.TriangulateIO()
-	triin.pointlist = V # scrgiorgio: by-col representation as LAR
+	triin.pointlist = V # scrgiorgio: this is by-col representation as LAR
 	triin.segmentlist = hcat(EV...)
 	(triout, __vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
 	return Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
