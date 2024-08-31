@@ -9,6 +9,8 @@ using LinearAlgebra
 using DataStructures
 using SparseArrays
 using StaticArrays
+using Triangulate
+using NearestNeighbors
 
 include("./lar/points.jl")      # OK
 include("./lar/bbox.jl")        # OK
@@ -19,7 +21,8 @@ include("./lar/triangulate.jl")
 include("./lar/view.jl")
 
 # TODO
-include("./lar/arrange.jl")
+include("./lar/arrange2d.jl")
+include("./lar/arrange3d.jl")
 include("./lar/boolean.jl")
 
 function __init__()

@@ -164,11 +164,9 @@ function TestDrawAtoms()
   lar=LAR(assembly)
 
   V,FV,EV = lar.V, lar.C[:FV], lar.C[:EV]	 
-  # initialization
-  copEV = cop_boundary_0(EV)
-  copFE = cop_boundary_1(V, FV, EV); ## TODO: debug
 
-  # generate the 3D space arrangement
+  copEV = cop_boundary_0(EV)
+  copFE = cop_boundary_1(V, FV, EV) ## TODO: debug
   V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
 
   # generate and draw the atoms [and the b-rep of outer space]

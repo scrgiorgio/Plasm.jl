@@ -1,4 +1,4 @@
-using Triangulate
+
 
 # //////////////////////////////////////////////////////////////////////
 function constrained_triangulation2D(V::Points, EV::Cells)
@@ -98,7 +98,7 @@ function pols2tria(V, copEV, copFE, copCF) # W by columns
 		edges_idxs = copFE[f, :].nzind
 		edge_num = length(edges_idxs)
 		edges = zeros(Int, edge_num, 2)
-		fv, edges = vcycle(copEV, copFE, f)
+		fv, edges = find_vcycle(copEV, copFE, f)
 		if fv ≠ []
 			vs = V_row[fv, :]
 			v1 = LinearAlgebra.normalize(vs[2, :] - vs[1, :])

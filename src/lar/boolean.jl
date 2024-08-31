@@ -9,9 +9,8 @@ export settestpoints, testinternalpoint, getinternalpoint, internalpoints, rayin
 #
 ################################################################################
 
-# //////////////////////////////////////////////////////////////////////////////
-# working in 2D ///////////////////////////////////////////////////////////////
-export pointInPolygonClassification
+
+
 """ Test di contenimento di un punto 2D in un poligono 2D """
 function pointInPolygonClassification(V, EV)
 
@@ -118,10 +117,11 @@ function pointInPolygonClassification(V, EV)
 	end
 	return pointInPolygonClassification0
 end
+export pointInPolygonClassification
 
 # //// look for a pair of test point for given atom ////////////////////////////
 # working in 3D ////////////////////////////////////////////////////////////////
-function settestpoints(V, EV, FE, FV, Fs, copEV, copFE) # V by row
+function settestpoints(V, EV, FE, FV, Fs, copEV, copFE)
 	f = Fs[1]
 	e = findnz(copFE[f, :])[1][1] # first (global) edge of first (global) face
 	# f,e relative to atom
@@ -131,6 +131,7 @@ function settestpoints(V, EV, FE, FV, Fs, copEV, copFE) # V by row
 	V1 = FV[fdict[f1]]
 	V2 = FV[fdict[f2]]
 	v1, v2 = intersect(V1, V2) # verified ... !
+
 	# two tringles sharing a common edge 
 	t1 = V[:, v1], V[:, v2], V[:, [v for v in V1 if v ≠ v1 && v ≠ v2][1]]# t1 ⊆ ∂atom ??
 	t2 = V[:, v2], V[:, v1], V[:, [v for v in V2 if v ≠ v1 && v ≠ v2][1]]# t2 ⊆ ∂atom ??
@@ -139,14 +140,11 @@ function settestpoints(V, EV, FE, FV, Fs, copEV, copFE) # V by row
 	p0 = (V[:, v1] + V[:, v2]) ./ 2 # mean point
 	n = n1 + n2  # mean normal
 	ϵ = 1.0e-6  # Alberto 2024-03-03
-	#ϵ = 1.0e-8
+
 	ptest1 = p0 + ϵ * n
 	ptest2 = p0 - ϵ * n
-	# it is not known if angle(f1,f2) < π;  hence return two opposite points
 	return ptest1, ptest2
 end
-# //////////////////////////////////////////////////////////////////////////////
-# working in 3D ////////////////////////////////////////////////////////////////
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -219,7 +217,6 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-
 """ return two opposite internal/external points in an atom """
 function getinternalpoint(V, EV, FE, FV, Fs, copEV, copFE) # V by rows
 	# look at edges for v1=FV[1][1]
@@ -319,8 +316,6 @@ function OUTER_ATOM(V, atoms)
 end
 export OUTER_ATOM
 
-
-
 # //////////////////////////////////////////////////////////////////////////////
 function internalpoints(V, copEV, copFE, copCF)
 
@@ -367,14 +362,10 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Take model,face,point on face plane and return 2Dface, edges, and point """
-
 function planemap(V, copEV, copFE, face)
-	fv, edges = vcycle(copEV, copFE, face)
-	# Fv = Dict(zip(1:length(fv),fv))
-	# edges = [[Fv[u],Fv[v]] for (u,v) in edges]
+	fv, edges = find_vcycle(copEV, copFE, face)
 	function planemap0(point)
 		vs = V[:, fv]
-		# Plasm.view(Plasm.numbering(0.5)((vs,[[[k] for k=1:4],edges])))
 		#translation
 		point = point .- vs[:, 1]
 		vs = vs .- vs[:, 1]

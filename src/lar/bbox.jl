@@ -50,3 +50,17 @@ function bbox_coord_intervals(coord, bboxes)
 	return boxdict
 end
 export bbox_coord_intervals
+
+# //////////////////////////////////////////////////////////////////////////////
+function bbox_containment_graph(bboxes)
+	n = length(bboxes)
+	ret = spzeros(Int8, n, n)
+	for i in 1:n
+		for j in 1:n
+			if i != j && bbox_contains(bboxes[j], bboxes[i])
+				ret[i, j] = 1
+			end
+		end
+	end
+	return ret
+end
