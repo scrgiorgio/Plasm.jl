@@ -21,8 +21,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function intersect_edges(V_row::Points, edge1::Chain, edge2::Chain)
-	err = 10e-8
+function intersect_edges(V_row::Points, edge1::Chain, edge2::Chain; err=LAR_DEFAULT_ERR)
 
 	x1, y1, x2, y2 = vcat(map(c -> V_row[c, :], edge1.nzind)...)
 	x3, y3, x4, y4 = vcat(map(c -> V_row[c, :], edge2.nzind)...)
@@ -88,7 +87,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function merge_vertices_2d!(V::Points, EV::ChainOp, edge_map, err=1e-4)
+function merge_vertices_2d!(V::Points, EV::ChainOp, edge_map; err=LAR_DEFAULT_ERR)
 	vertsnum = size(V, 1)
 	edgenum = size(EV, 1)
 	newverts = zeros(Int, vertsnum)
@@ -884,12 +883,6 @@ function buildFV(copEV::ChainOp, face::Chain)
 end
 export buildFV
 
-function buildFV(EV::Cells, face::Chain)
-	return buildFV(build_copEV(EV), face)
-end
-
-
-
 
 # //////////////////////////////////////////////////////////////////////////////
 function face_area(V_row::Points, EV::ChainOp, face::Chain)
@@ -905,7 +898,6 @@ function face_area(V_row::Points, EV::ChainOp, face::Chain)
 
 	verts_num = length(fv)
 	v1 = fv[1]
-
 	for i in 2:(verts_num-1)
 
 		v2 = fv[i]
@@ -917,9 +909,6 @@ function face_area(V_row::Points, EV::ChainOp, face::Chain)
 	return area
 end
 
-function face_area(V_row::Points, EV::Cells, face::Chain)
-	return face_area(V_row, build_copEV(EV), face)
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 function arrange2D(V, EV)

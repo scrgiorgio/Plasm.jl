@@ -28,7 +28,7 @@ export TRIANGULATE2D
 
 # //////////////////////////////////////////////////////////////////////
 """ input old LAR consistent data; output triangulated_faces """
-function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells;err = 1e-8)
+function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells;err = LAR_DEFAULT_ERR)
 
 	""" return ordered vertices  and edges of the 1-cycle f """
 	function __find_cycle(EV, FE, f::Int)
@@ -86,7 +86,7 @@ export LAR2TRIANGLES
 
 # //////////////////////////////////////////////////////////////////////
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
-function pols2tria(V, copEV, copFE, copCF) # W by columns
+function pols2tria(V, copEV, copFE, copCF;err=LAR_DEFAULT_ERR) # W by columns
 	V_row = BYROW(V)
 
 	triangles_per_face = Vector{Any}(undef, copFE.m)
@@ -104,7 +104,6 @@ function pols2tria(V, copEV, copFE, copCF) # W by columns
 			v1 = LinearAlgebra.normalize(vs[2, :] - vs[1, :])
 			v2 = [0, 0, 0]
 			v3 = [0, 0, 0]
-			err = 1e-8
 			i = 3
 			while -err < LinearAlgebra.norm(v3) < err
 				v2 = LinearAlgebra.normalize(vs[i, :] - vs[1, :])

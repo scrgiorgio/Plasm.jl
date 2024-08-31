@@ -12,6 +12,9 @@ using StaticArrays
 using Triangulate
 using NearestNeighbors
 
+# ///////////////////////////////////////////////////////////
+const LAR_DEFAULT_ERR=1e-8
+
 include("./lar/points.jl")      # OK
 include("./lar/bbox.jl")        # OK
 include("./lar/dense.jl")       # OK

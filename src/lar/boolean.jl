@@ -269,7 +269,6 @@ function getinternalpoint(V, EV, FE, FV, Fs, copEV, copFE) # V by rows
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-export get_atoms
 """ Build 3D polyhedrons in pols from arrangement output (outer+atoms) """
 function get_atoms(copEV, copFE, copCF)
 	FEs = Array{Array{Int64,1},1}[]
@@ -290,11 +289,11 @@ function get_atoms(copEV, copFE, copCF)
 	pols = collect(zip(EVs, FVs, FEs)) # all atoms w global numbering
 	return pols, CF
 end
-
+export get_atoms
 
 # //////////////////////////////////////////////////////////////////////////////
 """separate outer atom from other atoms"""
-function OUTER_ATOM(V, atoms)
+function separate_outer_atom(V, atoms)
 
 	# extract bounding boxes to find outser space
 	bboxes = []
@@ -314,14 +313,14 @@ function OUTER_ATOM(V, atoms)
 
 	return outerspace, atoms
 end
-export OUTER_ATOM
+export separate_outer_atom
 
 # //////////////////////////////////////////////////////////////////////////////
 function internalpoints(V, copEV, copFE, copCF)
 
 	# transform each 3-cell in a solid (via model)
 	pols, CF = get_atoms(copEV, copFE, copCF)
-	outerspace, atoms = OUTER_ATOM(V, pols)
+	outerspace, atoms = separate_outer_atom(V, pols)
 
 	# compute, for each `pol` (3-cell, i.e atom) in `pols`, one `internalpoint`
 	innerpoints = []
@@ -337,7 +336,7 @@ function internalpoints(V, copEV, copFE, copCF)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function rayintersection(point3d)
+function rayintersection(point3d;err=LAR_DEFAULT_ERR)
 	function rayintersection0(V, FV, face::Int)
 		l0, l = point3d, [0, 0, 1.0]
 		ps = V[:, FV[face]]  # face points
@@ -346,7 +345,7 @@ function rayintersection(point3d)
 		n = LinearAlgebra.normalize(cross(v1, v2))
 
 		denom = dot(n, l)
-		if (abs(denom) > 1e-8) #1e-6
+		if (abs(denom) > err)
 			p0l0 = p0 - l0
 			t = dot(p0l0, n) / denom
 			if t > 0

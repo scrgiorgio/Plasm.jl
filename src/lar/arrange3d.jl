@@ -234,10 +234,9 @@ end
 
 
 #//////////////////////////////////////////////////////////////////////////////
-function face_int(V::Points, EV::ChainOp, face::Chain)
+function face_int(V::Points, EV::ChainOp, face::Chain; err=LAR_DEFAULT_ERR)
 	vs = buildFV(EV, face)     # EV::ChainOp, face::Chain
 	retV = Points(undef, 0, 3)
-	err = 10e-8
 	visited_verts = []
 	for i in 1:length(vs)
 		o = V[vs[i], :]
@@ -275,8 +274,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Task to iteratively add new local components to the global 2-skeleton """
-# Remark: sensible to `err`; works w `err=1e-6`, "ERROR: no pivot" with `err=1e-7`
-function merge_vertices_3d(V::Points, EV::ChainOp, FE::ChainOp, err=1e-6)
+function merge_vertices_3d(V::Points, EV::ChainOp, FE::ChainOp; err=LAR_DEFAULT_ERR)
 	vertsnum = size(V, 1)
 	edgenum = size(EV, 1)
 	facenum = size(FE, 1)
@@ -414,7 +412,6 @@ end
 export arrange3D
 
 
-
 # //////////////////////////////////////////////////////////////////////////////
 function u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex=true::Bool)::ChainOp
 	temp = copFV * copEV'
@@ -517,7 +514,6 @@ function cop_boundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::
 		return copFE
 	end
 end
-
 
 function cop_boundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
 	copFV = lar2cop(FV)

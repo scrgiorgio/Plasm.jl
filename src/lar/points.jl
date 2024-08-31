@@ -33,7 +33,7 @@ export BYCOL
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Predicate to check equality of two vertices (only used above) """
-function vertex_fuzzy_equals(v1, v2;err = 10e-8)
+function vertex_fuzzy_equals(v1, v2;err = LAR_DEFAULT_ERR)
 	return length(v1) == length(v2) && all(map((x1, x2) -> -err < x1 - x2 < err, v1, v2))
 end
 export vertex_fuzzy_equals
