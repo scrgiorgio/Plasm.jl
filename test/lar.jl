@@ -165,11 +165,11 @@ function TestDrawAtoms()
 
   V,FV,EV = lar.V, lar.C[:FV], lar.C[:EV]	 
   # initialization
-  copEV = coboundary_0(EV)
-  copFE = coboundary_1(V, FV, EV); ## TODO: debug
+  copEV = cop_boundary_0(EV)
+  copFE = cop_boundary_1(V, FV, EV); ## TODO: debug
 
   # generate the 3D space arrangement
-  V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE )
+  V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
 
   # generate and draw the atoms [and the b-rep of outer space]
   atoms,__CF = get_atoms(copEV,copFE,copCF)
@@ -242,9 +242,9 @@ function TestRandomCubes()
   
   V, EV, FV  = lar.V, lar.C[:EV], lar.C[:FV]
 
-  copEV = coboundary_0(EV)
-  copFE = coboundary_1(V, FV, EV)
-  V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE)
+  copEV = cop_boundary_0(EV)
+  copFE = cop_boundary_1(V, FV, EV)
+  V, copEV, copFE, copCF = arrange3D(V, copEV, copFE)
   V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF);
   VIEWEXPLODED(V, CVs, FVs, EVs)
   
@@ -304,10 +304,10 @@ function TestBool3D()
   lar=LAR(assembly)
 	V,FV,EV = new2old()
 	
-	copEV = coboundary_0(EV)
-	copFE = coboundary_1(V, FV, EV)
+	copEV = cop_boundary_0(EV)
+	copFE = cop_boundary_1(V, FV, EV)
   V_original=V
-	V, copEV, copFE, copCF = space_arrangement(V, copEV, copFE )
+	V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
 
 	boolmatrix = bool3d(assembly, V,copEV,copFE,copCF);
 	V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)

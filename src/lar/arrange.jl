@@ -906,10 +906,10 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function arrange2D(V, EV)
 
-	copEV = coboundary_0(EV::Cells)
+	copEV = cop_boundary_0(EV)
 	cop_EW = convert(ChainOp, copEV)
 	V, copEV, copFE = planar_arrangement(V, cop_EW::ChainOp)
-	EVs = FV2EVs(copEV, copFE) # polygonal face fragments
+	EVs = FV2EV(copEV, copFE) # polygonal face fragments
 
 	V_row = BYROW(V)
 
@@ -982,12 +982,12 @@ function u_coboundary_1(FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-export coboundary_1
-function coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool)::ChainOp
+export cop_boundary_1
+function cop_boundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool)::ChainOp
 
 	copFE = u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex)
 	EV = [findnz(copEV[k, :])[1] for k = 1:size(copEV, 1)]
-	copEV = sparse(coboundary_0(EV::Cells))
+	copEV = sparse(cop_boundary_0(EV))
 	for f = 1:size(copFE, 1)
 		chain = findnz(copFE[f, :])[1]#	dense
 		cycle = spzeros(Int8, copFE.n)#	sparse
@@ -1038,7 +1038,6 @@ function coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bo
 	if exterior &&  pdim == 2
 		# put matrix in form: first row outer cell; with opposite sign )
 		V_row  = BYROW(V)
-		EV = convert(ChainOp, SparseArrays.transpose(boundary_1(EV)))
 
 		outer = get_external_cycle(V_row, copEV, copFE)
 		copFE = [-copFE[outer:outer, :]; copFE[1:outer-1, :]; copFE[outer+1:end, :]]
@@ -1058,17 +1057,15 @@ function coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bo
 end
 
 
-function coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
-	# generate unsigned operator's sparse matrix
+function cop_boundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
 	copFV = lar2cop(FV)
 	copEV = lar2cop(EV)
-	# greedy generation of incidence signs
-	return coboundary_1(V, copFV::ChainOp, copEV::ChainOp, convex, exterior)
+	return cop_boundary_1(V, copFV, copEV, convex, exterior)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
-function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
+function arrange3D(V::Points, EV::ChainOp, FE::ChainOp)
 
 	function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
 		vs_num = size(V, 1)
@@ -1123,7 +1120,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	# historically arrangement works internally by using by-row vertices
 	return BYCOL(rV), rcopEV, rcopFE, rcopCF
 end
-export space_arrangement
+export arrange3D
 
 # //////////////////////////////////////////////////////////////////////////////
 function spaceindex(V_row::Points, CV)::Cells

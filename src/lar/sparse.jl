@@ -24,30 +24,28 @@ export lar2cop
 
 """ converte sparse to dense"""
 function cop2lar(cop::ChainOp)::Cells
-	[findnz(cop[k, :])[1] for k = 1:size(cop, 1)]
+	return [findnz(cop[k, :])[1] for k = 1:size(cop, 1)]
 end
 export cop2lar
 
-function boundary_1(EV::Cells)::ChainOp
-	out = lar2cop(EV)'
-	for e = 1:length(EV)
-		out[EV[e][1], e] = -1
+""" EV dense to sparse """
+function cop_boundary_0(EV::Cells)::ChainOp
+	copEV = lar2cop(EV)
+	copVE = copEV'
+	for (E,ev) in enumerate(EV)
+		v1,v2=ev
+		copVE[v1, E] = -1 # from +1 -> -1
 	end
-	return out
+	copEV=LinearAlgebra.transpose(copVE)
+	return convert(ChainOp,copEV)
 end
-export boundary_1
-
-function coboundary_0(EV::Cells)::ChainOp
-	return convert(ChainOp, LinearAlgebra.transpose(boundary_1(EV::Cells)))
-end
-export coboundary_0
+export cop_boundary_0
 
 # //////////////////////////////////////////////////////////////////////////////
-"""Find EV from EV FE"""
-function FV2EVs(copEV::ChainOp, copFE::ChainOp)
-	EV = [findnz(copEV[k, :])[1] for k = 1:size(copEV, 1)]
-	FE = [findnz(copFE[k, :])[1] for k = 1:size(copFE, 1)]
-	EVs = [[EV[e] for e in fe] for fe in FE]
-	return EVs
+"""From (EV,FE) to EV"""
+function FV2EV(copEV::ChainOp, copFE::ChainOp)
+	EV = cop2lar(copEV) 
+	FE = cop2lar(copFE)
+	return [[EV[e] for e in fe] for fe in FE]
 end
-export FV2EVs
+export FV2EV

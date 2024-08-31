@@ -122,7 +122,7 @@ function pols2tria(V, copEV, copFE, copCF) # W by columns
 	triangles_per_face = convert(Vector{Cells}, triangles_per_face)
 
 	# polygonal face fragments
-	EVs = FV2EVs(copEV, copFE) 
+	EVs = FV2EV(copEV, copFE) 
 	FVs = convert(Array{Cells}, triangles_per_face)
 	CVs = []
 	for cell in 1:copCF.m
