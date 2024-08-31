@@ -1,17 +1,17 @@
 # LAR uses always by-col (!!!) representation
-# if you need by-row use `V_row=BYROW(V)``
+# if you need by-row use `V_row=BYROW(V)` but try to avoid mixing different representations
+
 const Points = Matrix{Float64}
 export Points
 
-
-""" returns point dim """
-function PDIM(V::Points)
+""" returns point dim (assuming by-col rep)"""
+function POINT_DIM(V::Points)
 	return size(V,1)
 end
 export PDIM
 
-""" returns number of Lar vertices """
-function NVERS(V::Points)
+""" returns number of Lar vertices (assuming by-col rep) """
+function NUM_VERTICES(V::Points)
 	return size(V,2)
 end
 export NVERS

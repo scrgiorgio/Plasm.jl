@@ -2,7 +2,6 @@
 const Cells = Vector{Vector{Int}}
 export Cells
 
-
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
 mutable struct Lar
 
@@ -25,8 +24,8 @@ export Lar
 
 
 # //////////////////////////////////////////////////////////////////////////////
-# from Hpc -> Lar (trying to keep as many information as possible, still unifying to a unique geometry)
-export LAR
+"""from Hpc -> Lar 
+"""
 function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	geo = ToGeometry(obj, precision=precision)
 	n = length(geo.points)    # number of vertices  (columns of V)
@@ -38,10 +37,13 @@ function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	ret.C[:CV] = geo.hulls
 	return ret
 end
+export LAR
 
 # //////////////////////////////////////////////////////////////////////////////
-#NOTE: better use MKPOLS to specify what Hpc you want to build 
-export HPC
+""" Create an Hpc from Lar 
+
+use MKPOLS to specify what Hpc you want to build (like only edges or only 2d-faces)
+"""
 function HPC(lar::Lar)::Hpc
 
 	if :FV in keys(lar.C) && length(lar.C[:FV])
@@ -55,25 +57,27 @@ function HPC(lar::Lar)::Hpc
 	end
 
 end
+export HPC
 
 # //////////////////////////////////////////////////////////////////////////////
-export CUBOIDGRID
 function CUBOIDGRID(shape::Vector{Int})::Lar
 	obj = INSL(POWER)(AA(GRID1)(shape))
 	if RN(obj) == 2
 		geo = ToGeometry(obj)
-		V = geo.points
-		FV = geo.hulls
-		EV = geo.edges
+		V,FV,EV = geo.points,geo.hulls,geo.edges
 		return Lar(hcat(V...), Dict(:FV => FV, :EV => EV))
 	else
 		return LAR(obj)
 	end
 end
+export CUBOIDGRID
 
 
 # ////////////////////////////////////////////////////////////////
-export LAR_SIMPLEX
+""" create LAR_SIMPLEX
+
+see also fenv SIMPLEX function
+"""
 function LAR_SIMPLEX(d; complex=false)
 
 	function simplexfacets(simplices)
@@ -104,4 +108,4 @@ function LAR_SIMPLEX(d; complex=false)
 		return Lar(V, C)
 	end
 end
-
+export LAR_SIMPLEX

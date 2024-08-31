@@ -10,10 +10,11 @@ using DataStructures
 using SparseArrays
 using StaticArrays
 
-include("./lar/points.jl")
-include("./lar/bbox.jl")
-include("./lar/dense.jl")
+include("./lar/points.jl")      # OK
+include("./lar/bbox.jl")        # OK
+include("./lar/dense.jl")       # OK
 include("./lar/sparse.jl")
+
 include("./lar/triangulate.jl")
 include("./lar/view.jl")
 

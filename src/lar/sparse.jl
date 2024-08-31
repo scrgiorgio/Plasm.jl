@@ -3,8 +3,11 @@
 const Chain        = SparseVector{Int8,Int}
 const ChainOp      = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
+
 export Chain, ChainOp, ChainComplex
 
+# ///////////////////////////////////////////////////////////
+""" converte dense to sparse"""
 function lar2cop(cells::Cells)::ChainOp
 	I, J, V = Int[], Int[], Int[]
 	for (C,cell) in enumerate(cells)
@@ -19,7 +22,7 @@ end
 export lar2cop
 
 
-""" converte sparse represantation to dense"""
+""" converte sparse to dense"""
 function cop2lar(cop::ChainOp)::Cells
 	[findnz(cop[k, :])[1] for k = 1:size(cop, 1)]
 end

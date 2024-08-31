@@ -161,10 +161,11 @@ function testinternalpoint(V, EV, FV)
 			dim, idx = size(V)
 			push!(CV, [idx, idx, idx])
 			cellpoints = [V[:, CV[k]]::Points for k = 1:length(CV)]
+
 			#----------------------------------------------------------
 			bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints] #bound boxes
-			xboxdict = coordintervals(1, bboxes)
-			yboxdict = coordintervals(2, bboxes)
+			xboxdict = bbox_coord_intervals(1, bboxes)
+			yboxdict = bbox_coord_intervals(2, bboxes)
 			# xs,ys are IntervalTree type
 			xs = IntervalTrees.IntervalMap{Float64,Array}()
 			for (key, boxset) in xboxdict
@@ -174,8 +175,8 @@ function testinternalpoint(V, EV, FV)
 			for (key, boxset) in yboxdict
 				ys[tuple(key...)] = boxset
 			end
-			xcovers = boxcovering(bboxes, 1, xs)
-			ycovers = boxcovering(bboxes, 2, ys)
+			xcovers = bbox_covering(bboxes, 1, xs)
+			ycovers = bbox_covering(bboxes, 2, ys)
 			covers = [intersect(pair...) for pair in zip(xcovers, ycovers)]
 
 			# add new code part
@@ -296,15 +297,14 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """separate outer atom from other atoms"""
-function OUTER_ATOM(V, pols)
+function OUTER_ATOM(V, atoms)
 
 	# extract bounding boxes to find outser space
 	bboxes = []
-	for pol in pols
-		ev = pol[1] # atom edges (pairs of vertex indices)
+	for atom in atoms
+		ev = atom[1] # atom edges (pairs of vertex indices)
 		verts = sort(union(CAT(CAT(ev)))) # atom vertices (vertex indices)
-		v = V[:, verts]
-		xbox = bbox(v) # maxmin of first coordinate
+		xbox = boundingbox(V[:, verts]) 
 		push!(bboxes, xbox)
 	end
 
@@ -312,12 +312,12 @@ function OUTER_ATOM(V, pols)
 	boxes = AA(collect ∘ AA(vec))(bboxes)
 	diags = [LinearAlgebra.norm(v2 - v1) for (v1, v2) in boxes]
 	__value, outer_position = findmax(diags)
-	outerspace = filter(x -> x == pols[outer_position], pols)[1]
-	atoms = filter(x -> x != pols[outer_position], pols)
+	outerspace = filter(x -> x == atoms[outer_position], atoms)[1]
+	atoms      = filter(x -> x != atoms[outer_position], atoms)
 
 	return outerspace, atoms
 end
-export POPOUTER
+export OUTER_ATOM
 
 
 

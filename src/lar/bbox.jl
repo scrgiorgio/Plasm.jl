@@ -1,23 +1,17 @@
 using IntervalTrees
 
 
-# //////////////////////////////////////////////////////////////////////////////
 """
-bbox(vertices::Points)
+boundingbox(vertices::Points)
 
 The axis aligned *bounding box* of the provided Matrix of n-dim `vertices`.
 The box is returned as the pair of `Points` of two opposite corners.
-"""
-function bbox(vertices::Points)
-	minimum = mapslices(x -> min(x...), vertices, dims=1)
-	maximum = mapslices(x -> max(x...), vertices, dims=1)
-	minimum, maximum
-end
-export bbox
 
-function boundingbox(vertices::Points)
-	minimum = mapslices(x -> min(x...), vertices, dims=2)
-	maximum = mapslices(x -> max(x...), vertices, dims=2)
+NOTE: assuming LAR by-col representation, if it's by-row using dims=1
+"""
+function boundingbox(vertices::Points;dims::Int=2)
+	minimum = mapslices(x -> min(x...), vertices, dims=dims)
+	maximum = mapslices(x -> max(x...), vertices, dims=dims)
 	return minimum, maximum
 end
 export boundingbox
@@ -29,7 +23,7 @@ function bbox_contains(container, contained)
 end
 export bbox_contains
 
-function boxcovering(bboxes, index, tree)
+function bbox_covering(bboxes, index, tree)
 	covers = [[] for k = 1:length(bboxes)]
 	for (i, boundingbox) in enumerate(bboxes)
 		extent = bboxes[i][index, :]
@@ -40,10 +34,10 @@ function boxcovering(bboxes, index, tree)
 	end
 	return covers
 end
-export boxcovering
+export bbox_covering
 
 """ Make dictionary of 1D boxes for IntervalTrees construction """
-function coordintervals(coord, bboxes)
+function bbox_coord_intervals(coord, bboxes)
 	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()
 	for (h, box) in enumerate(bboxes)
 		key = box[coord, :]
@@ -55,4 +49,4 @@ function coordintervals(coord, bboxes)
 	end
 	return boxdict
 end
-export coordintervals
+export bbox_coord_intervals

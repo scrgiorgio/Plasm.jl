@@ -216,12 +216,15 @@ function pre_containment_test(bboxes)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function cell_merging(n, containment_graph, V, EVs, boundaries, shells, shell_bboxes)
-	function bboxes(V::Points, indexes::ChainOp)
+function cell_merging(n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes)
+
+	V=BYCOL(V_row)
+
+	function bboxes(V_row::Points, indexes::ChainOp)
 		boxes = Array{Tuple{Any,Any}}(undef, indexes.n)
 		for i in 1:indexes.n
 			v_inds = indexes[:, i].nzind
-			boxes[i] = bbox(V[v_inds, :])
+			boxes[i] = boundingbox(V_row[v_inds, :],dims=1)
 		end
 		boxes
 	end
@@ -230,7 +233,7 @@ function cell_merging(n, containment_graph, V, EVs, boundaries, shells, shell_bb
 	# assembling child components with father components
 	for father in 1:n
 		if sum(containment_graph[:, father]) > 0
-			father_bboxes = bboxes(V, abs.(EVs[father]') * abs.(boundaries[father]'))
+			father_bboxes = bboxes(V_row, abs.(EVs[father]') * abs.(boundaries[father]'))
 			for child in 1:n
 				if containment_graph[child, father] > 0
 					child_bbox = shell_bboxes[child]
@@ -423,11 +426,11 @@ function delete_edges(edges_to_del, V_row::Points, EV::ChainOp)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function intersect_edges(V::Points, edge1::Chain, edge2::Chain)
+function intersect_edges(V_row::Points, edge1::Chain, edge2::Chain)
 	err = 10e-8
 
-	x1, y1, x2, y2 = vcat(map(c -> V[c, :], edge1.nzind)...)
-	x3, y3, x4, y4 = vcat(map(c -> V[c, :], edge2.nzind)...)
+	x1, y1, x2, y2 = vcat(map(c -> V_row[c, :], edge1.nzind)...)
+	x3, y3, x4, y4 = vcat(map(c -> V_row[c, :], edge2.nzind)...)
 	ret = Array{Tuple{Points,Float64},1}()
 
 	v1 = [x2 - x1, y2 - y1]
@@ -514,9 +517,7 @@ function buildFV(EV::Cells, face::Chain)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-
-
-function face_area(V::Points, EV::ChainOp, face::Chain)
+function face_area(V_row::Points, EV::ChainOp, face::Chain)
 	function triangle_area(triangle_points::Points)
 		ret = ones(3, 3)
 		ret[:, 1:2] = triangle_points
@@ -535,14 +536,14 @@ function face_area(V::Points, EV::ChainOp, face::Chain)
 		v2 = fv[i]
 		v3 = fv[i+1]
 
-		area += triangle_area(V[[v1, v2, v3], :])
+		area += triangle_area(V_row[[v1, v2, v3], :])
 	end
 
 	return area
 end
 
-function face_area(V::Points, EV::Cells, face::Chain)
-	return face_area(V, build_copEV(EV), face)
+function face_area(V_row::Points, EV::Cells, face::Chain)
+	return face_area(V_row, build_copEV(EV), face)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -736,14 +737,13 @@ function merge_vertices!(V::Points, EV::ChainOp, edge_map, err=1e-4)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function frag_edge(V, EV::ChainOp, edge_idx::Int, bigPI)
+function frag_edge(V_row, EV::ChainOp, edge_idx::Int, bigPI)
 	alphas = Dict{Float64,Int}()
 	edge = EV[edge_idx, :]
-	verts = V[edge.nzind, :]
+	verts = V_row[edge.nzind, :]
 	for i in bigPI[edge_idx]
 		if i != edge_idx
-			intersection = intersect_edges(
-				V, edge, EV[i, :])
+			intersection = intersect_edges(V_row, edge, EV[i, :])
 			for (point, alpha) in intersection
 				verts = [verts; point]
 				alphas[alpha] = size(verts, 1)
@@ -881,7 +881,7 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 			shell_bboxes = []
 			for i in 1:n
 				vs_indexes = (abs.(EVs[i]') * abs.(shells[i])).nzind
-				push!(shell_bboxes, bbox(V_row[vs_indexes, :]))
+				push!(shell_bboxes, boundingbox(V_row[vs_indexes, :],dims=1))
 			end
 			# computation and reduction of containment graph
 			containment_graph = pre_containment_test(shell_bboxes)
@@ -892,8 +892,7 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 
 		n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes = componentgraph(V_row, copEV, bicon_comps)
 
-		copEV, FE = cell_merging(
-			n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes)
+		copEV, FE = cell_merging(n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes)
 
 		return BYCOL(V_row), copEV, FE
 	end
@@ -1096,12 +1095,12 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	end
 
 	# historically arrangement works internally by using by-row vertices
-	V = BYROW(V)
+	V_row = BYROW(V)
 	fs_num = size(FE, 1)
 	# strange but necessary cycle of computations to get FV::Cells algebraically
 	FV = (abs.(FE) * abs.(EV)) .÷ 2
 	FV = convert(ChainOp, FV)
-	sp_idx = spaceindex(V, cop2lar(FV))
+	sp_idx = spaceindex(V_row, cop2lar(FV))
 	rV = Points(undef, 0, 3)
 	rEV = SparseArrays.spzeros(Int8, 0, 0)
 	rFE = SparseArrays.spzeros(Int8, 0, 0)
@@ -1110,7 +1109,7 @@ function space_arrangement(V::Points, EV::ChainOp, FE::ChainOp)
 	depot_FE = Array{ChainOp,1}(undef, fs_num)
 	for sigma in 1:fs_num
 		print(sigma, "/", fs_num, "\r")
-		nV, nEV, nFE = frag_face(V, EV, FE, sp_idx, sigma)
+		nV, nEV, nFE = frag_face(V_row, EV, FE, sp_idx, sigma)
 		depot_V[sigma] = nV
 		depot_EV[sigma] = nEV
 		depot_FE[sigma] = nFE
@@ -1127,21 +1126,21 @@ end
 export space_arrangement
 
 # //////////////////////////////////////////////////////////////////////////////
-function spaceindex(V::Matrix{Float64}, CV)::Vector{Vector{Int}}
-	V = BYROW(V)
-	dim = size(V, 1)
+function spaceindex(V_row::Points, CV)::Cells
+	V = BYCOL(V_row)
+	pdim = size(V, 1)
 	cellpoints = [V[:, CV[k]] for k = 1:LEN(CV)]
 	bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints]
-	boxdicts = [coordintervals(k, bboxes) for k = 1:dim]
-	trees = [IntervalTrees.IntervalMap{Float64,Array}() for k = 1:dim]
+	boxdicts = [bbox_coord_intervals(k, bboxes) for k = 1:pdim]
+	trees = [IntervalTrees.IntervalMap{Float64,Array}() for k = 1:pdim]
 	covers = []
-	for k = 1:dim
+	for k = 1:pdim
 		for (key, boxset) in boxdicts[k]
 			trees[k][tuple(key...)] = boxset
 		end
-		push!(covers, boxcovering(bboxes, k, trees[k]))
+		push!(covers, bbox_covering(bboxes, k, trees[k]))
 	end
-	covers = [reduce(intersect, [covers[h][k] for h = 1:dim]) for k = 1:length(CV)]
+	covers = [reduce(intersect, [covers[h][k] for h = 1:pdim]) for k = 1:length(CV)]
 end
 
 
