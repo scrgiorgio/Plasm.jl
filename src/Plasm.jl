@@ -18,12 +18,11 @@ const LAR_DEFAULT_ERR=1e-8
 include("./lar/points.jl")      # OK
 include("./lar/bbox.jl")        # OK
 include("./lar/dense.jl")       # OK
-include("./lar/sparse.jl")
-
-include("./lar/triangulate.jl")
-include("./lar/view.jl")
+include("./lar/sparse.jl")      # OK
+include("./lar/view.jl")        # OK
 
 # TODO
+include("./lar/triangulate.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
 include("./lar/boolean.jl")

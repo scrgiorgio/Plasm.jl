@@ -121,7 +121,7 @@ export pointInPolygonClassification
 
 # //// look for a pair of test point for given atom ////////////////////////////
 # working in 3D ////////////////////////////////////////////////////////////////
-function settestpoints(V, EV, FE, FV, Fs, copEV, copFE)
+function settestpoints(V, EV, FE, FV, Fs, copEV, copFE;err=DEFAULT_LAR_ERROR)
 	f = Fs[1]
 	e = findnz(copFE[f, :])[1][1] # first (global) edge of first (global) face
 	# f,e relative to atom
@@ -139,8 +139,6 @@ function settestpoints(V, EV, FE, FV, Fs, copEV, copFE)
 	n2 = LinearAlgebra.normalize(cross(t2[2] - t2[1], t2[3] - t2[1]))
 	p0 = (V[:, v1] + V[:, v2]) ./ 2 # mean point
 	n = n1 + n2  # mean normal
-	ϵ = 1.0e-6  # Alberto 2024-03-03
-
 	ptest1 = p0 + ϵ * n
 	ptest2 = p0 - ϵ * n
 	return ptest1, ptest2
