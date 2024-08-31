@@ -6,7 +6,7 @@ function spaceindex(V_row::Points, CV)::Cells
 	V = BYCOL(V_row)
 	pdim = size(V, 1)
 	cellpoints = [V[:, CV[k]] for k = 1:LEN(CV)]
-	bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints]
+	bboxes = [hcat(bbox_create(cell)...) for cell in cellpoints]
 	boxdicts = [bbox_coord_intervals(k, bboxes) for k = 1:pdim]
 	trees = [IntervalTrees.IntervalMap{Float64,Array}() for k = 1:pdim]
 	covers = []
@@ -642,7 +642,7 @@ function cell_merging(n, containment_graph, V_row, EVs, boundaries, shells, shel
 		boxes = Array{Tuple{Any,Any}}(undef, indexes.n)
 		for i in 1:indexes.n
 			v_inds = indexes[:, i].nzind
-			boxes[i] = boundingbox(V_row[v_inds, :],dims=1)
+			boxes[i] = bbox_create(V_row[v_inds, :],dims=1)
 		end
 		boxes
 	end
@@ -800,7 +800,7 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 			shell_bboxes = []
 			for i in 1:n
 				vs_indexes = (abs.(EVs[i]') * abs.(shells[i])).nzind
-				push!(shell_bboxes, boundingbox(V_row[vs_indexes, :],dims=1))
+				push!(shell_bboxes, bbox_create(V_row[vs_indexes, :],dims=1))
 			end
 			# computation and reduction of containment graph
 			containment_graph = bbox_containment_graph(shell_bboxes)

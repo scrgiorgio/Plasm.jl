@@ -2,14 +2,14 @@ using IntervalTrees
 
 
 """
-boundingbox(vertices::Points)
+bbox_create(vertices::Points)
 
 The axis aligned *bounding box* of the provided Matrix of n-dim `vertices`.
 The box is returned as the pair of `Points` of two opposite corners.
 
 NOTE: assuming LAR by-col representation, if it's by-row using dims=1
 """
-function boundingbox(vertices::Points;dims::Int=2)
+function bbox_create(vertices::Points;dims::Int=2)
 	minimum = mapslices(x -> min(x...), vertices, dims=dims)
 	maximum = mapslices(x -> max(x...), vertices, dims=dims)
 	return minimum, maximum

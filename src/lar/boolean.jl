@@ -159,7 +159,7 @@ function testinternalpoint(V, EV, FV)
 			cellpoints = [V[:, CV[k]]::Points for k = 1:length(CV)]
 
 			#----------------------------------------------------------
-			bboxes = [hcat(boundingbox(cell)...) for cell in cellpoints] #bound boxes
+			bboxes = [hcat(bbox_create(cell)...) for cell in cellpoints] #bound boxes
 			xboxdict = bbox_coord_intervals(1, bboxes)
 			yboxdict = bbox_coord_intervals(2, bboxes)
 			# xs,ys are IntervalTree type
@@ -298,7 +298,7 @@ function separate_outer_atom(V, atoms)
 	for atom in atoms
 		ev = atom[1] # atom edges (pairs of vertex indices)
 		verts = sort(union(CAT(CAT(ev)))) # atom vertices (vertex indices)
-		xbox = boundingbox(V[:, verts]) 
+		xbox = bbox_create(V[:, verts]) 
 		push!(bboxes, xbox)
 	end
 
