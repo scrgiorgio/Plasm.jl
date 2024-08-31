@@ -146,7 +146,7 @@ function VIEWATOMS(V, copEV, copFE, copCF, atoms; view_outer=true)
 	ev_text = Dict{Vector{Int},Int}(collect(zip(EV, 1:length(EV))))
 	fv_text = Dict{Vector{Int},Int}(collect(zip(FV, 1:length(FV))))
 
-	outerspace, __others = POPOUTER(V, atoms)
+	outerspace, __others = OUTER_ATOM(V, atoms)
 
 	# Visualization of all atoms
 	for atom in atoms

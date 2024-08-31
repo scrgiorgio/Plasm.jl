@@ -6,8 +6,90 @@ using IntervalTrees
 using Triangulate
 
 const Points = Matrix{Float64}
+export Points
+
+
+
+# //////////////////////////////////////////////////////////////////////////////
+""" Predicate to check equality of two vertices (only used above) """
+function vertex_fuzzy_equals(v1, v2;err = 10e-8)
+	return length(v1) == length(v2) && all(map((x1, x2) -> -err < x1 - x2 < err, v1, v2))
+end
+export vertex_fuzzy_equals
+
+""" Predicate to check membership of `vertex` in `vertices_set` array"""
+function is_visited_vertex(vertex, vertices_set)::Bool
+	for v in vertices_set
+		if vertex_fuzzy_equals(vertex, v)
+			return true
+		end
+	end
+	return false
+end
+export is_visited_vertex
+
+
 const Cells = Vector{Vector{Int}}
-export Points, Cells
+export Cells
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""
+bbox(vertices::Points)
+
+The axis aligned *bounding box* of the provided Matrix of n-dim `vertices`.
+The box is returned as the pair of `Points` of two opposite corners.
+"""
+function bbox(vertices::Points)
+	minimum = mapslices(x -> min(x...), vertices, dims=1)
+	maximum = mapslices(x -> max(x...), vertices, dims=1)
+	minimum, maximum
+end
+export bbox
+
+function boundingbox(vertices::Points)
+	minimum = mapslices(x -> min(x...), vertices, dims=2)
+	maximum = mapslices(x -> max(x...), vertices, dims=2)
+	return minimum, maximum
+end
+export boundingbox
+
+function bbox_contains(container, contained)
+	b1_min, b1_max = container
+	b2_min, b2_max = contained
+	all(map((i, j, k, l) -> i <= j <= k <= l, b1_min, b2_min, b2_max, b1_max))
+end
+export bbox_contains
+
+function boxcovering(bboxes, index, tree)
+	covers = [[] for k = 1:length(bboxes)]
+	for (i, boundingbox) in enumerate(bboxes)
+		extent = bboxes[i][index, :]
+		iterator = IntervalTrees.intersect(tree, tuple(extent...))
+		for x in iterator
+			append!(covers[i], x.value)
+		end
+	end
+	return covers
+end
+export boxcovering
+
+""" Make dictionary of 1D boxes for IntervalTrees construction """
+function coordintervals(coord, bboxes)
+	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()
+	for (h, box) in enumerate(bboxes)
+		key = box[coord, :]
+		if haskey(boxdict, key) == false
+			boxdict[key] = [h]
+		else
+			push!(boxdict[key], h)
+		end
+	end
+	return boxdict
+end
+export coordintervals
+
+
 
 # ///////////////////////////////////////////////////////////////////////////
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
@@ -57,24 +139,6 @@ function BYCOL(V::Matrix{Float64})::Matrix{Float64}
 end
 export BYCOL
 
-
-# //////////////////////////////////////////////////////////////////////////////
-""" Predicate to check equality of two vertices (only used above) """
-function vertex_fuzzy_equals(v1, v2;err = 10e-8)
-	return length(v1) == length(v2) && all(map((x1, x2) -> -err < x1 - x2 < err, v1, v2))
-end
-export vertex_fuzzy_equals
-
-""" Predicate to check membership of `vertex` in `vertices_set` array"""
-function is_visited_vertex(vertex, vertices_set)::Bool
-	for v in vertices_set
-		if vertex_fuzzy_equals(vertex, v)
-			return true
-		end
-	end
-	return false
-end
-export is_visited_vertex
 
 # //////////////////////////////////////////////////////////////////////////////
 # sparse representation
@@ -144,148 +208,6 @@ function FV2EVs(copEV::ChainOp, copFE::ChainOp)
 end
 export FV2EVs
 
-# //////////////////////////////////////////////////////////////////////////////
-"""
-bbox(vertices::Points)
-
-The axis aligned *bounding box* of the provided Matrix of n-dim `vertices`.
-The box is returned as the pair of `Points` of two opposite corners.
-"""
-function bbox(vertices::Points)
-	minimum = mapslices(x -> min(x...), vertices, dims=1)
-	maximum = mapslices(x -> max(x...), vertices, dims=1)
-	minimum, maximum
-end
-export bbox
-
-function boundingbox(vertices::Points)
-	minimum = mapslices(x -> min(x...), vertices, dims=2)
-	maximum = mapslices(x -> max(x...), vertices, dims=2)
-	return minimum, maximum
-end
-export boundingbox
-
-function bbox_contains(container, contained)
-	b1_min, b1_max = container
-	b2_min, b2_max = contained
-	all(map((i, j, k, l) -> i <= j <= k <= l, b1_min, b2_min, b2_max, b1_max))
-end
-export bbox_contains
-
-function boxcovering(bboxes, index, tree)
-	covers = [[] for k = 1:length(bboxes)]
-	for (i, boundingbox) in enumerate(bboxes)
-		extent = bboxes[i][index, :]
-		iterator = IntervalTrees.intersect(tree, tuple(extent...))
-		for x in iterator
-			append!(covers[i], x.value)
-		end
-	end
-	return covers
-end
-export boxcovering
-
-""" Make dictionary of 1D boxes for IntervalTrees construction """
-function coordintervals(coord, bboxes)
-	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()
-	for (h, box) in enumerate(bboxes)
-		key = box[coord, :]
-		if haskey(boxdict, key) == false
-			boxdict[key] = [h]
-		else
-			push!(boxdict[key], h)
-		end
-	end
-	return boxdict
-end
-export coordintervals
-
-
-# //////////////////////////////////////////////////////////////////////////////
-# all triangulation part
-# //////////////////////////////////////////////////////////////////////////////
-
-function constrained_triangulation2D(V::Points, EV::Cells)
-	triin = Triangulate.TriangulateIO()
-	triin.pointlist = V # scrgiorgio: by-col representation as LAR
-	triin.segmentlist = hcat(EV...)
-	(triout, __vorout) = Triangulate.triangulate("pQ", triin)  # exec triangulation
-	return Array{Int64,1}[c[:] for c in eachcol(triout.trianglelist)]
-end
-
-
-function TRIANGULATE2D(V::Points, EV::Cells)
-	num_vertices=size(V,2)
-	copEV = lar2cop(EV)
-	V_row = BYROW(V)
-	trias = constrained_triangulation2D(V, EV)
-	ret = Array{Int,1}[]
-	for (u, v, w) in trias
-		centroid = (V_row[u, :] + V_row[v, :] + V_row[w, :]) ./ 3
-		if point_in_face(centroid, V_row, copEV)
-			push!(ret, [u, v, w])
-		end
-	end
-	return ret
-end
-export TRIANGULATE2D
-
-""" input old LAR consistent data; output triangulated_faces """
-function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells;err = 1e-8)
-
-	""" return ordered vertices  and edges of the 1-cycle f """
-	function __find_cycle(EV, FE, f::Int)
-		vpairs = [EV[e] for e in FE[f]]
-		ordered = []
-		(A, B), todo = vpairs[1], vpairs[2:end]
-		push!(ordered, A)
-		while length(todo) > 0
-			found = false
-			for (I, (a, b)) in enumerate(todo)
-				if a == B || b == B
-					push!(ordered, B)
-					B = (b == B) ? a : b
-					found = true
-					deleteat!(todo, I)
-					break
-				end
-			end
-			@assert found
-		end
-		push!(ordered, ordered[1])
-		edges = [[a, b] for (a, b) in zip(ordered[1:end-1], ordered[2:end])]
-		return Array{Int}(ordered[1:end-1]), edges
-	end
-
-	triangles_per_face = Vector{Any}(undef, length(FE))
-
-	for edges_idxs in FE
-		edge_num = length(edges_idxs)
-		fv, edges = __find_cycle(EV, FE, f)
-		# look for independent vector triple
-		points = V[:, fv]
-		vmap = Dict(zip(fv, 1:length(fv))) # vertex map
-		mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
-		edges = [[vmap[A], vmap[B]] for (A, B) in edges]
-		v1 = LinearAlgebra.normalize(points[2, :] - points[1, :])
-		v2 = [0, 0, 0]
-		v3 = [0, 0, 0]
-		i = 3
-		while -err < LinearAlgebra.norm(v3) < err
-			v2 = LinearAlgebra.normalize(points[i, :] - points[1, :])
-			v3 = LinearAlgebra.cross(v1, v2)
-			i = i % size(points, 1) + 1
-		end
-		
-		# independent vector triple in face f 
-		M = [v1 v2 v3]
-		projected = BYCOL((points*M)[:, 1:2])
-		triangles_per_face[f] = [[mapv[v] for v in t] for t in constrained_triangulation2D(projected, edges)]
-	end
-
-	return triangles_per_face
-end
-export LAR2TRIANGLES
 
 # //////////////////////////////////////////////////////////////////////////////
 # from Hpc -> Lar (trying to keep as many information as possible, still unifying to a unique geometry)
@@ -368,27 +290,4 @@ function LAR_SIMPLEX(d; complex=false)
 	end
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-"""separate outer atom from other atoms"""
-function POPOUTER(V, pols)
 
-	# extract bounding boxes to find outser space
-	bboxes = []
-	for pol in pols
-		ev = pol[1] # atom edges (pairs of vertex indices)
-		verts = sort(union(CAT(CAT(ev)))) # atom vertices (vertex indices)
-		v = V[:, verts]
-		xbox = bbox(v) # maxmin of first coordinate
-		push!(bboxes, xbox)
-	end
-
-	# compute 3D cuboidal volumes as (pmin,pmax)
-	boxes = AA(collect ∘ AA(vec))(bboxes)
-	diags = [LinearAlgebra.norm(v2 - v1) for (v1, v2) in boxes]
-	__value, outer_position = findmax(diags)
-	outerspace = filter(x -> x == pols[outer_position], pols)[1]
-	atoms = filter(x -> x != pols[outer_position], pols)
-
-	return outerspace, atoms
-end
-export POPOUTER

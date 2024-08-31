@@ -293,12 +293,40 @@ function get_atoms(copEV, copFE, copCF)
 	return pols, CF
 end
 
+
+# //////////////////////////////////////////////////////////////////////////////
+"""separate outer atom from other atoms"""
+function OUTER_ATOM(V, pols)
+
+	# extract bounding boxes to find outser space
+	bboxes = []
+	for pol in pols
+		ev = pol[1] # atom edges (pairs of vertex indices)
+		verts = sort(union(CAT(CAT(ev)))) # atom vertices (vertex indices)
+		v = V[:, verts]
+		xbox = bbox(v) # maxmin of first coordinate
+		push!(bboxes, xbox)
+	end
+
+	# compute 3D cuboidal volumes as (pmin,pmax)
+	boxes = AA(collect ∘ AA(vec))(bboxes)
+	diags = [LinearAlgebra.norm(v2 - v1) for (v1, v2) in boxes]
+	__value, outer_position = findmax(diags)
+	outerspace = filter(x -> x == pols[outer_position], pols)[1]
+	atoms = filter(x -> x != pols[outer_position], pols)
+
+	return outerspace, atoms
+end
+export POPOUTER
+
+
+
 # //////////////////////////////////////////////////////////////////////////////
 function internalpoints(V, copEV, copFE, copCF)
 
 	# transform each 3-cell in a solid (via model)
 	pols, CF = get_atoms(copEV, copFE, copCF)
-	outerspace, atoms = POPOUTER(V, pols)
+	outerspace, atoms = OUTER_ATOM(V, pols)
 
 	# compute, for each `pol` (3-cell, i.e atom) in `pols`, one `internalpoint`
 	innerpoints = []
