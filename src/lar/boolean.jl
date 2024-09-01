@@ -12,7 +12,8 @@ export settestpoints, testinternalpoint, getinternalpoint, internalpoints, rayin
 
 
 """ Test di contenimento di un punto 2D in un poligono 2D """
-function pointInPolygonClassification(V, EV)
+# scrgiorgio to remove
+function pointInPolygonClassificationBoolean(V, EV)
 
 	function setTile(box)
 		tiles = [[9, 1, 5], [8, 0, 4], [10, 2, 6]]
@@ -117,7 +118,7 @@ function pointInPolygonClassification(V, EV)
 	end
 	return pointInPolygonClassification0
 end
-export pointInPolygonClassification
+export pointInPolygonClassificationBoolean
 
 # //// look for a pair of test point for given atom ////////////////////////////
 # working in 3D ////////////////////////////////////////////////////////////////
@@ -202,8 +203,7 @@ function testinternalpoint(V, EV, FV)
 		# actual containment test of ray point in faces within depot
 		for (face, point3d) in depot
 			vs, edges, point2d = planemap(V, copEV, copFE, face)(point3d)
-			classify = pointInPolygonClassification(vs, edges)
-			inOut = classify(point2d)
+			inOut = pointInPolygonClassificationBoolean(vs, edges)(point2d)
 			if inOut != "p_out"
 				push!(intersectedfaces, face)
 			end
@@ -239,9 +239,7 @@ function getinternalpoint(V, EV, FE, FV, Fs, copEV, copFE) # V by rows
 	k1, k2 = 0, 0
 	for (face, point3d) in dep1 # testing ptest1 for interior of atom
 		vs, edges, point2d = planemap(V, copEV, copFE, face)(point3d)
-		classify = pointInPolygonClassification(vs, edges)
-		inOut = classify(point2d)
-		if inOut != "p_out"
+		if pointInPolygonClassificationBoolean(vs, edges)(point2d) != "p_out"
 			k1 += 1
 			push!(intersectedfaces, face)
 		end
@@ -251,9 +249,7 @@ function getinternalpoint(V, EV, FE, FV, Fs, copEV, copFE) # V by rows
 	else # testing ptest2 for interior of atom
 		for (face, point3d) in dep2
 			vs, edges, point2d = planemap(V, copEV, copFE, face)(point3d)
-			classify = pointInPolygonClassification(vs, edges)
-			inOut = classify(point2d)
-			if inOut != "p_out"
+			if pointInPolygonClassificationBoolean(vs, edges)(point2d) != "p_out"
 				k2 += 1
 				push!(intersectedfaces, face)
 			end

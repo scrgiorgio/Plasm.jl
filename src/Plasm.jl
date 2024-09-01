@@ -22,6 +22,7 @@ include("./lar/sparse.jl")      # OK
 include("./lar/view.jl")        # OK
 
 # TODO
+include("./lar/classify.jl")
 include("./lar/triangulate.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")

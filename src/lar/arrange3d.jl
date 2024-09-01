@@ -350,35 +350,34 @@ function merge_vertices_3d(V::Points, EV::ChainOp, FE::ChainOp; err=LAR_DEFAULT_
 	return Points(nV), nEV, nFE
 end
 
-
+# //////////////////////////////////////////////////////////////////////////////
+function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
+	vs_num = size(V, 1)
+	# 2D transformation of `sigma` face
+	sigmavs = (abs.(FE[sigma:sigma, :])*abs.(EV))[1, :].nzind # sigma vertex indices
+	sV = V[sigmavs, :]
+	sEV = EV[FE[sigma, :].nzind, sigmavs]
+	M = submanifold_mapping(sV)
+	tV = ([V ones(vs_num)]*M)[:, 1:3]  # folle convertire *tutti* i vertici
+	sV = tV[sigmavs, :]
+	# `sigma` face intersection with faces in `sp_idx[sigma]`, i.e., in `bigpi`
+	for i in sp_idx[sigma]
+		tmpV, tmpEV = face_int(tV, EV, FE[i, :]) # va in loop qui dentro
+		sV, sEV = skel_merge(sV, sEV, tmpV, tmpEV)
+	end
+	# computation of 2D arrangement of sigma face
+	sV = sV[:, 1:2]
+	nV, nEV, nFE = planar_arrangement(BYCOL(sV), sEV, sparsevec(ones(Int8, length(sigmavs))))
+	nV = BYROW(nV)
+	nvsize = size(nV, 1)
+	# return each 2D complex in 3D
+	nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
+	return nV, nEV, nFE
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
 function arrange3D(V::Points, EV::ChainOp, FE::ChainOp)
-
-	function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
-		vs_num = size(V, 1)
-		# 2D transformation of `sigma` face
-		sigmavs = (abs.(FE[sigma:sigma, :])*abs.(EV))[1, :].nzind # sigma vertex indices
-		sV = V[sigmavs, :]
-		sEV = EV[FE[sigma, :].nzind, sigmavs]
-		M = submanifold_mapping(sV)
-		tV = ([V ones(vs_num)]*M)[:, 1:3]  # folle convertire *tutti* i vertici
-		sV = tV[sigmavs, :]
-		# `sigma` face intersection with faces in `sp_idx[sigma]`, i.e., in `bigpi`
-		for i in sp_idx[sigma]
-			tmpV, tmpEV = face_int(tV, EV, FE[i, :]) # va in loop qui dentro
-			sV, sEV = skel_merge(sV, sEV, tmpV, tmpEV)
-		end
-		# computation of 2D arrangement of sigma face
-		sV = sV[:, 1:2]
-		nV, nEV, nFE = planar_arrangement(BYCOL(sV), sEV, sparsevec(ones(Int8, length(sigmavs))))
-		nV = BYROW(nV)
-		nvsize = size(nV, 1)
-		# return each 2D complex in 3D
-		nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
-		return nV, nEV, nFE
-	end
 
 	# historically arrangement works internally by using by-row vertices
 	V_row = BYROW(V)
@@ -434,17 +433,14 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function u_coboundary_1(FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
-	copFV = lar2cop(FV)
-	copEV = lar2cop(EV)
-	out = u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex::Bool)
-	return out
+	return u_coboundary_1(lar2cop(FV), lar2cop(EV), convex)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
 export cop_boundary_1
 function cop_boundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool)::ChainOp
 
-	copFE = u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex)
+	copFE = u_coboundary_1(copFV, copEV, convex)
 	EV = [findnz(copEV[k, :])[1] for k = 1:size(copEV, 1)]
 	copEV = sparse(cop_boundary_0(EV))
 	for f = 1:size(copFE, 1)
@@ -516,7 +512,5 @@ function cop_boundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::
 end
 
 function cop_boundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
-	copFV = lar2cop(FV)
-	copEV = lar2cop(EV)
-	return cop_boundary_1(V, copFV, copEV, convex, exterior)
+	return cop_boundary_1(V, lar2cop(FV), lar2cop(EV), convex, exterior)
 end

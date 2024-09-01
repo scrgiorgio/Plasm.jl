@@ -140,140 +140,6 @@ function merge_vertices_2d!(V::Points, EV::ChainOp, edge_map; err=LAR_DEFAULT_ER
 	return Points(nV), nEV
 end
 
-
-
-# //////////////////////////////////////////////////////////////////////////////
-""" Test of point containment in a polygon face """
-function point_in_face(point, V_row::Points, copEV::ChainOp)
-
-	function pointInPolygonClassification(V_row, EV)
-
-		""" Accumulator of partial increments when halfline crosses vertices """
-		function crossingTest(new, old, status, count)
-			if status == 0
-				status = new
-				return status, (count + 0.5)
-			else
-				if status == old
-					return 0, (count + 0.5)
-				else
-					return 0, (count - 0.5)
-				end
-			end
-		end
-
-		""" Set tile code of boxed point w.r.t nine tiles of 2D plane  """
-		function setTile(box)
-			tiles = [[9, 1, 5], [8, 0, 4], [10, 2, 6]]
-			b1, b2, b3, b4 = box
-			""" code point position w.r.t query box using Bitwise OR """
-			function tileCode(point)
-				x, y = point
-				code = 0
-				if y > b1
-					code = code | 1
-				end
-				if y < b2
-					code = code | 2
-				end
-				if x > b3
-					code = code | 4
-				end
-				if x < b4
-					code = code | 8
-				end
-				return code
-			end
-			return tileCode
-		end
-
-		""" partial function; compute point classification w.r.t polygon edges """
-		function pointInPolygonClassification0(pnt)
-			x, y = pnt
-			xmin, xmax, ymin, ymax = x, x, y, y
-			tilecode = setTile([ymax, ymin, xmax, xmin])
-			count, status = 0, 0
-
-			for k in 1:EV.m # loop on polygon edges
-				edge = EV[k, :]
-				p1, p2 = V_row[edge.nzind[1], :], V_row[edge.nzind[2], :]
-				(x1, y1), (x2, y2) = p1, p2
-				c1, c2 = tilecode(p1), tilecode(p2)
-				c_edge, c_un, c_int = xor(c1, c2), c1 | c2, c1 & c2
-
-				if (c_edge == 0) & (c_un == 0)
-					return "p_on"
-				elseif (c_edge == 12) & (c_un == c_edge)
-					return "p_on"
-				elseif c_edge == 3
-					if c_int == 0
-						return "p_on"
-					elseif c_int == 4
-						count += 1
-					end
-				elseif c_edge == 15
-					x_int = ((y - y2) * (x1 - x2) / (y1 - y2)) + x2
-					if x_int > x
-						count += 1
-					elseif x_int == x
-						return "p_on"
-					end
-				elseif (c_edge == 13) & ((c1 == 4) | (c2 == 4))
-					status, count = crossingTest(1, 2, status, count)
-				elseif (c_edge == 14) & ((c1 == 4) | (c2 == 4))
-					status, count = crossingTest(2, 1, status, count)
-				elseif c_edge == 7
-					count += 1
-				elseif c_edge == 11
-					count = count
-				elseif c_edge == 1
-					if c_int == 0
-						return "p_on"
-					elseif c_int == 4
-						status, count = crossingTest(1, 2, status, count)
-					end
-				elseif c_edge == 2
-					if c_int == 0
-						return "p_on"
-					elseif c_int == 4
-						status, count = crossingTest(2, 1, status, count)
-					end
-				elseif (c_edge == 4) & (c_un == c_edge)
-					return "p_on"
-				elseif (c_edge == 8) & (c_un == c_edge)
-					return "p_on"
-				elseif c_edge == 5
-					if (c1 == 0) | (c2 == 0)
-						return "p_on"
-					else
-						status, count = crossingTest(1, 2, status, count)
-					end
-				elseif c_edge == 6
-					if (c1 == 0) | (c2 == 0)
-						return "p_on"
-					else
-						status, count = crossingTest(2, 1, status, count)
-					end
-				elseif (c_edge == 9) & ((c1 == 0) | (c2 == 0))
-					return "p_on"
-				elseif (c_edge == 10) & ((c1 == 0) | (c2 == 0))
-					return "p_on"
-				end
-			end
-			# final test
-			if (round(count) % 2) == 1
-				return "p_in"
-			else
-				return "p_out"
-			end
-		end
-		return pointInPolygonClassification0
-	end
-
-	return pointInPolygonClassification(V_row, copEV)(point) == "p_in"
-end
-export point_in_face
-
 # //////////////////////////////////////////////////////////////////////////////
 function delete_edges(edges_to_del, V_row::Points, EV::ChainOp)
 
@@ -294,7 +160,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function cleandecomposition(V_row, copEV, sigma, edge_map)
+function clean_decomposition(V_row, copEV, sigma, edge_map)
 	# Deletes edges outside sigma area
 	todel = []
 	new_edges = []
@@ -694,25 +560,25 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """
-skel_merge(V1::Points, EV1::ChainOp, V2::Points, EV2::ChainOp)
+skel_merge(V1::Points, EV1::ChainOp, V2_row::Points, EV2::ChainOp)
 
 Merge two **1-skeletons**
 """
-function skel_merge(V1::Points, EV1::ChainOp, V2::Points, EV2::ChainOp)
-	V = [V1; V2]
+function skel_merge(V1_row::Points, EV1::ChainOp, V2_row::Points, EV2::ChainOp)
+	V_row = [V1_row; V2_row]
 	EV = blockdiag(EV1, EV2)
-	return V, EV
+	return V_row, EV
 end
 
 """
-skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp, V2::Points, EV2::ChainOp, FE2::ChainOp)
+skel_merge(V1_row::Points, EV1::ChainOp, FE1::ChainOp, V2::Points, EV2::ChainOp, FE2::ChainOp)
 
 Merge two **2-skeletons**
 """
-function skel_merge(V1::Points, EV1::ChainOp, FE1::ChainOp,V2::Points, EV2::ChainOp, FE2::ChainOp)
+function skel_merge(V1_row::Points, EV1::ChainOp, FE1::ChainOp,V2_row::Points, EV2::ChainOp, FE2::ChainOp)
 	FE = blockdiag(FE1, FE2)
-	V, EV = skel_merge(V1, EV1, V2, EV2)
-	return V, EV, FE
+	V_row, EV = skel_merge(V1_row, EV1, V2_row, EV2)
+	return V_row, EV, FE
 end
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -747,7 +613,7 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 	V_row, copEV = merge_vertices_2d!(V_row, copEV, edge_map)
 
 	if sigma.n > 0
-		V_row, copEV = cleandecomposition(V_row, copEV, sigma, edge_map)
+		V_row, copEV = clean_decomposition(V_row, copEV, sigma, edge_map)
 	end
 
 	bicon_comps = biconnected_components(copEV)
