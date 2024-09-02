@@ -3,16 +3,6 @@
 [![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
 
-# TODO
-
-```
-convert(Points
-convert(Array{Float64
-permutedims(V)
-
-findnz
-```
-
 ## Run tests
 
 ```bash

@@ -13,19 +13,23 @@ using Triangulate
 using NearestNeighbors
 
 # ///////////////////////////////////////////////////////////
+
+# scrgiorgio: do not use different errors/tolerance in lar code, try to use same number
 const LAR_DEFAULT_ERR=1e-8
 
-include("./lar/points.jl")      # OK
-include("./lar/bbox.jl")        # OK
-include("./lar/dense.jl")       # OK
-include("./lar/sparse.jl")      # OK
-include("./lar/view.jl")        # OK
+include("./lar/points.jl")      
+include("./lar/bbox.jl")        
+include("./lar/dense.jl")       
+include("./lar/sparse.jl")      
+include("./lar/view.jl")        
+include("./lar/classify.jl")    
 
-# TODO
-include("./lar/classify.jl")
+# from Alberto: do not touch. Too complicate to do any reorganization right now
 include("./lar/triangulate.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
+
+# scrgiorgio: to fix
 include("./lar/boolean.jl")
 
 function __init__()
