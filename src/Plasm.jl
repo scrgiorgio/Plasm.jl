@@ -16,6 +16,7 @@ using NearestNeighbors
 
 # scrgiorgio: do not use different errors/tolerance in lar code, try to use same number
 const LAR_DEFAULT_ERR=1e-8
+export LAR_DEFAULT_ERR
 
 include("./lar/points.jl")      
 include("./lar/bbox.jl")        

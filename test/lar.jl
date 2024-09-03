@@ -157,23 +157,6 @@ function TestTriangulation()
 end   
 
 
-# //////////////////////////////////////////////////////////////////////////////
-function TestDrawAtoms()
-  cube = CUBE(1)
-  assembly = STRUCT(cube, R(1,2)(π/4), cube)
-  lar=LAR(assembly)
-
-  V,FV,EV = lar.V, lar.C[:FV], lar.C[:EV]	 
-
-  copEV = cop_boundary_0(EV)
-  copFE = cop_boundary_1(V, FV, EV) ## TODO: debug
-  V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
-
-  # generate and draw the atoms [and the b-rep of outer space]
-  atoms,__CF = get_atoms(copEV,copFE,copCF)
-  VIEWATOMS(V,copEV,copFE,copCF, atoms; view_outer=true)
-end
-
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestRandomLines()
@@ -318,7 +301,7 @@ function TestBool3D()
 	C = boolmatrix[:,4];
 	AorB = A .| B;
 	AandB = A .& B;
-	AxorB = AorB .⊻ (.!AandB) # = A .⊻ B;
+	AxorB = AorB .⊻ (.!AandB) 
 	AorBorC = A .| B .| C
 	AorBorC = .|(A, B, C)
 	AandBandC = A .& B .& C
@@ -355,7 +338,6 @@ function TestLar()
 
   # BROKEN
   # TestTriangulation()
-  # TestDrawAtoms()
   # TestBool3D()
 
   println("TestLAR ok")
