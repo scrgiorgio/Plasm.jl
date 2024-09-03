@@ -46,7 +46,7 @@ export cop_boundary_0
 function FV2EV(copEV::ChainOp, copFE::ChainOp)
 	EV = cop2lar(copEV) 
 	FE = cop2lar(copFE)
-	return [[EV[e] for e in fe] for fe in FE]
+	ev = union(CAT([[EV[e] for e in fe] for fe in FE])) # sorted
 end
 export FV2EV
 

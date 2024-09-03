@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EmbeddedEditorHidden:paoluzzi</key>
+	<false/>
+	<key>ExpandedEditorWidth:paoluzzi:displays([(0, 0), (1536, 960)])</key>
+	<integer>657</integer>
+	<key>ExpandedItems:paoluzzi</key>
+	<array/>
+	<key>FileFilterMode:paoluzzi</key>
+	<integer>0</integer>
+	<key>OpenDocuments:paoluzzi</key>
+	<array/>
+	<key>OpenDocumentsExpanded</key>
+	<true/>
+	<key>OpenDocumentsSplitterProportion</key>
+	<real>0.80352644836272047</real>
+	<key>ProjectItemsExpanded</key>
+	<true/>
+	<key>ProjectViewVisible</key>
+	<true/>
+	<key>RecentItems:paoluzzi</key>
+	<array/>
+	<key>ScratchpadItemsExpanded</key>
+	<true/>
+	<key>ScratchpadItemsVisible</key>
+	<true/>
+	<key>ShowSCMData:paoluzzi</key>
+	<false/>
+	<key>ToolbarVisible:paoluzzi</key>
+	<false/>
+	<key>ViewSplitterPosition:paoluzzi</key>
+	<real>0.23604650795459747</real>
+	<key>WindowFrame:paoluzzi:displays([(0, 0), (1536, 960)])</key>
+	<string>rect(166,450,960,1310)</string>
+</dict>
+</plist>

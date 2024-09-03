@@ -5,16 +5,16 @@ const Points = Matrix{Float64}
 export Points
 
 """ returns point dim (assuming by-col rep)"""
-function POINT_DIM(V::Points)
+function PDIM(V::Points)
 	return size(V,1)
 end
 export PDIM
 
 """ returns number of Lar vertices (assuming by-col rep) """
-function NUM_VERTICES(V::Points)
+function NVERTS(V::Points)
 	return size(V,2)
 end
-export NVERS
+export NVERTS
 
 # convert a vertex matrix from by-col (LAR default) to by-col
 # assumption: input is by-col
@@ -32,13 +32,16 @@ export BYCOL
 
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Predicate to check equality of two vertices (only used above) """
-function vertex_fuzzy_equals(v1, v2;err = LAR_DEFAULT_ERR)
-	return length(v1) == length(v2) && all(map((x1, x2) -> -err < x1 - x2 < err, v1, v2))
+
+""" Predicate to check equality of two vertices (only used above ???) """
+function vertex_fuzzy_equals(v1, v2; err = LAR_DEFAULT_ERR)
+	return length(v1) == length(v2) && all([-err<(x-y)<err for (x,y) in zip(v1,v2)])
 end
 export vertex_fuzzy_equals
 
+
 """ Predicate to check membership of `vertex` in `vertices_set` array"""
+# posso solo generare vertici random
 function is_visited_vertex(vertex, vertices_set)::Bool
 	for v in vertices_set
 		if vertex_fuzzy_equals(vertex, v)

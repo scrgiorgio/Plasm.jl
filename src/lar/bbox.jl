@@ -14,7 +14,7 @@ function bbox_create(vertices::Points;dims::Int=2)
 	maximum = mapslices(x -> max(x...), vertices, dims=dims)
 	return minimum, maximum
 end
-export boundingbox
+export bbox_create
 
 function bbox_contains(container, contained)
 	b1_min, b1_max = container
@@ -23,8 +23,11 @@ function bbox_contains(container, contained)
 end
 export bbox_contains
 
+""" E' utilizzata da function spaceindex(V_row::Points, CV)::Cells 
+NOTE:  CV è generico: si può usare per C, F, E ... calcola covers (lista delle celle i cui box possono coprire quelli  in bboxes)
+"""
 function bbox_covering(bboxes, index, tree)
-	covers = [[] for k = 1:length(bboxes)]
+	covers = [[] for k = 1:length(bboxes)] #ata da apce ??
 	for (i, boundingbox) in enumerate(bboxes)
 		extent = bboxes[i][index, :]
 		iterator = IntervalTrees.intersect(tree, tuple(extent...))
