@@ -51,3 +51,9 @@ function is_visited_vertex(vertex, vertices_set)::Bool
 	return false
 end
 export is_visited_vertex
+
+# ////////////////////////////////////////////////////////////////////////
+""" assuming by col """
+function compute_centroid(V::Points)
+  return Statistics.mean(eachcol(V))
+end

@@ -8,6 +8,12 @@
 ```bash
 julia --project=. test/hpc.jl
 julia --project=. test/lar.jl
+
+julia --project=. test/lar/bbox.jl
+julia --project=. test/lar/points.jl
+julia --project=. test/lar/plane.jl
+julia --project=. test/lar/dense.jl
+julia --project=. test/lar/sparse.jl
 ```
 
 ## Developing Plasm.jl
@@ -18,6 +24,7 @@ Links:
 **Always remember to activate the current project** (in the current directory):
 
 ```bash
+julia
 using Pkg
 Pkg.status()
 Pkg.activate(".")

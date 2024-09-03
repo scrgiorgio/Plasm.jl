@@ -11,6 +11,8 @@ using SparseArrays
 using StaticArrays
 using Triangulate
 using NearestNeighbors
+using Random
+using Statistics
 
 # ///////////////////////////////////////////////////////////
 
@@ -18,12 +20,13 @@ using NearestNeighbors
 const LAR_DEFAULT_ERR=1e-8
 export LAR_DEFAULT_ERR
 
-include("./lar/points.jl")      
-include("./lar/bbox.jl")        
-include("./lar/dense.jl")       
-include("./lar/sparse.jl")      
-include("./lar/view.jl")        
-include("./lar/classify.jl")    
+include("./lar/points.jl")
+include("./lar/plane.jl")
+include("./lar/bbox.jl")
+include("./lar/dense.jl")
+include("./lar/sparse.jl")
+include("./lar/view.jl")
+include("./lar/classify.jl")
 
 # from Alberto: do not touch. Too complicate to do any reorganization right now
 include("./lar/triangulate.jl")
