@@ -71,7 +71,9 @@ import Base.size
       vs, edges = find_vcycle(copEV::ChainOp, copFE::ChainOp, 1)
       @test LEN(vs) == LEN(edges)
       vs, edges = find_vcycle(copEV::ChainOp, copFE::ChainOp, copFE.m)
-      @test LEN(vs) == LEN(edges)
+      @test LEN(vs) == LEN(edges)   
+      @test all([vs[k] == edges[k][1] for k=1:LEN(vs)]) 
+      @test all([(edges[k][2] == vs[(k%LEN(vs))+1]) for k=1:LEN(vs)]) 
    end;
    
 end;
