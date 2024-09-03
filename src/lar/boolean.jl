@@ -121,17 +121,21 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function get_ray_intesection_with_plane(point3d, face_points::Points)
-	l0, l = point3d, [0, 0, 1.0]
-	
-	p0 = face_points[:, 1]
-	v1, v2 = face_points[:, 2] - p0, face_points[:, 3] - p0
+
+	p0=face_points[:, 1]
+	p1=face_points[:, 2]
+	p2=face_points[:, 3]
+
+	v1=p1-p0
+	v2=p2-p0
 	n = LinearAlgebra.normalize(cross(v1, v2))
 
+	l= [0, 0, 1.0]
 	denom = dot(n, l)
 	if (abs(denom) > LAR_DEFAULT_ERR)
-		t = dot(p0 - l0, n) / denom
+		t = dot(p0 - point3d, n) / denom
 		if t > 0
-			return l0 + t * l   
+			return point3d + t * l   
 		end
 	end
 
