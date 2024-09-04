@@ -161,22 +161,12 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function TestRandomLines()
 
-  function RandomLine(size_min::Float64,size_max::Float64)
-    size = size_min+rand()*(size_max-size_min)
-    return STRUCT(
-      T(1,2)(rand(2)...), 
-      S([1,2])([size,size]), 
-      R([1,2])(2*pi*rand()),
-      Plasm.SQUARE(1)
-    )
-  end
-
   hpc = STRUCT([RandomLine(2.0,3.0) for I in 1:6])
   # VIEW(hpc)
   
   lar = LAR(hpc)
   V, EV  = lar.V, lar.C[:EV]
-  V,FVs,EVs = arrange2D(V,EV)
+  V,FVs,EVs = arrange2d(V,EV)
 
   VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.0)))
   VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.2)))
@@ -190,16 +180,6 @@ end
 
 
 # ////////////////////////////////////////////////////////
-function RandomBubble()
-  vs = rand()
-  vt = rand(2)
-  return STRUCT(
-    T(1,2)(vt...),
-    S([1,2])([0.25*vs, 0.25*vs]), 
-    CIRCUMFERENCE(1)(rand(3:32))
-  )
-end
-
 function TestRandomBubbles()
 
   hpc = STRUCT([RandomBubble() for I in 1:50])
@@ -207,7 +187,7 @@ function TestRandomBubbles()
   
   lar = LAR(hpc)
   V, EV  = lar.V, lar.C[:EV]
-  V,FVs,EVs = arrange2D(V,EV)
+  V,FVs,EVs = arrange2d(V,EV)
   
   VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.0)))
   VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.2)))
@@ -216,19 +196,6 @@ function TestRandomBubbles()
   
 end
 
-
-# //////////////////////////////////////////////////////////////////////////////
-function RandomCube(size_min::Float64,size_max::Float64)
-  size = size_min+rand()*(size_max-size_min)
-  return STRUCT(
-    T(1,2,3)(rand(3)...), 
-    S([1,2,3])([size,size,size]), 
-    R([1,2])(2*pi*rand()),
-    R([2,3])(2*pi*rand()),
-    R([1,3])(2*pi*rand()),
-    Plasm.CUBE(1) 
-  )
-end
 
 function TestRandomCubes()
 
@@ -239,7 +206,7 @@ function TestRandomCubes()
 
   copEV = cop_coboundary_0(EV)
   copFE = cop_coboundary_1(V, FV, EV)
-  V, copEV, copFE, copCF = arrange3D(V, copEV, copFE)
+  V, copEV, copFE, copCF = arrange3d(V, copEV, copFE)
   VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
   
 end
@@ -272,7 +239,7 @@ function TestCubeAndCylinders()
   copEV = cop_coboundary_0(EV)
   copFE = cop_coboundary_1(V, FV, EV)
   
-  V, copEV, copFE, copCF = arrange3D( V, copEV, copFE)
+  V, copEV, copFE, copCF = arrange3d( V, copEV, copFE)
   VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
 
 end
@@ -291,7 +258,7 @@ function TestBool3D()
 	copEV = cop_coboundary_0(EV)
 	copFE = cop_coboundary_1(V, FV, EV)
   V_original=copy(V)
-	V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
+	V, copEV, copFE, copCF = arrange3d(V, copEV, copFE )
 	VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
 
 	boolmatrix = bool3d(assembly, V, copEV, copFE, copCF)

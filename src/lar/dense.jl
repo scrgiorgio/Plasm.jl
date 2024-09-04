@@ -137,6 +137,52 @@ end
 export EXPLODECELLS
 
 
+# /////////////////////////////////////////////////////////
+# scrgiorgio: NOT (!!!) well tested
+function compute_VE(EV::Cells)
+
+	num_vertices=maximum([maximum([v1,v2]) for (v1,v2) in EV])
+  ret=convert(Cells,[[] for k in 1:num_vertices])
+  for (E,(v1,v2)) in enumerate(EV)
+    push!(ret[v1],E)
+    push!(ret[v2],E)
+  end
+  return ret
+end
+export compute_VE
+
+# /////////////////////////////////////////////////////////
+# scrgiorgio: NOT (!!!) well tested
+function compute_FE(EV::Cells, FV::Cells; double_check=false)
+  VE=compute_VE(EV)
+  ret = convert(Cells,[])
+  for face in FV
+    fe=[]
+    for vertex_index in face
+      for edge_index in VE[vertex_index]
+        a,b=EV[edge_index]
+        if a in face && b in face
+          push!(fe,edge_index)
+        end
+      end
+    end
+    push!(ret,sort(union(fe)))
+  end
+
+  if double_check
+    for (F,face) in enumerate(ret)
+      for edge in face
+        a,b=EV[edge]
+        @assert(a in FV[F])
+        @assert(b in FV[F])
+      end
+    end
+  end
+
+  return ret
+end
+export compute_FE
+
 # //////////////////////////////////////////////////////////////////////////////
 """ return ordered vertices  and edges of the 1-cycle f """
 function find_vcycle_v2(EV::Cells, FE::Cells, f::Int)
@@ -163,5 +209,40 @@ function find_vcycle_v2(EV::Cells, FE::Cells, f::Int)
 end
 export find_vcycle_v2
 
+# //////////////////////////////////////////////////////////////////////////////
+function RandomLine(size_min::Float64,size_max::Float64)
+	size = size_min+rand()*(size_max-size_min)
+	return STRUCT(
+		T(1,2)(rand(2)...), 
+		S([1,2])([size,size]), 
+		R([1,2])(2*pi*rand()),
+		Plasm.SQUARE(1)
+	)
+end
+export RandomLine
 
+# //////////////////////////////////////////////////////////////////////////////
+function RandomBubble()
+  vs = rand()
+  vt = rand(2)
+  return STRUCT(
+    T(1,2)(vt...),
+    S([1,2])([0.25*vs, 0.25*vs]), 
+    CIRCUMFERENCE(1)(rand(3:32))
+  )
+end
+export RandomBubble
 
+# //////////////////////////////////////////////////////////////////////////////
+function RandomCube(size_min::Float64,size_max::Float64)
+  size = size_min+rand()*(size_max-size_min)
+  return STRUCT(
+    T(1,2,3)(rand(3)...), 
+    S([1,2,3])([size,size,size]), 
+    R([1,2])(2*pi*rand()),
+    R([2,3])(2*pi*rand()),
+    R([1,3])(2*pi*rand()),
+    Plasm.CUBE(1) 
+  )
+end
+export RandomCube

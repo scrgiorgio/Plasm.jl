@@ -377,7 +377,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
-function arrange3D(V::Points, EV::ChainOp, FE::ChainOp)
+function arrange3d(V::Points, EV::ChainOp, FE::ChainOp)
 
 	# historically arrangement works internally by using by-row vertices
 	V_row = BYROW(V)
@@ -408,7 +408,7 @@ function arrange3D(V::Points, EV::ChainOp, FE::ChainOp)
 	# historically arrangement works internally by using by-row vertices
 	return BYCOL(rV), rcopEV, rcopFE, rcopCF
 end
-export arrange3D
+export arrange3d
 
 
 # //////////////////////////////////////////////////////////////////////////////

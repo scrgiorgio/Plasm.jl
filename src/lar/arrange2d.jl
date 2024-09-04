@@ -777,7 +777,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function arrange2D(V, EV)
+function arrange2d(V, EV)
 
 	copEV = cop_coboundary_0(EV)
 	cop_EW = convert(ChainOp, copEV)
@@ -824,4 +824,4 @@ function arrange2D(V, EV)
 	FVs = convert(Array{Cells}, triangles_per_face)
 	return V, FVs, EVs, copEV, copFE
 end
-export arrange2D
+export arrange2d
