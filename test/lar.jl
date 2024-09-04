@@ -240,9 +240,41 @@ function TestRandomCubes()
   copEV = cop_coboundary_0(EV)
   copFE = cop_coboundary_1(V, FV, EV)
   V, copEV, copFE, copCF = arrange3D(V, copEV, copFE)
-  V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
-  VIEWEXPLODED(V, CVs, FVs, EVs)
+  VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
   
+end
+
+# ///////////////////////////////////////////////////////////
+function TestCubeAndCylinders()
+
+  cyl = T(3)(-2)(CYLINDER([0.5,4])(4))
+
+  hpc = STRUCT( 
+    T(1,2,3)(-1,-1,-1)(CUBE(2)), 
+    cyl, 
+    R(2,3)(π/2), 
+    cyl, 
+    R(1,3)(π/2), 
+    cyl 
+  )
+  VIEW(hpc)
+  
+  obj = LAR(hpc)
+  V, (EV, FV) = obj.V, (obj.C[:EV], obj.C[:FV])
+  
+  
+  # DOES NOT END
+  #copEV = lar2cop(EV)
+  #copFV = lar2cop(FV)
+  #copFE = (copFV * copEV') .÷ Int8(2)
+  
+  # OK
+  copEV = cop_coboundary_0(EV)
+  copFE = cop_coboundary_1(V, FV, EV)
+  
+  V, copEV, copFE, copCF = arrange3D( V, copEV, copFE)
+  VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
+
 end
 
 # /////////////////////////////////////////////////////////
@@ -260,13 +292,11 @@ function TestBool3D()
 	copFE = cop_coboundary_1(V, FV, EV)
   V_original=copy(V)
 	V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
+	VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
 
 	boolmatrix = bool3d(assembly, V, copEV, copFE, copCF)
-	V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
-	VIEWEXPLODED(V,CVs,FVs,EVs)
-	
-	Matrix(boolmatrix)
-	
+
+  # 3 atoms
 	A = boolmatrix[:,2];
 	B = boolmatrix[:,3];
 	C = boolmatrix[:,4];
@@ -303,6 +333,7 @@ function TestLar()
   TestRandomLines()
   TestRandomBubbles()
   TestRandomCubes()
+  TestCubeAndCylinders()
 
   # BROKEN 
   # TestTriangulation()
