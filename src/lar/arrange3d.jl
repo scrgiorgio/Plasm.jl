@@ -437,12 +437,12 @@ function u_coboundary_1(FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-export cop_boundary_1
-function cop_boundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool)::ChainOp
+export cop_coboundary_1
+function cop_coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool)::ChainOp
 
 	copFE = u_coboundary_1(copFV, copEV, convex)
 	EV = [findnz(copEV[k, :])[1] for k = 1:size(copEV, 1)]
-	copEV = sparse(cop_boundary_0(EV))
+	copEV = sparse(cop_coboundary_0(EV))
 	for f = 1:size(copFE, 1)
 		chain = findnz(copFE[f, :])[1]#	dense
 		cycle = spzeros(Int8, copFE.n)#	sparse
@@ -511,6 +511,6 @@ function cop_boundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::
 	end
 end
 
-function cop_boundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
-	return cop_boundary_1(V, lar2cop(FV), lar2cop(EV), convex, exterior)
+function cop_coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
+	return cop_coboundary_1(V, lar2cop(FV), lar2cop(EV), convex, exterior)
 end

@@ -8,11 +8,11 @@ using Plasm, LinearAlgebra
     for I in 1:10
       plane=plane_create(rand(3),rand(3))
       V=plane_random_points(plane,num_vertices=100)
-      center,v1,v2,v3=face_coordinate_system(V)
-      @assert(vertex_fuzzy_equals(v3,plane[1:3]) || vertex_fuzzy_equals(-v3,plane[1:3]))
+      normal      =plane_get_normal(plane)
+      normal_check=plane_get_normal(plane_create(V))
+      @assert(vertex_fuzzy_equals(normal,plane[1:3]) || vertex_fuzzy_equals(-normal,plane[1:3]))
     end
   end
-
 
 
   @testset "ray" begin

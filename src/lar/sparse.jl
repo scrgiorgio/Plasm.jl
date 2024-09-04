@@ -29,7 +29,7 @@ end
 export cop2lar
 
 """ EV dense to sparse """
-function cop_boundary_0(EV::Cells)::ChainOp
+function cop_coboundary_0(EV::Cells)::ChainOp
 	copEV = lar2cop(EV)
 	copVE = copEV'
 	for (E,ev) in enumerate(EV)
@@ -39,7 +39,7 @@ function cop_boundary_0(EV::Cells)::ChainOp
 	copEV=LinearAlgebra.transpose(copVE)
 	return convert(ChainOp,copEV)
 end
-export cop_boundary_0
+export cop_coboundary_0
 
 # //////////////////////////////////////////////////////////////////////////////
 """From (EV,FE) to EV"""

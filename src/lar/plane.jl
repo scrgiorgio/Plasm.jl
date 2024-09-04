@@ -20,7 +20,7 @@ export plane_create
 
 
 # ////////////////////////////////////////////////////////////////////////
-function plane_create(V::Points;center::Vector{Float64}=nothing) ::Vector{Float64}
+function plane_create(V::Points) ::Vector{Float64}
   center = compute_centroid(V) 
   V=stack([point-center for point in eachcol(V)],dims=2)
   __,__,normal=[normalize(it) for it in eachrow(svd(BYROW(V)).Vt)]
@@ -86,12 +86,3 @@ end
 export plane_random_points
 
 
-# ////////////////////////////////////////////////////////////////////////
-function face_coordinate_system(V::Points)
-  center = compute_centroid(V)
-  normal=plane_get_normal(plane_create(V, center=center))
-  v=normalized(cross(normal,orthogonal_axis[argmin(normal)]))
-  u=normalized(cross(v,normal))
-  return center,u,v,normal
-end
-export face_coordinate_system

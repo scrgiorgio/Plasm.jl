@@ -223,8 +223,8 @@ function TestRandomCubes()
   
   V, EV, FV  = lar.V, lar.C[:EV], lar.C[:FV]
 
-  copEV = cop_boundary_0(EV)
-  copFE = cop_boundary_1(V, FV, EV)
+  copEV = cop_coboundary_0(EV)
+  copFE = cop_coboundary_1(V, FV, EV)
   V, copEV, copFE, copCF = arrange3D(V, copEV, copFE)
   V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF);
   VIEWEXPLODED(V, CVs, FVs, EVs)
@@ -283,14 +283,14 @@ function TestBool3D()
 		 R(2,3)(pi/5), T(1,2,3)(.5,.5,.5), cube);
 	
   lar=LAR(assembly)
-	V,FV,EV = new2old()
+	V,FV,EV = lar.V,lar.C[:FV],lar.C[:EV]
 	
-	copEV = cop_boundary_0(EV)
-	copFE = cop_boundary_1(V, FV, EV)
-  V_original=V
+	copEV = cop_coboundary_0(EV)
+	copFE = cop_coboundary_1(V, FV, EV)
+  V_original=copy(V)
 	V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
 
-	boolmatrix = bool3d(assembly, V,copEV,copFE,copCF);
+	boolmatrix = bool3d(assembly, V, copEV, copFE, copCF);
 	V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
 	VIEWEXPLODED(V,CVs,FVs,EVs)
 	

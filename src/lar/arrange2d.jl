@@ -779,7 +779,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function arrange2D(V, EV)
 
-	copEV = cop_boundary_0(EV)
+	copEV = cop_coboundary_0(EV)
 	cop_EW = convert(ChainOp, copEV)
 	V, copEV, copFE = planar_arrangement(V, cop_EW::ChainOp)
 	EVs = FV2EV(copEV, copFE) # polygonal face fragments
