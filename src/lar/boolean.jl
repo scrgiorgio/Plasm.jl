@@ -1,10 +1,7 @@
-
+"""
 
 # //////////////////////////////////////////////////////////////////////////////
-"""
-TODO: reintroduce space index to avoid O(N^2) complexity
-"""
-"""
+# TODO: reintroduce space index to avoid O(N^2) complexity
 function spaceindex_boolean(point3d::Array{Float64,1}, V::Points, CV::Cells)
 
 	V=copy(V)
@@ -34,16 +31,15 @@ function spaceindex_boolean(point3d::Array{Float64,1}, V::Points, CV::Cells)
 	return pointcover[1:end-1]
 
 end
-"""
 
 # //////////////////////////////////////////////////////////////////////////////
 function get_ray_intersection_with_face(test_point::Vector{Float64}, face_points::Points)
 
 	plane=create_plane(face_points)
 	ray_origin = test_point
-	ray_dir    = normalized([0, 0, 1.0]
+	ray_dir    = normalized([0, 0, 1.0])
 
-	hit_3d=plane_ray_intersection(ray_origin, ray_dir), plane)
+	hit_3d=plane_ray_intersection(ray_origin, ray_dir, plane)
 
 	if isnothing(hit_3d)
 		return false
@@ -59,11 +55,13 @@ function get_ray_intersection_with_face(test_point::Vector{Float64}, face_points
 	
 	M=nothing# todo: apply  transation and rotation (!)
 
-	hit_2d            = (M * hit_3d     )   [1:2,:]
-	face_points_2d    = (M * face_points)   [1:2,:]
+	# hit_2d            = (M * hit_3d     )   [1:2,:]
+	# face_points_2d    = (M * face_points)   [1:2,:]
 	
-	classification=classify_point(hit_2d, BYROW(face_points_2d), lar2cop(edges))
-	return classification!= "p_out"
+	# classification=classify_point(hit_2d, BYROW(face_points_2d), lar2cop(edges))
+	# return classification!= "p_out"
+
+	return M
 
 end
 
@@ -104,13 +102,9 @@ function get_atom_internal_point(V::Points, FV::Cells, CF::Cells; epsilon=LAR_DE
 end
 
 
-
 # //////////////////////////////////////////////////////////////////////////////
-""" 
-	V,copEV,copFE,copCF are coming from arrange3d
-	input arguments are coming from arrage3d
-"""
-
+# V,copEV,copFE,copCF are coming from arrange3d
+# input arguments are coming from arrage3d
 function bool3d(assembly::Hpc, V::Points, copEV::ChainOp, copFE::ChainOp, copCF::ChainOp)
 
 	# sparse to dense 
@@ -187,3 +181,50 @@ end
 export bool3d
 
 
+# ///////////////////////////////////////////////////////////////
+## Fs is the signed coord vector of a subassembly
+##   the logic is to compute the corresponding reduced coboundary matrices
+##   and finally call the standard method of the function.
+function subassembly(V::Points, copEV::ChainOp, copFE::ChainOp, copCF::ChainOp, Fs)
+	
+	# compute the reduced copCF
+	begin
+		CFtriples = findnz(copCF)
+		triples = [triple for triple in zip(CFtriples...)]
+		newtriples = [(row, col, val) for (row, col, val) in triples if Fs[col] ≠ 0]
+		newF = [k for (k, f) in enumerate(Fs) if Fs[k] ≠ 0]
+		fdict = Dict(zip(newF, 1:length(newF)))
+		triples = hcat([[row, fdict[col], val] for (row, col, val) in newtriples]...)
+		newCF = sparse(triples[1, :], triples[2, :], triples[3, :])
+		newCF = convert(SparseMatrixCSC{Int8,Int64}, newCF)
+	end
+
+	# compute the reduced copFE
+	begin
+		FEtriples = findnz(copFE)
+		triples = [triple for triple in zip(FEtriples...)]
+		newtriples = [(row, col, val) for (row, col, val) in triples if Fs[row] ≠ 0]
+		newF = [k for (k, f) in enumerate(Fs) if Fs[k] ≠ 0]
+		newcol = collect(Set([col for (row, col, val) in newtriples]))
+		facedict = Dict(zip(newF, 1:length(newF)))
+		edgedict = Dict(zip(newcol, 1:length(newcol)))
+		triples = hcat([[facedict[row], edgedict[col], val] for (row, col, val) in newtriples]...)
+		newFE = sparse(triples[1, :], triples[2, :], triples[3, :])
+		newFE = convert(SparseMatrixCSC{Int8,Int64}, newFE)
+	end
+
+	# compute the reduced copEV
+	begin
+		EVtriples = findnz(copEV)
+		triples = [triple for triple in zip(EVtriples...)]
+		newtriples = [(row, col, val) for (row, col, val) in triples if row in keys(edgedict)]
+		triples = hcat([[edgedict[row], col, val] for (row, col, val) in newtriples]...)
+		newEV = sparse(triples[1, :], triples[2, :], triples[3, :])
+		newEV = convert(SparseMatrixCSC{Int8,Int64}, newEV)
+	end
+
+
+	return V, newEV, newFE, newCF
+end
+export subassembly
+"""

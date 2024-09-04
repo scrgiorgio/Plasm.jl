@@ -2977,3 +2977,18 @@ Generate a 1D object of `Hpc` type with `n` unit segments.
 ```
 """
 GRID1(n) = QUOTE(DIESIS(n)(1.0))
+
+# //////////////////////////////////////////////////////////////////
+function COLORED(objs::Vector{Hpc})
+	v=[]
+	for (I,it) in enumerate(objs)
+		c = Point4d(Plasm.COLORS[(I-1)%12+1] - (rand(Float64,4)*0.1))
+		c[4] = 1.0
+		push!(v,PROPERTIES(it, Properties(
+			"line_color" => c, 
+			"face_color" => c,
+			"line_width" => 3)))
+	end
+	return STRUCT(v)
+end
+export COLORED

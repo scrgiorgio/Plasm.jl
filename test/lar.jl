@@ -177,46 +177,60 @@ function TestRandomLines()
   lar = LAR(hpc)
   V, EV  = lar.V, lar.C[:EV]
   V,FVs,EVs = arrange2D(V,EV)
-  
-  function ViewColored(V,cells, scale=1.2, line_width=3)
-    exploded = explodecells(V, cells, sx=scale, sy=scale, sz=scale)
-    v=[]
-    for k in eachindex(exploded)
-      c = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
-      c[4] = 1.0
-      push!(v,PROPERTIES(exploded[k], Properties(
-        "line_color" => c, 
-        "face_color" => c,
-        "line_width" => line_width)))
-    end
-    VIEW(STRUCT(v))
-  end
 
-
-  ViewColored(V, EVs, 1.0)
-  ViewColored(V, EVs, 1.2)
+  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.0)))
+  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.2)))
   
-  ViewColored(V, FVs, 1.0)
-  ViewColored(V, FVs, 1.2)
+  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.0)))
+  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.2)))
   
 end
 
 
 
-# //////////////////////////////////////////////////////////////////////////////
-function TestRandomCubes()
 
-  function RandomCube(size_min::Float64,size_max::Float64)
-    size = size_min+rand()*(size_max-size_min)
-    return STRUCT(
-      T(1,2,3)(rand(3)...), 
-      S([1,2,3])([size,size,size]), 
-      R([1,2])(2*pi*rand()),
-      R([2,3])(2*pi*rand()),
-      R([1,3])(2*pi*rand()),
-      Plasm.CUBE(1) 
-    )
-  end
+# ////////////////////////////////////////////////////////
+function RandomBubble()
+  vs = rand()
+  vt = rand(2)
+  return STRUCT(
+    T(1,2)(vt...),
+    S([1,2])([0.25*vs, 0.25*vs]), 
+    CIRCUMFERENCE(1)(rand(3:32))
+  )
+end
+
+function TestRandomBubbles()
+
+  hpc = STRUCT([RandomBubble() for I in 1:50])
+  VIEW(hpc)
+  
+  lar = LAR(hpc)
+  V, EV  = lar.V, lar.C[:EV]
+  V,FVs,EVs = arrange2D(V,EV)
+  
+  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.0)))
+  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.2)))
+  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.0)))
+  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.2)))
+  
+end
+
+
+# //////////////////////////////////////////////////////////////////////////////
+function RandomCube(size_min::Float64,size_max::Float64)
+  size = size_min+rand()*(size_max-size_min)
+  return STRUCT(
+    T(1,2,3)(rand(3)...), 
+    S([1,2,3])([size,size,size]), 
+    R([1,2])(2*pi*rand()),
+    R([2,3])(2*pi*rand()),
+    R([1,3])(2*pi*rand()),
+    Plasm.CUBE(1) 
+  )
+end
+
+function TestRandomCubes()
 
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
   lar = LAR(hpc)
@@ -226,53 +240,10 @@ function TestRandomCubes()
   copEV = cop_coboundary_0(EV)
   copFE = cop_coboundary_1(V, FV, EV)
   V, copEV, copFE, copCF = arrange3D(V, copEV, copFE)
-  V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF);
+  V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
   VIEWEXPLODED(V, CVs, FVs, EVs)
   
 end
-
-
-# ////////////////////////////////////////////////////////
-function TestRandomBubbles()
-
-  function RandomBubble()
-    vs = rand()
-    vt = rand(2)
-    return STRUCT(
-      T(1,2)(vt...),
-      S([1,2])([0.25*vs, 0.25*vs]), 
-      CIRCUMFERENCE(1)(rand(3:32))
-    )
-  end
-
-  hpc = STRUCT([RandomBubble() for I in 1:50])
-  VIEW(hpc)
-  
-  lar = LAR(hpc)
-  V, EV  = lar.V, lar.C[:EV]
-  V,FVs,EVs = arrange2D(V,EV)
-  
-  function ViewColored(V,cells, scale=1.2, line_width=3)
-    exploded = explodecells(V, cells, sx=scale, sy=scale, sz=scale)
-    v=[]
-    for k in eachindex(exploded)
-      c = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64,4)*0.1))
-      c[4] = 1.0
-      push!(v,PROPERTIES(exploded[k], Properties(
-        "line_color" => c, 
-        "face_color" => c,
-        "line_width" => line_width)))
-    end
-    VIEW(STRUCT(v))
-  end
-
-  ViewColored(V, EVs, 1.0)
-  ViewColored(V, EVs, 1.2)
-  ViewColored(V, FVs, 1.0)
-  ViewColored(V, FVs, 1.2)
-  
-end
-
 
 # /////////////////////////////////////////////////////////
 function TestBool3D()
@@ -290,7 +261,7 @@ function TestBool3D()
   V_original=copy(V)
 	V, copEV, copFE, copCF = arrange3D(V, copEV, copFE )
 
-	boolmatrix = bool3d(assembly, V, copEV, copFE, copCF);
+	boolmatrix = bool3d(assembly, V, copEV, copFE, copCF)
 	V,CVs,FVs,EVs = pols2tria(V, copEV, copFE, copCF)
 	VIEWEXPLODED(V,CVs,FVs,EVs)
 	
@@ -308,14 +279,14 @@ function TestBool3D()
 	AandBandC = .&(A, B, C)
 	AminBminC = .&(A, .!B, .!C) # A - B - C
 	
-	unione       = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
-	intersection = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
-	difference   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
+	bool_unione       = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
+	bool_intersection = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
+	bool_difference   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
 	
 	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF) 
-	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF, difference) 
-	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF, intersection) 
-	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF, unione)
+	V,CVs,FVs,EVs = pols2tria(subassembly(V_original, copEV, copFE, copCF, bool_difference)...)
+	V,CVs,FVs,EVs = pols2tria(subassembly(V_original, copEV, copFE, copCF, bool_intersection) ...)
+	V,CVs,FVs,EVs = pols2tria(subassembly(V_original, copEV, copFE, copCF, bool_union)...)
 	
 	GL.VIEW(GL.GLExplode(V,FVs,1.5,1.5,1.5,99,1))
 	GL.VIEW(GL.GLExplode(V,EVs,1.,1.,1.,1,1))
@@ -329,14 +300,11 @@ function TestLar()
   # basic lar
   TestToLAR()
   
-  # arrangements 2d
   TestRandomLines()
   TestRandomBubbles()
-
-  # arrangmenets3d
   TestRandomCubes()
 
-  # BROKEN
+  # BROKEN 
   # TestTriangulation()
   # TestBool3D()
 

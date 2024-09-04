@@ -109,3 +109,59 @@ function LAR_SIMPLEX(d; complex=false)
 	end
 end
 export LAR_SIMPLEX
+
+
+# /////////////////////////////////////////////////////////////////////
+function EXPLODECELLS(V::Points, cells::Vector{Cells}; scale_factor::Float64=1.2)::Vector{Hpc}
+	
+	ret = []
+	for cell in cells
+
+		cell_indices = sort(union(cell...))
+
+		cell_vertices=V[:, cell_indices]
+
+		p1=compute_centroid(cell_vertices)
+		p2 = PDIM(V) == 2 ? 
+			p1 .* [scale_factor; scale_factor] : 
+			p1 .* [scale_factor; scale_factor; scale_factor]
+
+		cell_vertices = cell_vertices .+ (p2 - p1)
+
+		vdict = Dict(zip(cell_indices, 1:length(cell_indices)))
+		hulls=[[vdict[v_index] for v_index in face] for face in cell]
+		push!(ret, MKPOL(cell_vertices,hulls))
+	end
+	return ret
+end
+export EXPLODECELLS
+
+
+# //////////////////////////////////////////////////////////////////////////////
+""" return ordered vertices  and edges of the 1-cycle f """
+function find_vcycle_v2(EV::Cells, FE::Cells, f::Int)
+	vpairs = [EV[e] for e in FE[f]]
+	ordered = []
+	(A, B), todo = vpairs[1], vpairs[2:end]
+	push!(ordered, A)
+	while length(todo) > 0
+		found = false
+		for (I, (a, b)) in enumerate(todo)
+			if a == B || b == B
+				push!(ordered, B)
+				B = (b == B) ? a : b
+				found = true
+				deleteat!(todo, I)
+				break
+			end
+		end
+		@assert found
+	end
+	push!(ordered, ordered[1])
+	edges = [[a, b] for (a, b) in zip(ordered[1:end-1], ordered[2:end])]
+	return Array{Int}(ordered[1:end-1]), edges
+end
+export find_vcycle_v2
+
+
+

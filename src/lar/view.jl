@@ -95,41 +95,38 @@ function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWEXPLODED(V, CVs, FVs, EVs; sx=1.2, sy=1.2, sz=1.2)
+function VIEWEXPLODED(V, CVs, FVs, EVs; scale_factor=1.2)
 
 	# faces
-	exploded = explodecells(V, FVs, sx=sx, sy=sx, sz=sx)
 	v = []
-	for (k,it) in enumerate(exploded)
+	for (k,it) in enumerate(EXPLODECELLS(V, FVs, scale_factor=scale_factor))
 		face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
 		face_color[4] = 1.0
-		push!(v, PROPERTIES(it, Properties(
-			"face_color" => face_color,
-			#"line_color" => GL.BLACK, 
-			"line_width" => 3)))
+		push!(v, PROPERTIES(it, Properties( "face_color" => face_color, "line_width" => 3)))
 	end
 	VIEW(STRUCT(v))
 
 	# edges
-	exploded = explodecells(V, EVs, sx=sx, sy=sx, sz=sx)
-	v = []
-	for (k,it) in enumerate(exploded)
-		line_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
-		line_color[4] = 1.0
-		push!(v, PROPERTIES(it,
-			Properties("line_color" => line_color, "line_width" => 3)))
+	begin
+		v = []
+		for (k,it) in enumerate(EXPLODECELLS(V, EVs, scale_factor=scale_factor))
+			line_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
+			line_color[4] = 1.0
+			push!(v, PROPERTIES(it, Properties("line_color" => line_color, "line_width" => 3)))
+		end
+		VIEW(STRUCT(v))
 	end
-	VIEW(STRUCT(v))
 
 	# full-dims 
-	exploded = explodecells(V, CVs[1:end], sx=sx, sy=sx, sz=sx)
-	v = []
-	for (k,it) in enumerate(exploded)
-		face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
-		face_color[4] = 1.0
-		push!(v, PROPERTIES(it, Properties("line_width" => 3)))
+	begin
+		v = []
+		for (k,it) in enumerate(EXPLODECELLS(V, CVs[1:end], scale_factor=scale_factor))
+			face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
+			face_color[4] = 1.0
+			push!(v, PROPERTIES(it, Properties("line_width" => 3, "face_color" => face_color)))
+		end
+		VIEW(STRUCT(v))
 	end
-	VIEW(STRUCT(v))
 end
 export VIEWEXPLODED
 

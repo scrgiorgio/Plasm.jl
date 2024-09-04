@@ -42,38 +42,41 @@ end
 export cop_coboundary_0
 
 # //////////////////////////////////////////////////////////////////////////////
-"""From (EV,FE) to EV"""
-function FV2EV(copEV::ChainOp, copFE::ChainOp)
+function FV2EVs(copEV::ChainOp, copFE::ChainOp)
 	EV = cop2lar(copEV) 
 	FE = cop2lar(copFE)
-	ev = union(CAT([[EV[e] for e in fe] for fe in FE])) # sorted
+	return [[EV[e] for e in fe] for fe in FE]
+end
+export FV2EVs
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""From (EV,FE) to EV"""
+function FV2EV(copEV::ChainOp, copFE::ChainOp)
+	return union(CAT(FV2EVs(copEV,copFE))) 
 end
 export FV2EV
 
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Coherently orient the edges of f face """
-function find_vcycle(copEV::ChainOp, copFE::ChainOp, f::Int)
-   EV, FE = cop2lar(copEV), cop2lar(copFE)
-   vpairs = [EV[e] for e in FE[f]]
-   ordered = []
-   (A, B), todo = vpairs[1], vpairs[2:end]
-   push!(ordered, A)
-   while length(todo) > 0
-      found = false
-      for (I, (a, b)) in enumerate(todo)
-         if a == B || b == B
-            push!(ordered, B)
-            B = (b == B) ? a : b
-            found = true
-            deleteat!(todo, I)
-            break
-         end
-      end
-      @assert found
-   end
-   push!(ordered, ordered[1])
-   edges = [[a, b] for (a, b) in zip(ordered[1:end-1], ordered[2:end])]
-   return Array{Int}(ordered[1:end-1]), edges
+
+function find_vcycle_v1(copEV::ChainOp, copFE::ChainOp, f::Int)
+	function mycat(a::Cells)
+		out = []
+		for cell in a append!(out, cell) end
+		return out
+	end
+	edges, signs = findnz(copFE[f, :])
+	vpairs = [s > 0 ? findnz(copEV[e, :])[1] : reverse(findnz(copEV[e, :])[1]) for (e, s) in zip(edges, signs)]
+	a = [pair for pair in vpairs if length(pair) == 2]
+	vs = collect(Set(mycat(a)))
+	vdict = Dict(zip(vs, 1:length(vs)))
+	edges = [[vdict[pair[1]], vdict[pair[2]]] for pair in vpairs if length(pair) == 2]
+	return vs, edges
 end
-export find_vcycle
+export find_vcycle_v1
+
+function find_vcycle_v2(copEV::ChainOp, copFE::ChainOp, f::Int)
+	return find_vcycle_v2(cop2lar(copEV), cop2lar(copFE), f)
+end

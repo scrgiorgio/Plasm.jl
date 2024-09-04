@@ -10,7 +10,7 @@ using Plasm, LinearAlgebra
       V=plane_random_points(plane,num_vertices=100)
       normal      =plane_get_normal(plane)
       normal_check=plane_get_normal(plane_create(V))
-      @assert(vertex_fuzzy_equals(normal,plane[1:3]) || vertex_fuzzy_equals(-normal,plane[1:3]))
+      @test(vertex_fuzzy_equals(normal,plane[1:3]) || vertex_fuzzy_equals(-normal,plane[1:3]))
     end
   end
 
@@ -26,17 +26,17 @@ using Plasm, LinearAlgebra
 
     # it does not matter the orientation of the plane
     point=plane_ray_intersection(ray_origin, +1*ray_dir , plane_create(plane_normal,plane_point))
-    @assert(point==[0.0,0.0,2.0])
+    @test(point==[0.0,0.0,2.0])
 
     point=plane_ray_intersection(ray_origin, +1*ray_dir, plane_create(plane_normal_inv,plane_point))
-    @assert(point==[0.0,0.0,2.0])
+    @test(point==[0.0,0.0,2.0])
 
     # if rays is going in the opposite direction, techincally we don't have any intersection
     point=plane_ray_intersection(ray_origin, -1*ray_dir, plane_create(plane_normal,plane_point))
-    @assert(isnothing(point))
+    @test(isnothing(point))
 
     point=plane_ray_intersection(ray_origin, -1*ray_dir, plane_create(plane_normal_inv,plane_point))
-    @assert(isnothing(point))
+    @test(isnothing(point))
 
   end
 

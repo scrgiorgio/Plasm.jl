@@ -782,7 +782,7 @@ function arrange2D(V, EV)
 	copEV = cop_coboundary_0(EV)
 	cop_EW = convert(ChainOp, copEV)
 	V, copEV, copFE = planar_arrangement(V, cop_EW::ChainOp)
-	EVs = FV2EV(copEV, copFE) # polygonal face fragments
+	EVs = FV2EVs(copEV, copFE) # polygonal face fragments
 
 	V_row = BYROW(V)
 
