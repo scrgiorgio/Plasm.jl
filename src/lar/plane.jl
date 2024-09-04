@@ -10,31 +10,67 @@ end
 export normalized
 
 # ////////////////////////////////////////////////////////////////////////
+""" create plane """
+function plane_create(normal::Vector{Float64},point::Vector{Float64})::Vector{Float64}
+  A,B,C=normalized(normal)
+  D=-dot(normal,point)
+  return [A,B,C,D]
+end
+export plane_create
+
+
+# ////////////////////////////////////////////////////////////////////////
+function plane_create(V::Points;center::Vector{Float64}=nothing) ::Vector{Float64}
+  center = compute_centroid(V) 
+  V=stack([point-center for point in eachcol(V)],dims=2)
+  __,__,normal=[normalize(it) for it in eachrow(svd(BYROW(V)).Vt)]
+  return plane_create(normal, center)
+end
+
+# ////////////////////////////////////////////////////////////////////////
+function plane_get_normal(plane::Vector{Float64})
+  A,B,C,D=plane
+  return [A,B,C]
+end
+export plane_get_normal
+
+# ////////////////////////////////////////////////////////////////////////
 """ note: plane normal should be normalized """
 function plane_point_distance(plane::Vector{Float64},point::Vector{Float64})
   A,B,C,D=plane
   x,y,z=point
   return A*x+B*y+C*z+D
 end
-export random_plane
+export plane_point_distance
 
-# ////////////////////////////////////////////////////////////////////////
-""" generate random plane"""
-function random_plane()
-  origin = rand(3)
-  normal = normalized(rand(3))
-  A,B,C=normal
-  D=-(A*origin[1]+B*origin[2]+C*origin[3])
-  plane=[A,B,C,D]
-  @assert(abs(plane_point_distance(plane,origin))<Plasm.LAR_DEFAULT_ERR)
-  return plane
+# ////////////////////////////////////////////////////////////
+""" get ray and plane intersection """
+function plane_ray_intersection(ray_origin::Vector{Float64}, ray_dir::Vector{Float64}, plane::Vector{Float64})
+
+  ray_dir=normalized(ray_dir)
+
+  # see https://education.siggraph.org/static/HyperGraph/raytrace/rayplane_intersection.htm
+  denom=dot(plane_get_normal(plane),ray_dir)
+
+  # just because t would go to infinite...
+  if abs(denom)<LAR_DEFAULT_ERR
+    return nothing
+  else
+    t= -plane_point_distance(plane,ray_origin)/denom
+    if t<=0
+      return nothing # in below space, ignore
+    else
+      return ray_origin+t*ray_dir
+    end
+  end
+
 end
-export random_plane
+export plane_ray_intersection
 
 
 # ////////////////////////////////////////////////////////////////////////
 """ generate random points on plane """
-function random_points_on_plane(plane::Vector{Float64}; num_vertices::Int)
+function plane_random_points(plane::Vector{Float64}; num_vertices::Int)
   normal=[plane[1],plane[2],plane[3]]
   points=[]
   for I in 1:num_vertices
@@ -47,13 +83,13 @@ function random_points_on_plane(plane::Vector{Float64}; num_vertices::Int)
   return stack(points,dims=2) 
 
 end
-export random_points_on_plane
+export plane_random_points
+
 
 # ////////////////////////////////////////////////////////////////////////
 function face_coordinate_system(V::Points)
   center = compute_centroid(V)
-  V=stack([point-center for point in eachcol(V)],dims=2)
-  __,__,normal=[normalize(it) for it in eachrow(svd(BYROW(V)).Vt)]
+  normal=plane_get_normal(plane_create(V, center=center))
   v=normalized(cross(normal,orthogonal_axis[argmin(normal)]))
   u=normalized(cross(v,normal))
   return center,u,v,normal
