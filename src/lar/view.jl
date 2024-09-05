@@ -118,54 +118,17 @@ function VIEWEXPLODED(V, CVs::Vector{Cells}, FVs::Vector{Cells}, EVs::Vector{Cel
 	end
 
 	# full-dims 
-	begin
-		v = []
-		for (k,it) in enumerate(EXPLODECELLS(V, CVs, scale_factor=scale_factor))
-			face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
-			face_color[4] = 1.0
-			push!(v, PROPERTIES(it, Properties("line_width" => 3, "face_color" => face_color)))
+	# scrgiorgio: not sure this is right...
+	if false
+		begin
+			v = []
+			for (k,it) in enumerate(EXPLODECELLS(V, CVs, scale_factor=scale_factor))
+				face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
+				face_color[4] = 1.0
+				push!(v, PROPERTIES(it, Properties("line_width" => 3, "face_color" => face_color)))
+			end
+			VIEW(STRUCT(v))
 		end
-		VIEW(STRUCT(v))
 	end
 end
 export VIEWEXPLODED
-
-# //////////////////////////////////////////////////////////////////////////////
-function VIEWATOMS(V, copEV, copFE, copCF, atoms; view_outer=true)
-
-	# per row
-	num_vertices = size(V, 2)
-
-	EV = AA(sort)(cop2lar(copEV))
-	FE = AA(sort)(cop2lar(copFE))
-	FV = AA(sort)([union(CAT([EV[e] for e in f])) for f in FE])
-
-	ev_text = Dict{Vector{Int},Int}(collect(zip(EV, 1:length(EV))))
-	fv_text = Dict{Vector{Int},Int}(collect(zip(FV, 1:length(FV))))
-
-	outerspace, __others = separate_outer_atom(V, atoms)
-
-	# Visualization of all atoms
-	for atom in atoms
-
-		# skip outer if needed
-		if !view_outer && atom == outerspace
-			continue
-		end
-
-		atom_EV, atom_FV = atom
-		atom_EV = [sort(it) for it in union(CAT(atom_EV))]
-		atom_FV = [sort(it) for it in atom_FV]
-
-		VIEWCOMPLEX(
-			V,
-			atom_EV,
-			atom_FV,
-			V_text=[string(I) for I in 1:num_vertices],
-			EV_text=[string(ev_text[it]) for it in atom_EV],
-			FV_text=[string(fv_text[it]) for it in atom_FV]
-		)
-	end
-
-end
-export VIEWATOMS

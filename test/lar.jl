@@ -201,12 +201,7 @@ function TestRandomCubes()
 
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
   lar = LAR(hpc)
-  
-  V, EV, FV  = lar.V, lar.C[:EV], lar.C[:FV]
-
-  copEV = cop_coboundary_0(EV)
-  copFE = cop_coboundary_1(V, FV, EV)
-  V, copEV, copFE, copCF = arrange3d(V, copEV, copFE)
+  V, copEV, copFE, copCF = arrange3d(lar)
   VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
   
 end
@@ -226,20 +221,8 @@ function TestCubeAndCylinders()
   )
   VIEW(hpc)
   
-  obj = LAR(hpc)
-  V, (EV, FV) = obj.V, (obj.C[:EV], obj.C[:FV])
-  
-  
-  # DOES NOT END
-  #copEV = lar2cop(EV)
-  #copFV = lar2cop(FV)
-  #copFE = (copFV * copEV') .÷ Int8(2)
-  
-  # OK
-  copEV = cop_coboundary_0(EV)
-  copFE = cop_coboundary_1(V, FV, EV)
-  
-  V, copEV, copFE, copCF = arrange3d( V, copEV, copFE)
+  lar = LAR(hpc)
+  V, copEV, copFE, copCF = arrange3d(lar)
   VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
 
 end
@@ -253,12 +236,9 @@ function TestBool3D()
 		 R(2,3)(pi/5), T(1,2,3)(.5,.5,.5), cube);
 	
   lar=LAR(assembly)
-	V,FV,EV = lar.V,lar.C[:FV],lar.C[:EV]
-	
-	copEV = cop_coboundary_0(EV)
-	copFE = cop_coboundary_1(V, FV, EV)
-  V_original=copy(V)
-	V, copEV, copFE, copCF = arrange3d(V, copEV, copFE )
+  V_original=copy(lar.V)
+
+	V, copEV, copFE, copCF = arrange3d(lar)
 	VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
 
 	EV = cop2lar(copEV)

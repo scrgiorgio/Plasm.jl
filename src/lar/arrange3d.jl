@@ -377,13 +377,28 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
-function arrange3d(V::Points, EV::ChainOp, FE::ChainOp)
+function arrange3d(lar::Lar)
 
+	V=lar.V
+	EV=lar.C[:EV]
+	FV=lar.C[:FV]
+
+	# scrgiorgio: if I use here simply `lar2cop` it does not work
+	# the cop_XXX function do some magic with orientation
+	if true
+		copEV = cop_coboundary_0(EV)
+		copFE = cop_coboundary_1(V, FV, EV)
+	else
+		copEV = lar2cop(EV)
+		copFV = lar2cop(FV)
+		copFE = (copFV * copEV') .÷ Int8(2)
+	end
+	
 	# historically arrangement works internally by using by-row vertices
 	V_row = BYROW(V)
-	fs_num = size(FE, 1)
+	fs_num = size(copFE, 1)
 	# strange but necessary cycle of computations to get FV::Cells algebraically
-	FV = (abs.(FE) * abs.(EV)) .÷ 2
+	FV = (abs.(copFE) * abs.(copEV)) .÷ 2
 	FV = convert(ChainOp, FV)
 	sp_idx = spaceindex(V_row, cop2lar(FV))
 	rV = Points(undef, 0, 3)
@@ -394,7 +409,7 @@ function arrange3d(V::Points, EV::ChainOp, FE::ChainOp)
 	depot_FE = Array{ChainOp,1}(undef, fs_num)
 	for sigma in 1:fs_num
 		print(sigma, "/", fs_num, "\r")
-		nV, nEV, nFE = frag_face(V_row, EV, FE, sp_idx, sigma)
+		nV, nEV, nFE = frag_face(V_row, copEV, copFE, sp_idx, sigma)
 		depot_V[sigma] = nV
 		depot_EV[sigma] = nEV
 		depot_FE[sigma] = nFE
@@ -406,7 +421,7 @@ function arrange3d(V::Points, EV::ChainOp, FE::ChainOp)
 	rcopCF = build_copFC(rV, rcopEV, rcopFE)
 
 	# historically arrangement works internally by using by-row vertices
-	return BYCOL(rV), rcopEV, rcopFE, rcopCF
+	return BYCOL(rV), rcopEV, rcopFE, convert(ChainOp,rcopCF)
 end
 export arrange3d
 

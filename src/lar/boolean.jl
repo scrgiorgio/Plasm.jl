@@ -14,11 +14,11 @@ function is_ray_intersecting_face(test_point::Vector{Float64}, face_points::Poin
 
 	# i need to check if the hit is really inside the face
 	# to do so I project all in 2d and use the 2d classify point
-	projector   = project_points3d(face_points) 
+	projector   = project_points3d(face_points; double_check=true) # scrgiorgio: remove double check 
 	hit         = projector(hit)
 	face_points = projector(face_points)
 
-	return classify_point( hit, BYROW(face_points), lar2cop(edges)) != "p_out"
+	return classify_point(hit, BYROW(face_points), lar2cop(edges)) != "p_out"
 
 end
 
@@ -26,6 +26,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function get_atom_internal_point(V::Points, FV::Cells, point::Vector{Float64}, normal::Vector{Float64})
 
+	# note: I need to be sure I am around an internal/external position
 	# I should move enough to avoid going in the error range (using 2-order of magnitute here)
 	epsilon=LAR_DEFAULT_ERR*100
 
@@ -37,8 +38,10 @@ function get_atom_internal_point(V::Points, FV::Cells, point::Vector{Float64}, n
 
 	if is_internal1 && !is_internal2
 		return p_test1
+
 	elseif is_internal2 && !is_internal1
 		return p_test2
+
 	end
 
 	# ambiguous
@@ -62,23 +65,20 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-# V,copEV,copFE,copCF are coming from arrange3d
-# input arguments are coming from arrage3d
 function bool3d(assembly::Hpc, V::Points, EV::Cells, FE::Cells, CF::Cells)
 
-	FV = [union(CAT([EV[e] for e in fe])) for fe in FE]
-
+	
 	# separate outer atom (i.e. the one with the biggest diagonal)
 	begin
 		atoms,diags=[],[]
-		for cf in CF
-			ev=[[EV[e] for e in FE[f]] for f in cf]
-			fv=[collect(Set(vcat([EV[e] for e in FE[f]]...))) for f in cf]
-			fe=[collect(Set([e for e in FE[f]])) for f in cf]
-			push!(atoms, [ev,fv,fe,cf])
+		for atom_faces in CF
+			atom_ev=[[EV[E] for E in FE[F]] for F in atom_faces]
+			atom_fv=[collect(Set(vcat([EV[E] for E in FE[F]]...))) for F in atom_faces]
+			atom_fe=[collect(Set([E for E in FE[F]])) for F in atom_faces]
+			push!(atoms, [atom_ev,atom_fv,atom_fe,atom_cf])
 
 			# compute diagonal
-			verts = sort(union(CAT(CAT(ev)))) 
+			verts = sort(union(CAT(CAT(atom_ev)))) 
 			bbox=collect([vec(it) for it in bbox_create(V[:, verts])])
 			push!(diags, LinearAlgebra.norm(v2 - v1))
 
@@ -89,7 +89,7 @@ function bool3d(assembly::Hpc, V::Points, EV::Cells, FE::Cells, CF::Cells)
 		atoms      = filter(x -> x != atoms[outer_position], atoms)
 	end
 
-	# VIEWATOMS(V,copEV,copFE,copCF, atoms; view_outer=true)
+	FV = [union(CAT([EV[e] for e in fe])) for fe in FE]
 
 	# associate internal points to (original) faces of 3-cells
 	begin
