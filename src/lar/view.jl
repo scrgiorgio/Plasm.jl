@@ -95,7 +95,7 @@ function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWEXPLODED(V, CVs, FVs, EVs; scale_factor=1.2)
+function VIEWEXPLODED(V, CVs::Vector{Cells}, FVs::Vector{Cells}, EVs::Vector{Cells}; scale_factor=1.2)
 
 	# faces
 	v = []
@@ -120,7 +120,7 @@ function VIEWEXPLODED(V, CVs, FVs, EVs; scale_factor=1.2)
 	# full-dims 
 	begin
 		v = []
-		for (k,it) in enumerate(EXPLODECELLS(V, CVs[1:end], scale_factor=scale_factor))
+		for (k,it) in enumerate(EXPLODECELLS(V, CVs, scale_factor=scale_factor))
 			face_color = Point4d(Plasm.COLORS[(k-1)%12+1] - (rand(Float64, 4) * 0.1))
 			face_color[4] = 1.0
 			push!(v, PROPERTIES(it, Properties("line_width" => 3, "face_color" => face_color)))

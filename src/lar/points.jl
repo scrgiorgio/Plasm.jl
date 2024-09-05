@@ -57,3 +57,4 @@ export is_visited_vertex
 function compute_centroid(V::Points)
   return Statistics.mean(eachcol(V))
 end
+export compute_centroid

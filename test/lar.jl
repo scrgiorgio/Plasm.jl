@@ -261,7 +261,12 @@ function TestBool3D()
 	V, copEV, copFE, copCF = arrange3d(V, copEV, copFE )
 	VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
 
-	boolmatrix = bool3d(assembly, V, copEV, copFE, copCF)
+	EV = cop2lar(copEV)
+	FE = cop2lar(copFE) 
+	CF = cop2lar(copCF)
+	boolmatrix = bool3d(assembly, V, EV, FE, CF)
+
+  """
 
   # 3 atoms
 	A = boolmatrix[:,2];
@@ -276,17 +281,18 @@ function TestBool3D()
 	AandBandC = .&(A, B, C)
 	AminBminC = .&(A, .!B, .!C) # A - B - C
 	
-	bool_unione       = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
-	bool_intersection = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
-	bool_difference   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
+	union        = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
+	inters = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
+	diff   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
 	
 	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF) 
-	V,CVs,FVs,EVs = pols2tria(subassembly(V_original, copEV, copFE, copCF, bool_difference)...)
-	V,CVs,FVs,EVs = pols2tria(subassembly(V_original, copEV, copFE, copCF, bool_intersection) ...)
-	V,CVs,FVs,EVs = pols2tria(subassembly(V_original, copEV, copFE, copCF, bool_union)...)
+	V,CVs,FVs,EVs = pols2tria(subassembly3d(V_original, copEV, copFE, copCF, diff  )...)
+	V,CVs,FVs,EVs = pols2tria(subassembly3d(V_original, copEV, copFE, copCF, inters) ...)
+	V,CVs,FVs,EVs = pols2tria(subassembly3d(V_original, copEV, copFE, copCF, union )...)
 	
 	GL.VIEW(GL.GLExplode(V,FVs,1.5,1.5,1.5,99,1))
 	GL.VIEW(GL.GLExplode(V,EVs,1.,1.,1.,1,1))
+  """
 	
 end
 

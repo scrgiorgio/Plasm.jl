@@ -86,3 +86,47 @@ end
 export plane_random_points
 
 
+# ///////////////////////////////////////////////////////////////
+function project_points3d(V::Points; double_check=false)
+
+  C = compute_centroid(V)
+
+  # points reference frame
+  Z=plane_get_normal(plane_create(V))
+  Y=normalized(cross(Z,orthogonal_axis[argmin([abs(it) for it in Z])]))
+  X=normalized(cross(Y,Z))
+
+  # if I go from 1,0,0  0,1,0  0,0,1 to XYZ I need a Tdir, Tinv is the transposed
+  Tdir=[
+    X[1] Y[1] Z[1] ; 
+    X[2] Y[2] Z[2] ; 
+    X[3] Y[3] Z[3]
+  ]
+  
+  Tinv=transpose(Tdir)
+
+  function internal_projector(V::Points)
+
+    points3d=[p for p in eachcol(V)]
+    points2d=[(Tinv * (p-C)) for p in points3d]
+
+    # try if applying the direct will return the same points
+    if double_check
+      checking=[(Tdir * p)+C for p in points2d]
+      for (a,b) in zip(points3d,checking)
+        @assert(vertex_fuzzy_equals(a,b))
+      end
+    end
+
+    # remove Z coordinate
+    points2d=[p[1:2] for p in points2d]
+
+    # this returns by-col points2d
+    return hcat(points2d...)
+
+  end
+
+  return internal_projector
+
+end
+export project_points3d

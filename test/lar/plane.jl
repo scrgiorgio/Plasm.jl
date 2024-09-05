@@ -14,7 +14,6 @@ using Plasm, LinearAlgebra
     end
   end
 
-
   @testset "ray" begin
   
     ray_origin= [0.0,0.0,-1.0]
@@ -39,5 +38,46 @@ using Plasm, LinearAlgebra
     @test(isnothing(point))
 
   end
+
+  @testset "projector" begin
+
+    x,y,z=1.0, 2.0, 3.0
+  
+    V=BYCOL([
+      x-1.0  y  z-1.0;
+      x+1.0  y  z-1.0;
+      x+1.0  y  z+1.0;
+      x-1.0  y  z+1.0
+    ])
+    projector=project_points3d(V;double_check=true)
+    @assert(size(projector(V),2)==4)
+  
+    V=BYCOL([
+      x-1.0  y-1.0  z;
+      x+1.0  y-1.0  z;
+      x+1.0  y+1.0  z;
+      x-1.0  y+1.0  z
+    ])
+    projector=project_points3d(V;double_check=true)
+    @assert(size(projector(V),2)==4)
+  
+    V=BYCOL([
+      x  y-1.0  z-1.0;
+      x  y+1.0  z-1.0;
+      x  y+1.0  z+1.0;
+      x  y-1.0  z+1.0
+    ])
+    projector=project_points3d(V;double_check=true)
+    @assert(size(projector(V),2)==4)
+
+    for I in 1:10
+      plane=plane_create(rand(3),rand(3))
+      points=plane_random_points(plane, num_vertices=100)
+      local projector=project_points3d(points; double_check=true)
+      projector(points)
+    end
+  
+  end
+
 
 end;

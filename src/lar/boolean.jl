@@ -1,101 +1,60 @@
-"""
 
 # //////////////////////////////////////////////////////////////////////////////
-# TODO: reintroduce space index to avoid O(N^2) complexity
-function spaceindex_boolean(point3d::Array{Float64,1}, V::Points, CV::Cells)
-
-	V=copy(V)
-	CV=copy(CV)
-
-	V = [V point3d]
-	dim, idx = size(V)
-	push!(CV, [idx, idx, idx])
-	cellpoints = [V[:,cv]::Points for cv in CV]
-
-	bboxes = [hcat(bbox_create(cell)...) for cell in cellpoints] 
-	xboxdict = bbox_coord_intervals(1, bboxes)
-	yboxdict = bbox_coord_intervals(2, bboxes)
-
-	# xs,ys are IntervalTree type
-	xs = IntervalTrees.IntervalMap{Float64,Array}()
-	ys = IntervalTrees.IntervalMap{Float64,Array}()
-	for (key, boxset) in xboxdict xs[tuple(key...)] = boxset end
-	for (key, boxset) in yboxdict ys[tuple(key...)] = boxset end
-	
-	xcovers = bbox_covering(bboxes, 1, xs)
-	ycovers = bbox_covering(bboxes, 2, ys)
-	covers = [intersect(pair...) for pair in zip(xcovers, ycovers)]
-
-	# remove each cell from its cover
-	pointcover = setdiff(covers[end], [idx + 1])
-	return pointcover[1:end-1]
-
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-function get_ray_intersection_with_face(test_point::Vector{Float64}, face_points::Points)
+function is_ray_intersecting_face(test_point::Vector{Float64}, face_points::Points)
 
 	plane=create_plane(face_points)
+
 	ray_origin = test_point
-	ray_dir    = normalized([0, 0, 1.0])
+	ray_dir    = normalized([0, 0, 1.0]) # scrgiorgio: no need to normalize here... but just in case
 
-	hit_3d=plane_ray_intersection(ray_origin, ray_dir, plane)
-
-	if isnothing(hit_3d)
+	hit=plane_ray_intersection(ray_origin, ray_dir, plane)
+	if isnothing(hit)
 		return false
 	end
 
 	# i need to check if the hit is really inside the face
 	# to do so I project all in 2d and use the 2d classify point
+	projector   = project_points3d(face_points) 
+	hit         = projector(hit)
+	face_points = projector(face_points)
 
-	center = compute_centroid(face_points)
-  w=plane_get_normal(plane_create(face_points))
-  v=normalized(cross(w,orthogonal_axis[argmin(w)]))
-  u=normalized(cross(v,w))
-	
-	M=nothing# todo: apply  transation and rotation (!)
-
-	# hit_2d            = (M * hit_3d     )   [1:2,:]
-	# face_points_2d    = (M * face_points)   [1:2,:]
-	
-	# classification=classify_point(hit_2d, BYROW(face_points_2d), lar2cop(edges))
-	# return classification!= "p_out"
-
-	return M
+	return classify_point( hit, BYROW(face_points), lar2cop(edges)) != "p_out"
 
 end
 
+
 # //////////////////////////////////////////////////////////////////////////////
-function get_atom_internal_point(V::Points, FV::Cells, CF::Cells; epsilon=LAR_DEFAULT_ERR*100) 
+function get_atom_internal_point(V::Points, FV::Cells, point::Vector{Float64}, normal::Vector{Float64})
 
-	# for robustness, I am trying all atom faces. 
-	# to be sure, I should get one internal and one external point
+	# I should move enough to avoid going in the error range (using 2-order of magnitute here)
+	epsilon=LAR_DEFAULT_ERR*100
+
+	p_test1 = point + epsilon * normal
+	p_test2 = point - epsilon * normal
+
+	is_internal1=(length([1 for face in FV if is_ray_intersecting_face(p_test1, V[:,face])]) % 2)==1
+	is_internal2=(length([1 for face in FV if is_ray_intersecting_face(p_test2, V[:,face])]) % 2)==1
+
+	if is_internal1 && !is_internal2
+		return p_test1
+	elseif is_internal2 && !is_internal1
+		return p_test2
+	end
+
+	# ambiguous
+	return nothing
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function get_atom_internal_point(V::Points, FV::Cells) 
+
+	# TODO: reintroduce space index to avoid O(N^2) complexity
+
+	# here i am trying with all face centroids
 	for face in FV
-
 		face_points=V[:,face]
-
-		p0=get_centroid(face_points)
-
-		# note the normal could be directed to the inside or the outside (==I don't want the faces to be coherently oriented)
-		plane=create_plane(face_points)
-
-		normal=plane_get_normal(plane)
-
-		p_test1 = p0 + epsilon * normal
-		p_test2 = p0 - epsilon * norma
-
-		is_internal1=(length([for face in enumerate(CF) if get_ray_intersection_with_face(p_test1, face_points)]) % 2)==1
-		is_internal2=(length([for face in enumerate(CF) if get_ray_intersection_with_face(p_test2, face_points)]) % 2)==1
-
-		if is_internal1 && !is_internal2
-			return p_test1
-
-		elseif is_internal2 && !is_internal1
-			return p_test2
-		else
-			# try with the next face
-		end
-
+		ret=get_atom_internal_point(V,FV, get_centroid(face_points), plane_get_normal(create_plane(face_points)))
+		if !isnothing(ret) return ret end
 	end
 
 	error("cannot find internal point")
@@ -105,19 +64,14 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 # V,copEV,copFE,copCF are coming from arrange3d
 # input arguments are coming from arrage3d
-function bool3d(assembly::Hpc, V::Points, copEV::ChainOp, copFE::ChainOp, copCF::ChainOp)
+function bool3d(assembly::Hpc, V::Points, EV::Cells, FE::Cells, CF::Cells)
 
-	# sparse to dense 
-	EV = cop2lar(copEV)
-	FE = cop2lar(copFE) 
-	CF = cop2lar(copCF)
 	FV = [union(CAT([EV[e] for e in fe])) for fe in FE]
 
 	# separate outer atom (i.e. the one with the biggest diagonal)
 	begin
 		atoms,diags=[],[]
-		for k = 1:copCF.m
-			cf=CF[k]
+		for cf in CF
 			ev=[[EV[e] for e in FE[f]] for f in cf]
 			fv=[collect(Set(vcat([EV[e] for e in FE[f]]...))) for f in cf]
 			fe=[collect(Set([e for e in FE[f]])) for f in cf]
@@ -138,11 +92,13 @@ function bool3d(assembly::Hpc, V::Points, copEV::ChainOp, copFE::ChainOp, copCF:
 	# VIEWATOMS(V,copEV,copFE,copCF, atoms; view_outer=true)
 
 	# associate internal points to (original) faces of 3-cells
-	lars = [LAR(it) for it in TOPOS(assembly)] 
-	num_faces_per_atom = [LEN(it.C[:FV]) for it in lars] 
-	cumulative = cumsum([0; num_faces_per_atom]) .+ 1
-	fspans = collect(zip(cumulative[1:end-1], cumulative[2:end] .- 1))
-	span(h) = [j for j = 1:length(fspans) if fspans[j][1] <= h <= fspans[j][2]]
+	begin
+		lars = [LAR(it) for it in TOPOS(assembly)] 
+		num_faces_per_atom = [LEN(it.C[:FV]) for it in lars] 
+		cumulative = cumsum([0; num_faces_per_atom]) .+ 1
+		fspans = collect(zip(cumulative[1:end-1], cumulative[2:end] .- 1))
+		span(h) = [j for j = 1:length(fspans) if fspans[j][1] <= h <= fspans[j][2]]
+	end
 
 	# original assembly is needed for in/out ray test
 	lar_assembly = LAR(assembly)
@@ -157,7 +113,8 @@ function bool3d(assembly::Hpc, V::Points, copEV::ChainOp, copFE::ChainOp, copCF:
 		push!(atoms_internal_points, point)
 	end
 
-	ret = {A:[]}
+	"""
+	ret = {}
 	ret[1, 1] = 1
 	for (A, internal_point) in enumerate(atoms_internal_points) 
 		faces=[]
@@ -177,54 +134,30 @@ function bool3d(assembly::Hpc, V::Points, copEV::ChainOp, copFE::ChainOp, copCF:
 	end
 	
 	return ret
+	"""
 end
 export bool3d
 
 
 # ///////////////////////////////////////////////////////////////
-## Fs is the signed coord vector of a subassembly
-##   the logic is to compute the corresponding reduced coboundary matrices
-##   and finally call the standard method of the function.
-function subassembly(V::Points, copEV::ChainOp, copFE::ChainOp, copCF::ChainOp, Fs)
+function subassembly3d(V_pass_through::Points, copEV::ChainOp, copFE::ChainOp, copCF::ChainOp, is_face_selected::Vector{Int})
+
+	selected_faces = [face_index for face_index in 1:length(is_face_selected) if is_face_selected[face_index] ≠ 0]
+	selected_edges = collect(Set([E for (F, E, Value) in zip(findnz(copFE)...) if is_face_selected[F] ≠ 0]))
+
+	Fdict = Dict(zip(selected_faces, 1:length(selected_faces)))
+	Edict = Dict(zip(selected_edges, 1:length(selected_edges)))
 	
-	# compute the reduced copCF
-	begin
-		CFtriples = findnz(copCF)
-		triples = [triple for triple in zip(CFtriples...)]
-		newtriples = [(row, col, val) for (row, col, val) in triples if Fs[col] ≠ 0]
-		newF = [k for (k, f) in enumerate(Fs) if Fs[k] ≠ 0]
-		fdict = Dict(zip(newF, 1:length(newF)))
-		triples = hcat([[row, fdict[col], val] for (row, col, val) in newtriples]...)
-		newCF = sparse(triples[1, :], triples[2, :], triples[3, :])
-		newCF = convert(SparseMatrixCSC{Int8,Int64}, newCF)
-	end
+	triples_CF = hcat([[       C, Fdict[F], Value] for (C, F, Value) in zip(findnz(copCF)...) if is_face_selected[F] ≠ 0]...)
+	triples_FE = hcat([[Fdict[F], Edict[E], Value] for (F, E, Value) in zip(findnz(copFE)...) if is_face_selected[F] ≠ 0]...)
+	triples_EV = hcat([[Edict[E],        V, Value] for (E, V, Value) in zip(findnz(copEV)...) if     E in selected_edges]...)
 
-	# compute the reduced copFE
-	begin
-		FEtriples = findnz(copFE)
-		triples = [triple for triple in zip(FEtriples...)]
-		newtriples = [(row, col, val) for (row, col, val) in triples if Fs[row] ≠ 0]
-		newF = [k for (k, f) in enumerate(Fs) if Fs[k] ≠ 0]
-		newcol = collect(Set([col for (row, col, val) in newtriples]))
-		facedict = Dict(zip(newF, 1:length(newF)))
-		edgedict = Dict(zip(newcol, 1:length(newcol)))
-		triples = hcat([[facedict[row], edgedict[col], val] for (row, col, val) in newtriples]...)
-		newFE = sparse(triples[1, :], triples[2, :], triples[3, :])
-		newFE = convert(SparseMatrixCSC{Int8,Int64}, newFE)
-	end
+	return (
+		V_pass_through, 
+		convert(SparseMatrixCSC{Int8,Int64}, sparse(triples_EV[1, :], triples_EV[2, :], triples_EV[3, :])),
+		convert(SparseMatrixCSC{Int8,Int64}, sparse(triples_FE[1, :], triples_FE[2, :], triples_FE[3, :])), 
+		convert(SparseMatrixCSC{Int8,Int64}, sparse(triples_CF[1, :], triples_CF[2, :], triples_CF[3, :]))
+	)
 
-	# compute the reduced copEV
-	begin
-		EVtriples = findnz(copEV)
-		triples = [triple for triple in zip(EVtriples...)]
-		newtriples = [(row, col, val) for (row, col, val) in triples if row in keys(edgedict)]
-		triples = hcat([[edgedict[row], col, val] for (row, col, val) in newtriples]...)
-		newEV = sparse(triples[1, :], triples[2, :], triples[3, :])
-		newEV = convert(SparseMatrixCSC{Int8,Int64}, newEV)
-	end
-
-
-	return V, newEV, newFE, newCF
 end
-export subassembly
-"""
+export subassembly3d

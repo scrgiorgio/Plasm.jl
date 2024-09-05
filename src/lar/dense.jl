@@ -22,14 +22,31 @@ mutable struct Lar
 end
 export Lar
 
+# ////////////////////////////////////////////
+function Base.show(io::IO, lar::Lar) 
+	println(io, "Lar(")
+	println(io,"  [")
+	for (P,point) in enumerate(eachcol(lar.V))
+		println(io,"    ",join([string(it) for it in point]," "), P<=(size(lar.V,2)-1) ? ";" : "")
+	end
+	println(io,"  ],")
+	println(io,"  Dict(")
+	for (K,key) in enumerate(keys(lar.C))
+		println(io, "  ", repr(key)," =>", "[")
+		cells=lar.C[key]
+		for (C,cell) in enumerate(cells)
+			println(io, "    ", repr(cell), C<=(length(cells)-1) ? "," : "")
+		end
+		println(io, "  ", "]", K<=(length(keys(lar.C))-1) ? "," : "")
+	end
+	println(io, "  ))")
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar 
 """
 function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	geo = ToGeometry(obj, precision=precision)
-	n = length(geo.points)    # number of vertices  (columns of V)
-	m = length(geo.points[1]) # embedding dimension (rows of V) i.e. number of coordinates
 	ret = Lar()
 	ret.V = hcat(geo.points...)
 	ret.C[:EV] = geo.edges
