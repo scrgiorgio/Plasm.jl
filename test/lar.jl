@@ -118,43 +118,6 @@ function TestToLAR()
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////
-function TestTriangulation()
-  (V, copEV, copFE, copCF) = (
-    BYCOL([
-    0.70710678118655 0.70710678118655 0.0; 
-    2.829225697485796e-17 0.0 0.0; 
-    -0.70710678118655 0.70710678118655 0.0; 
-    0.0 1.4142135623731 0.0; 
-    0.4142135623731001 1.0 0.0; 
-    1.0683217716804808e-17 1.0 0.0; 
-    0.70710678118655 0.70710678118655 1.0; 
-    0.0 0.0 1.0; 0.0 1.4142135623731 1.0; 
-    0.4142135623731001 1.0 1.0; 
-    -0.70710678118655 0.70710678118655 1.0; 
-    0.0 1.0 1.0; 1.0 0.0 0.0; 
-    1.0 1.0 0.0; 1.0 0.0 1.0; 
-    1.0 1.0 1.0]), 
-    sparse(
-      [1, 5, 10, 1, 2, 6, 9, 20, 2, 3, 16, 3, 4, 13, 4, 5, 7, 14, 21, 6, 7, 27, 8, 10, 11, 8, 9, 15, 18, 23, 12, 13, 17, 11, 12, 14, 19, 28, 15, 16, 17, 18, 19, 27, 20, 22, 24, 21, 22, 26, 23, 24, 25, 25, 26, 28], 
-      [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 8, 8, 9, 9, 9, 10, 10, 10, 10, 10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15, 16, 16, 16], 
-      Int8[-1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, -1, 1, 1, -1, -1, -1, 1, 1, -1, -1, 1, -1, 1, 1, -1, -1, -1, -1, 1, -1, 1, 1, 1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1],
-      28, 16), 
-    sparse(
-      [2, 3, 10, 1, 6, 1, 7, 1, 4, 2, 5, 10, 1, 2, 13, 1, 2, 15, 3, 8, 16, 3, 6, 11, 13, 3, 5, 5, 8, 16, 4, 9, 4, 7, 4, 5, 14, 15, 6, 9, 6, 7, 7, 9, 8, 9, 13, 8, 9, 15, 10, 11, 10, 14, 10, 12, 11, 16, 11, 12, 12, 16, 12, 14, 13, 15, 14, 16 ], 
-      [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 9, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 14, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 18, 19, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28], 
-      Int8[-1, 1, 1, -1, -1, -1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1, 1, 1, 1, -1, -1, -1, 1, 1, -1], 
-      16, 28), 
-    sparse(
-      [2, 4, 2, 3, 1, 3, 2, 4, 1, 3, 2, 4, 2, 4, 2, 3, 2, 4, 1, 2, 1, 2, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2], 
-      [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16], 
-      [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, 1, -1, 1, -1], 
-      4, 16))
-  EV = AA(sort)([findnz(copEV[k,:])[1] for k=1:copEV.m]); # vertices per edge
-  FE = AA(sort)([findnz(copFE[k,:])[1] for k=1:copFE.m]); # edges per face
-  FV = [union(CAT([EV[e]  for e in f])) for f in FE]; # verts x face
-  triangulated_faces = LAR2TRIANGLES(V, EV, FV, FE)
-end   
 
 
 
@@ -202,7 +165,7 @@ function TestRandomCubes()
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
   lar = LAR(hpc)
   V, copEV, copFE, copCF = arrange3d(lar)
-  VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
+  VIEWEXPLODED(TRIANGULATE3D(V, copEV, copFE, copCF)...)
   
 end
 
@@ -223,7 +186,7 @@ function TestCubeAndCylinders()
   
   lar = LAR(hpc)
   V, copEV, copFE, copCF = arrange3d(lar)
-  VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
+  VIEWEXPLODED(TRIANGULATE3D(V, copEV, copFE, copCF)...)
 
 end
 
@@ -239,7 +202,7 @@ function TestBool3D()
   V_original=copy(lar.V)
 
 	V, copEV, copFE, copCF = arrange3d(lar)
-	VIEWEXPLODED(pols2tria(V, copEV, copFE, copCF)...)
+	VIEWEXPLODED(TRIANGULATE3D(V, copEV, copFE, copCF)...)
 
 	EV = cop2lar(copEV)
 	FE = cop2lar(copFE) 
@@ -261,14 +224,14 @@ function TestBool3D()
 	AandBandC = .&(A, B, C)
 	AminBminC = .&(A, .!B, .!C) # A - B - C
 	
-	union        = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
+	union  = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
 	inters = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
 	diff   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
 	
-	V,CVs,FVs,EVs = pols2tria(V_original, copEV, copFE, copCF) 
-	V,CVs,FVs,EVs = pols2tria(subassembly3d(V_original, copEV, copFE, copCF, diff  )...)
-	V,CVs,FVs,EVs = pols2tria(subassembly3d(V_original, copEV, copFE, copCF, inters) ...)
-	V,CVs,FVs,EVs = pols2tria(subassembly3d(V_original, copEV, copFE, copCF, union )...)
+	V,CVs,FVs,EVs = TRIANGULATE3D(V_original, copEV, copFE, copCF) 
+	V,CVs,FVs,EVs = TRIANGULATE3D(subassembly3d(V_original, copEV, copFE, copCF, diff  )...)
+	V,CVs,FVs,EVs = TRIANGULATE3D(subassembly3d(V_original, copEV, copFE, copCF, inters) ...)
+	V,CVs,FVs,EVs = TRIANGULATE3D(subassembly3d(V_original, copEV, copFE, copCF, union )...)
 	
 	GL.VIEW(GL.GLExplode(V,FVs,1.5,1.5,1.5,99,1))
 	GL.VIEW(GL.GLExplode(V,EVs,1.,1.,1.,1,1))
@@ -289,7 +252,6 @@ function TestLar()
   TestCubeAndCylinders()
 
   # BROKEN 
-  # TestTriangulation()
   # TestBool3D()
 
   println("TestLAR ok")

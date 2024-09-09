@@ -1,13 +1,11 @@
 
-# ///////////////////////////////////////////////////
-function VIEWCOMPLEX(
-	V,
-	EV::Vector{Vector{Int64}},
-	FV::Vector{Vector{Int64}};
-	V_text::Vector{String}=nothing,
-	EV_text::Vector{String}=nothing,
-	FV_text::Vector{String}=nothing,
-	properties::Properties=Properties())
+
+# //////////////////////////////////////////////////////////////////////////////
+function LAR_BATCHES(lar::Lar; properties::Properties=Properties())
+
+	V  =lar.V
+	EV=haskey(lar.C,:EV ) ? lar.C[:EV] : nothing
+	FV=haskey(lar.C,:FV ) ? lar.C[:FV] : nothing
 
 	properties["background_color"] = get(properties, "background_color", DEFAULT_LAR_BACKGROUND_COLOR)
 	properties["line_color"] = get(properties, "line_color", DEFAULT_LINE_COLOR)
@@ -18,19 +16,13 @@ function VIEWCOMPLEX(
 	properties["text_fv_color"] = get(properties, "text_fv_color", DEFAULT_TEXT_FV_COLOR)
 
 	# font sizes
-	properties["v_fontsize"] = get(properties, "v_fontsize", DEFAULT_V_FONTSIZE)
+	properties["v_fontsize" ] = get(properties, "v_fontsize", DEFAULT_V_FONTSIZE)
 	properties["ev_fontsize"] = get(properties, "ev_fontsize", DEFAULT_EV_FONTSIZE)
 	properties["fv_fontsize"] = get(properties, "fv_fontsize", DEFAULT_FV_FONTSIZE)
 
-	if isnothing(V_text)
-		V_text = [string(I) for I in eachindex(V)]
-	end
-	if isnothing(EV_text)
-		EV_text = [string(I) for I in eachindex(EV)]
-	end
-	if isnothing(FV_text)
-		FV_text = [string(I) for I in eachindex(FV)]
-	end
+	Vtext  = haskey(lar.text,:V ) ? lar.text[:V ] : Dict( I => string(I) for I in eachindex(V ) )
+	EVtext = haskey(lar.text,:EV) ? lar.text[:EV] : Dict( I => string(I) for I in eachindex(EV) )
+	FVtext = haskey(lar.text,:FV) ? lar.text[:FV] : Dict( I => string(I) for I in eachindex(FV) )
 
 	used_vertices = []
 	for v in EV
@@ -51,7 +43,7 @@ function VIEWCOMPLEX(
 	if properties["text_v_color"][4] > 0.0 && properties["v_fontsize"] > 0
 		for I in eachindex(vertices)
 			append!(batches, GLText(
-				(I in used_vertices ? V_text[I] : ""),
+				(I in used_vertices ? Vtext[I] : ""),
 				center=ComputeCentroid([vertices[it] for it in [I]]),
 				color=properties["text_v_color"],
 				fontsize=properties["v_fontsize"]))
@@ -61,7 +53,7 @@ function VIEWCOMPLEX(
 	# show edges
 	if !isnothing(EV) && properties["text_ev_color"][4] > 0.0 && properties["ev_fontsize"] > 0
 		for I in eachindex(EV)
-			append!(batches, GLText(EV_text[I],
+			append!(batches, GLText(EVtext[I],
 				center=ComputeCentroid([vertices[it] for it in EV[I]]),
 				color=properties["text_ev_color"],
 				fontsize=properties["ev_fontsize"]))
@@ -72,27 +64,16 @@ function VIEWCOMPLEX(
 	if !isnothing(FV) && properties["text_fv_color"][4] > 0.0 && properties["fv_fontsize"] > 0
 		for I in eachindex(FV)
 			append!(batches,
-				GLText(FV_text[I],
+				GLText(FVtext[I],
 					center=ComputeCentroid([vertices[it] for it in FV[I]]),
 					color=properties["text_fv_color"],
 					fontsize=properties["fv_fontsize"]))
 		end
 	end
 
-	View(batches, properties)
-
+	return batches
 end
-export VIEWCOMPLEX
-
-# //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(mesh::Lar; properties::Properties=Properties())
-	return VIEWCOMPLEX(
-		mesh.V,
-		:EV in keys(mesh.C) ? mesh.C[:EV] : nothing,
-		:FV in keys(mesh.C) ? mesh.C[:FV] : nothing,
-		properties=properties
-	)
-end
+export LAR_BATCHES
 
 # //////////////////////////////////////////////////////////////////////////////
 function VIEWEXPLODED(V, CVs::Vector{Cells}, FVs::Vector{Cells}, EVs::Vector{Cells}; scale_factor=1.2)

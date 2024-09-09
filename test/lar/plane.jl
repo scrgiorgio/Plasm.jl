@@ -24,17 +24,17 @@ using Plasm, LinearAlgebra
     plane_point=[0.0,0.0,2.0]
 
     # it does not matter the orientation of the plane
-    point=plane_ray_intersection(ray_origin, +1*ray_dir , plane_create(plane_normal,plane_point))
+    point, t=plane_ray_intersection(ray_origin, +1*ray_dir , plane_create(plane_normal,plane_point))
     @test(point==[0.0,0.0,2.0])
 
-    point=plane_ray_intersection(ray_origin, +1*ray_dir, plane_create(plane_normal_inv,plane_point))
+    point, t=plane_ray_intersection(ray_origin, +1*ray_dir, plane_create(plane_normal_inv,plane_point))
     @test(point==[0.0,0.0,2.0])
 
     # if rays is going in the opposite direction, techincally we don't have any intersection
-    point=plane_ray_intersection(ray_origin, -1*ray_dir, plane_create(plane_normal,plane_point))
+    point, t=plane_ray_intersection(ray_origin, -1*ray_dir, plane_create(plane_normal,plane_point))
     @test(isnothing(point))
 
-    point=plane_ray_intersection(ray_origin, -1*ray_dir, plane_create(plane_normal_inv,plane_point))
+    point, t=plane_ray_intersection(ray_origin, -1*ray_dir, plane_create(plane_normal_inv,plane_point))
     @test(isnothing(point))
 
   end

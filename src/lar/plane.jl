@@ -54,13 +54,13 @@ function plane_ray_intersection(ray_origin::Vector{Float64}, ray_dir::Vector{Flo
 
   # just because t would go to infinite...
   if abs(denom)<LAR_DEFAULT_ERR
-    return nothing
+    return nothing,nothing
   else
     t= -plane_point_distance(plane,ray_origin)/denom
     if t<=0
-      return nothing # in below space, ignore
+      return nothing, nothing# in below space, ignore
     else
-      return ray_origin+t*ray_dir
+      return ray_origin+t*ray_dir,t
     end
   end
 

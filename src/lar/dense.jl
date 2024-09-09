@@ -1,5 +1,8 @@
 
-const Cells = Vector{Vector{Int}}
+const Cell = Vector{Int}
+export Cell
+
+const Cells = Vector{Cell}
 export Cells
 
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
@@ -14,9 +17,12 @@ mutable struct Lar
 	# object topology (C for cells)
 	C::Dict{Symbol,AbstractArray}
 
+	# for rendering text
+	text::Dict{Symbol, Dict{Int,String}}
+
 	# constructor
 	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,AbstractArray}()) = begin
-		new(V, C)
+		new(V, C, Dict{Int,String}())
 	end
 
 end
@@ -25,22 +31,24 @@ export Lar
 # ////////////////////////////////////////////
 function Base.show(io::IO, lar::Lar) 
 	println(io, "Lar(")
-	println(io,"  [")
+	println(io,"  [ # total ", size(lar.V,2))
 	for (P,point) in enumerate(eachcol(lar.V))
-		println(io,"    ",join([string(it) for it in point]," "), P<=(size(lar.V,2)-1) ? ";" : "")
+		println(io,"    ",join([string(it) for it in point]," "), P<=(size(lar.V,2)-1) ? ";" : "","# ",P)
 	end
 	println(io,"  ],")
 	println(io,"  Dict(")
 	for (K,key) in enumerate(keys(lar.C))
-		println(io, "  ", repr(key)," =>", "[")
 		cells=lar.C[key]
+		println(io, "  ", repr(key)," =>", "[ ", "# total ",length(cells))
 		for (C,cell) in enumerate(cells)
-			println(io, "    ", repr(cell), C<=(length(cells)-1) ? "," : "")
+			println(io, "    ", repr(cell), C<=(length(cells)-1) ? "," : "", "# ", C)
 		end
 		println(io, "  ", "]", K<=(length(keys(lar.C))-1) ? "," : "")
 	end
 	println(io, "  ))")
 end
+
+
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar 

@@ -26,43 +26,10 @@ function TRIANGULATE2D(V::Points, EV::Cells)
 end
 export TRIANGULATE2D
 
-# //////////////////////////////////////////////////////////////////////
-""" input old LAR consistent data; output triangulated_faces """
-function LAR2TRIANGLES(V::Points, EV::Cells, FV::Cells, FE::Cells;err = LAR_DEFAULT_ERR)
-
-	triangles_per_face = Vector{Any}(undef, length(FE))
-
-	for edges_idxs in FE
-		edge_num = length(edges_idxs)
-		fv, edges = find_cycle2(EV, FE, f)
-		# look for independent vector triple
-		points = V[:, fv]
-		vmap = Dict(zip(fv, 1:length(fv))) # vertex map
-		mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
-		edges = [[vmap[A], vmap[B]] for (A, B) in edges]
-		v1 = LinearAlgebra.normalize(points[2, :] - points[1, :])
-		v2 = [0, 0, 0]
-		v3 = [0, 0, 0]
-		i = 3
-		while -err < LinearAlgebra.norm(v3) < err
-			v2 = LinearAlgebra.normalize(points[i, :] - points[1, :])
-			v3 = LinearAlgebra.cross(v1, v2)
-			i = i % size(points, 1) + 1
-		end
-		
-		# independent vector triple in face f 
-		M = [v1 v2 v3]
-		projected = BYCOL((points*M)[:, 1:2])
-		triangles_per_face[f] = [[mapv[v] for v in t] for t in constrained_triangulation2D(projected, edges)]
-	end
-
-	return triangles_per_face
-end
-export LAR2TRIANGLES
 
 # //////////////////////////////////////////////////////////////////////
 """ From  topology to cells (1D chains, 2D chains, breps of 3D chains) """
-function pols2tria(V::Points, copEV::ChainOp, copFE::ChainOp, copCF) 
+function TRIANGULATE3D(V::Points, copEV::ChainOp, copFE::ChainOp, copCF) 
 
 	# historically I need to access vertices by row
 	V_row = BYROW(V)
@@ -108,4 +75,4 @@ function pols2tria(V::Points, copEV::ChainOp, copFE::ChainOp, copCF)
 	end
 	return V, convert(Vector{Cells}, CVs), FVs, EVs
 end
-export pols2tria
+export TRIANGULATE3D

@@ -31,16 +31,14 @@ function setTile(box)
   return tileCode
 end
 
-""" partial function; compute point classification w.r.t polygon edges """
-function classify_point(pnt,V_row::Points, EV::ChainOp)
+function classify_point(pnt, V_row::Points, EV::Cells)
   x, y = pnt
   xmin, xmax, ymin, ymax = x, x, y, y
   tilecode = setTile([ymax, ymin, xmax, xmin])
   count, status = 0, 0
 
-  for k in 1:EV.m # loop on polygon edges
-    edge = EV[k, :]
-    p1, p2 = V_row[edge.nzind[1], :], V_row[edge.nzind[2], :]
+  for (a,b) in EV 
+    p1, p2 = V_row[a, :], V_row[b, :]
     (x1, y1), (x2, y2) = p1, p2
     c1, c2 = tilecode(p1), tilecode(p2)
     c_edge, c_un, c_int = xor(c1, c2), c1 | c2, c1 & c2
@@ -110,6 +108,12 @@ function classify_point(pnt,V_row::Points, EV::ChainOp)
   else
     return "p_out"
   end
+end
+
+""" partial function; compute point classification w.r.t polygon edges """
+function classify_point(pnt,V_row::Points, EV::ChainOp)
+  edges=convert(Cells,[[EV[k, :].nzind[1], EV[k, :].nzind[2]] for k in 1:EV.m])
+  return classify_point(pnt,V_row,edges)
 end
 export classify_point
 
