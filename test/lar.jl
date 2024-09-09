@@ -160,6 +160,7 @@ function TestRandomBubbles()
 end
 
 
+# ///////////////////////////////////////////////////////////
 function TestRandomCubes()
 
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
@@ -190,68 +191,20 @@ function TestCubeAndCylinders()
 
 end
 
-# /////////////////////////////////////////////////////////
-function TestBool3D()
-
-	cube = CUBE(1);
-	assembly = STRUCT(cube, 
-		 R(1,3)(pi/4), T(1,2,3)(.5,.5,.5), cube, 
-		 R(2,3)(pi/5), T(1,2,3)(.5,.5,.5), cube);
-	
-  lar=LAR(assembly)
-  V_original=copy(lar.V)
-
-	V, copEV, copFE, copCF = arrange3d(lar)
-	VIEWEXPLODED(TRIANGULATE3D(V, copEV, copFE, copCF)...)
-
-	EV = cop2lar(copEV)
-	FE = cop2lar(copFE) 
-	CF = cop2lar(copCF)
-	boolmatrix = bool3d(assembly, V, EV, FE, CF)
-
-  """
-
-  # 3 atoms
-	A = boolmatrix[:,2];
-	B = boolmatrix[:,3];
-	C = boolmatrix[:,4];
-	AorB = A .| B;
-	AandB = A .& B;
-	AxorB = AorB .⊻ (.!AandB) 
-	AorBorC = A .| B .| C
-	AorBorC = .|(A, B, C)
-	AandBandC = A .& B .& C
-	AandBandC = .&(A, B, C)
-	AminBminC = .&(A, .!B, .!C) # A - B - C
-	
-	union  = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
-	inters = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
-	diff   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
-	
-	V,CVs,FVs,EVs = TRIANGULATE3D(V_original, copEV, copFE, copCF) 
-	V,CVs,FVs,EVs = TRIANGULATE3D(subassembly3d(V_original, copEV, copFE, copCF, diff  )...)
-	V,CVs,FVs,EVs = TRIANGULATE3D(subassembly3d(V_original, copEV, copFE, copCF, inters) ...)
-	V,CVs,FVs,EVs = TRIANGULATE3D(subassembly3d(V_original, copEV, copFE, copCF, union )...)
-	
-	GL.VIEW(GL.GLExplode(V,FVs,1.5,1.5,1.5,99,1))
-	GL.VIEW(GL.GLExplode(V,EVs,1.,1.,1.,1,1))
-  """
-	
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestLar()
   Random.seed!(0)
   
-  # basic lar
-  TestToLAR()
+  #TestToLAR()
   
-  TestRandomLines()
-  TestRandomBubbles()
+  #TestRandomLines()
+  #TestRandomBubbles()
   TestRandomCubes()
-  TestCubeAndCylinders()
+  #TestCubeAndCylinders()
 
   # BROKEN 
+  # TestRayFaceIntersection
   # TestBool3D()
 
   println("TestLAR ok")

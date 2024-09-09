@@ -13,6 +13,7 @@ julia --project=. test/lar/points.jl
 julia --project=. test/lar/plane.jl
 julia --project=. test/lar/dense.jl
 julia --project=. test/lar/sparse.jl
+julia --project=. test/lar/boolean.jl
 
 julia --project=. test/lar.jl
 ```

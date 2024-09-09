@@ -48,6 +48,26 @@ function Base.show(io::IO, lar::Lar)
 	println(io, "  ))")
 end
 
+# //////////////////////////////////////////////////////////////////////////////
+function SELECT_FACES(src::Lar, selected_faces::Cell)::Lar
+
+  FV=src.C[:FV]
+  EV=src.C[:EV]
+
+  selected_vertices=Set(CAT([FV[F] for F in selected_faces]))
+  selected_edges=[E for (E,(a,b)) in enumerate(EV) if a in selected_vertices && b in selected_vertices]
+
+  ret=Lar(src.V, Dict(
+    :FV => [FV[F] for F in selected_faces],
+    :EV => [EV[E] for E in selected_edges]
+    ))
+
+  # name mapping
+  ret.text[:FV]=Dict{Int,String}(I => string(F) for (I,F) in enumerate(selected_faces))
+  ret.text[:EV]=Dict{Int,String}(I => string(E) for (I,E) in enumerate(selected_edges))
+
+  return ret
+end
 
 
 # //////////////////////////////////////////////////////////////////////////////

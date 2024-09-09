@@ -75,6 +75,12 @@ function LAR_BATCHES(lar::Lar; properties::Properties=Properties())
 end
 export LAR_BATCHES
 
+function VIEWCOMPLEX(lar::Lar; properties::Properties=Properties())
+	batches=LAR_BATCHES(lar, properties=properties)
+	View(batches,properties)
+end
+export VIEWCOMPLEX
+
 # //////////////////////////////////////////////////////////////////////////////
 function VIEWEXPLODED(V, CVs::Vector{Cells}, FVs::Vector{Cells}, EVs::Vector{Cells}; scale_factor=1.2)
 
