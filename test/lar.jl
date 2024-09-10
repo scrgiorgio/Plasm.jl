@@ -117,57 +117,33 @@ function TestToLAR()
 
 end
 
-
-
-
-
 # //////////////////////////////////////////////////////////////////////////////
 function TestRandomLines()
-
   hpc = STRUCT([RandomLine(2.0,3.0) for I in 1:6])
-  # VIEW(hpc)
-  
   lar = LAR(hpc)
-  V, EV  = lar.V, lar.C[:EV]
-  V,FVs,EVs = arrange2d(V,EV)
-
-  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.0)))
-  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.2)))
-  
-  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.0)))
-  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.2)))
-  
+  V,FVs,EVs = ARRANGE2D(lar.V,lar.C[:EV])
+  GLView(BATCHES([Lar(V, Dict( :EV => EV)) for EV in EVs],explode=1.2))
+  GLView(BATCHES([Lar(V, Dict( :FV => FV)) for FV in FVs],explode=1.2))
 end
-
-
 
 
 # ////////////////////////////////////////////////////////
 function TestRandomBubbles()
-
   hpc = STRUCT([RandomBubble() for I in 1:50])
-  VIEW(hpc)
-  
   lar = LAR(hpc)
   V, EV  = lar.V, lar.C[:EV]
-  V,FVs,EVs = arrange2d(V,EV)
-  
-  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.0)))
-  VIEW(COLORED(EXPLODECELLS(V, EVs, scale_factor=1.2)))
-  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.0)))
-  VIEW(COLORED(EXPLODECELLS(V, FVs, scale_factor=1.2)))
-  
+  V,FVs,EVs = ARRANGE2D(V,EV)
+  GLView(BATCHES([Lar(V, Dict( :EV => EV)) for EV in EVs],explode=1.2))
+  GLView(BATCHES([Lar(V, Dict( :FV => FV)) for FV in FVs],explode=1.2))
 end
 
 
 # ///////////////////////////////////////////////////////////
 function TestRandomCubes()
-
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
   lar = LAR(hpc)
-  V, copEV, copFE, copCF = arrange3d(lar)
-  VIEWEXPLODED(TRIANGULATE3D(V, copEV, copFE, copCF)...)
-  
+  arrangement = ARRANGE3D(lar)
+  GLView(BATCHES(arrangement,explode=1.5))
 end
 
 # ///////////////////////////////////////////////////////////
@@ -183,23 +159,120 @@ function TestCubeAndCylinders()
     R(1,3)(π/2), 
     cyl 
   )
-  VIEW(hpc)
   
   lar = LAR(hpc)
-  V, copEV, copFE, copCF = arrange3d(lar)
-  VIEWEXPLODED(TRIANGULATE3D(V, copEV, copFE, copCF)...)
+  arrangement = ARRANGE3D(lar)
+  GLView(BATCHES(arrangement,explode=1.5))
 
 end
 
+
+
+# ///////////////////////////////////////////////////////////////////
+function TestRayFaceIntersection()
+
+  lar=LAR(CUBE(1))
+  # @show(lar)
+
+  Z=[0.0,0.0,1.0]
+  Y=[0.0,1.0,0.0]
+  X=[1.0,0.0,0.0]
+
+  for y in [-0.1,0.1, 0.5,0.9, 1.1]
+    for z in [-0.1,0.1, 0.5,0.9, 1.1]
+      for I in 1:6
+        @assert(          ray_face_intersection([-0.1,y,z], +X, lar, I)[1][1] in [0.0,1.0]) 
+        @assert(          ray_face_intersection([ 0.5,y,z], +X, lar, I)[1][1] == 1.0) 
+        @assert(isnothing(ray_face_intersection([ 1.1,y,z], +X, lar, I)))
+        @assert(          ray_face_intersection([ 1.1,y,z], -X, lar, I)[1][1] in [1.0,0.0]) 
+        @assert(          ray_face_intersection([ 0.5,y,z], -X, lar, I)[1][1] == 0.0) 
+        @assert(isnothing(ray_face_intersection([-0.1,y,z], -X, lar, I)))
+      end
+    end
+  end
+
+  for x in [-0.1,0.1, 0.5,0.9, 1.1]
+    for z in [-0.1,0.1, 0.5,0.9, 1.1]
+      for I in 1:6
+        @assert(          ray_face_intersection([x,-0.1,z], +Y, lar, I)[1][2] in [0.0,1.0]) 
+        @assert(          ray_face_intersection([x, 0.5,z], +Y, lar, I)[1][2] == 1.0) 
+        @assert(isnothing(ray_face_intersection([x, 1.1,z], +Y, lar, I)))
+        @assert(          ray_face_intersection([x, 1.1,z], -Y, lar, I)[1][2] in [1.0,0.0]) 
+        @assert(          ray_face_intersection([x, 0.5,z], -Y, lar, I)[1][2] == 0.0) 
+        @assert(isnothing(ray_face_intersection([x,-0.1,z], -Y, lar, I)))
+      end
+    end
+  end
+
+  for x in [-0.1,0.1, 0.5,0.9, 1.1]
+    for y in [-0.1,0.1, 0.5,0.9, 1.1]
+      for I in 1:6
+        @assert(          ray_face_intersection([x,y,-0.1], +Z, lar, I)[1][3] in [0.0,1.0]) 
+        @assert(          ray_face_intersection([x,y, 0.5], +Z, lar, I)[1][3] == 1.0) 
+        @assert(isnothing(ray_face_intersection([x,y, 1.1], +Z, lar, I)))
+        @assert(          ray_face_intersection([x,y, 1.1], -Z, lar, I)[1][3] in [1.0,0.0]) 
+        @assert(          ray_face_intersection([x,y, 0.5], -Z, lar, I)[1][3] == 0.0) 
+        @assert(isnothing(ray_face_intersection([x,y,-0.1], -Z, lar, I)))
+      end
+    end
+  end
+
+end
+
+
+# /////////////////////////////////////////////////////////
+function TestBool3D()
+
+  assembly = STRUCT(
+    CUBE(1), 
+    T(1,2,3)(.5,.5,.5), 
+    CUBE(1)
+  )
+
+  lar=LAR(assembly)
+
+  arrangement = ARRANGE3D(lar)
+  GLView(BATCHES(arrangement,explode=1.5))
+
+  bool3d(assembly, arrangement, CF)
+
+  """
+
+  # 3 atoms
+	A = boolmatrix[:,2];
+	B = boolmatrix[:,3];
+	C = boolmatrix[:,4];
+	AorB = A .| B;
+	AandB = A .& B;
+	AxorB = AorB .⊻ (.!AandB) 
+	AorBorC = A .| B .| C
+	AorBorC = .|(A, B, C)
+	AandBandC = A .& B .& C
+	AandBandC = .&(A, B, C)
+	AminBminC = .&(A, .!B, .!C) # A - B - C
+	
+	union  = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
+	inters = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
+	diff   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
+	
+	arrangement = GLView(BATCHES(V_original, copEV, copFE, copCF) 
+	arrangement = GLView(BATCHES((subassembly3d(V_original, copEV, copFE, copCF, diff  )...)
+	arrangement = GLView(BATCHES((subassembly3d(V_original, copEV, copFE, copCF, inters) ...)
+	arrangement = ViGLViewew(BATCHES((subassembly3d(V_original, copEV, copFE, copCF, union )...)
+
+  """
+	
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestLar()
   Random.seed!(0)
   
-  #TestToLAR()
+  # TestToLAR()
   
   #TestRandomLines()
   #TestRandomBubbles()
+  
   TestRandomCubes()
   #TestCubeAndCylinders()
 

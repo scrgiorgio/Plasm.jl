@@ -777,7 +777,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function arrange2d(V::Points, EV::Cells)
+function ARRANGE2D(V::Points, EV::Cells)
 
 	copEV = cop_coboundary_0(EV)
 	cop_EW = convert(ChainOp, copEV)
@@ -806,10 +806,10 @@ function arrange2d(V::Points, EV::Cells)
 		edges = convert(Array{Int,2}, hcat(edges...)')
 
 		v = convert(Points, vs'[1:2, :])
-		vmap = Dict(zip(fv, 1:length(fv))) # vertex map
-		mapv = Dict(zip(1:length(fv), fv)) # inverse vertex map
-		ev = [[vmap[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
-		triangles_per_face[f] = [[mapv[jt] for jt in triangle] for triangle in TRIANGULATE2D(v, ev)]
+		global_to_local = Dict(zip(fv, 1:length(fv))) # vertex map
+		local_to_global = Dict(zip(1:length(fv), fv)) # inverse vertex map
+		ev = [[global_to_local[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
+		triangles_per_face[f] = [[local_to_global[u],local_to_global[v],local_to_global[w]] for (u,v,w) in TRIANGULATE(v, ev)]
 
 		tV = V_row[:, 1:2]
 
@@ -824,4 +824,4 @@ function arrange2d(V::Points, EV::Cells)
 	FVs = convert(Vector{Cells}, triangles_per_face)
 	return V, FVs, EVs
 end
-export arrange2d
+export ARRANGE2D

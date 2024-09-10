@@ -81,8 +81,8 @@ function find_internal_point(lar::Lar;num_attempts=13)
 
   #delete!(lar.text, :EV)
   #delete!(lar.text, :FV)
-  # batches=LAR_BATCHES(lar)
-  #View(batches)
+  # batches=BATCHES(lar)
+  #GLView(batches)
 
 	# TODO: reintroduce space index to avoid O(N^2) complexity
 
@@ -199,7 +199,7 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
 
   atoms=[]
   for sel in CF
-    atom=SELECT_FACES(arrangement,sel)
+    atom=SELECT(arrangement,sel)
     push!(atoms,atom)
   end
 
@@ -224,7 +224,7 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
   # view atoms 
   if debug_mode
     for (atom,ray_origin,ray_dir) in atoms
-      batches=LAR_BATCHES(atom)
+      batches=BATCHES(atom)
 
       begin
         batch = GLBatch(POINTS)
@@ -243,7 +243,7 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
         push!(batch.vertices.vector, (ray_origin+1.0*ray_dir)...)
       end
 
-      View(batches)
+      GLView(batches)
     end
   end
 

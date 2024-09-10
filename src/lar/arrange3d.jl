@@ -377,7 +377,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
-function arrange3d(lar::Lar)
+function ARRANGE3D(lar::Lar)
 
 	V=lar.V
 	EV=lar.C[:EV]
@@ -420,10 +420,19 @@ function arrange3d(lar::Lar)
 	rV, rcopEV, rcopFE = merge_vertices_3d(rV, rEV, rFE)
 	rcopCF = build_copFC(rV, rcopEV, rcopFE)
 
-	# historically arrangement works internally by using by-row vertices
-	return BYCOL(rV), rcopEV, rcopFE, convert(ChainOp,rcopCF)
+  EV = cop2lar(rcopEV)
+  FE = cop2lar(rcopFE) 
+  FV = [union(CAT([EV[E] for E in fe])) for fe in FE]
+  CF = cop2lar(convert(ChainOp,rcopCF))
+
+  return Lar(BYCOL(rV),Dict(
+		:EV => EV, 
+		:FE => FE, 
+		:FV => FV, 
+		:CF => CF
+	))
 end
-export arrange3d
+export ARRANGE3D
 
 
 # //////////////////////////////////////////////////////////////////////////////

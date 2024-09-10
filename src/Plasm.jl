@@ -25,11 +25,9 @@ include("./lar/plane.jl")
 include("./lar/bbox.jl")
 include("./lar/dense.jl")
 include("./lar/sparse.jl")
-include("./lar/view.jl")
 include("./lar/classify.jl")
 
 # from Alberto: do not touch. Too complicate to do any reorganization right now
-include("./lar/triangulate.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
 

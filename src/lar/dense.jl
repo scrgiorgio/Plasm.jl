@@ -5,6 +5,7 @@ export Cell
 const Cells = Vector{Cell}
 export Cells
 
+# //////////////////////////////////////////////////////////////////////////////
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
 mutable struct Lar
 
@@ -48,8 +49,86 @@ function Base.show(io::IO, lar::Lar)
 	println(io, "  ))")
 end
 
+
 # //////////////////////////////////////////////////////////////////////////////
-function SELECT_FACES(src::Lar, selected_faces::Cell)::Lar
+""" remove duplicate int indices """
+function SIMPLIFY(cell::Cell)::Cell
+	return collect(sort(collect(Set(cell))))
+end
+
+
+""" simplify all lar cells by sorting vertex indices and removing duplicates
+
+it also try to keep :CF for exploded view
+"""
+function SIMPLIFY(lar::Lar)
+
+	ret=Lar(lar.V,Dict())
+
+	# techically I could remove replicated vertices, not doing it
+
+	for key in keys(lar.C)
+
+		# ____________________________ EV
+		if key==:EV
+			ret.C[:EV]=[]
+			mapping=Dict{Cell,Int}() # from vertex indices to new edge id
+			for (E,ev) in enumerate(lar.C[:EV])
+				ev=SIMPLIFY(ev)
+				if !(ev in keys(mapping))
+					push!(ret.C[:EV], ev)
+					mapping[ev]=length(ret.C[:EV])
+				end
+			end
+
+			continue
+		end
+
+		# ____________________________  FV
+		if key==:FV
+			ret.C[:FV]=[]
+			mapping=Dict{Cell,Int}() # from vertex indices to new face id
+			for (F,fv) in enumerate(lar.C[:FV])
+				fv=SIMPLIFY(fv)
+				if ! (fv in keys(mapping))
+					push!(ret.C[:FV], fv)
+					mapping[fv]=length(ret.C[:FV])
+				end
+			end
+
+			if haskey(lar.C,:CF)
+				ret.C[:CF]=[]
+				for cf in lar.C[:CF]
+					v::Cell=[]
+					for face in cf
+						fv=SIMPLIFY(lar.C[:FV][face])
+						append!(v,mapping[fv])
+					end
+					push!(ret.C[:CF],SIMPLIFY(v))
+				end
+			end
+
+			continue
+
+		end
+
+		#already handled in FV case (see code above)
+		if key==:CF
+			continue 
+		end	
+		
+		# should I support this case?
+		@assert(false)
+
+	end
+
+	return ret
+
+end
+export SIMPLIFY
+
+# //////////////////////////////////////////////////////////////////////////////
+function SELECT(src::Lar, selected_faces::Cell)::Lar
 
   FV=src.C[:FV]
   EV=src.C[:EV]
@@ -68,6 +147,28 @@ function SELECT_FACES(src::Lar, selected_faces::Cell)::Lar
 
   return ret
 end
+export SELECT
+
+# //////////////////////////////////////////////////////////////////////
+function TRIANGULATE(V::Points, EV::Cells)::Cells
+
+	# scrgiorgio: I think EV should be the boundary !?
+	triin = Triangulate.TriangulateIO()
+	triin.pointlist = V 
+	triin.segmentlist = hcat(EV...)
+
+	(triout, __vorout) = Triangulate.triangulate("pQ", triin) 
+
+	ret=Cells()
+	for (u, v, w) in eachcol(triout.trianglelist)
+		centroid = (V[:, u] + V[ :,v] + V[:,w]) ./ 3
+		if classify_point(centroid, BYROW(V), EV)=="p_in"
+			push!(ret, [u, v, w])
+		end
+	end
+	return ret
+end
+export TRIANGULATE
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -156,30 +257,6 @@ end
 export LAR_SIMPLEX
 
 
-# /////////////////////////////////////////////////////////////////////
-function EXPLODECELLS(V::Points, cells::Vector{Cells}; scale_factor::Float64=1.2)::Vector{Hpc}
-	
-	ret = []
-	for cell in cells
-
-		cell_indices = sort(union(cell...))
-
-		cell_vertices=V[:, cell_indices]
-
-		p1=compute_centroid(cell_vertices)
-		p2 = PDIM(V) == 2 ? 
-			p1 .* [scale_factor; scale_factor] : 
-			p1 .* [scale_factor; scale_factor; scale_factor]
-
-		cell_vertices = cell_vertices .+ (p2 - p1)
-
-		vdict = Dict(zip(cell_indices, 1:length(cell_indices)))
-		hulls=[[vdict[v_index] for v_index in face] for face in cell]
-		push!(ret, MKPOL(cell_vertices,hulls))
-	end
-	return ret
-end
-export EXPLODECELLS
 
 
 # /////////////////////////////////////////////////////////
@@ -228,12 +305,12 @@ function compute_FE(EV::Cells, FV::Cells; double_check=false)
 end
 export compute_FE
 
+
 # //////////////////////////////////////////////////////////////////////////////
 """ return ordered vertices  and edges of the 1-cycle f """
-function find_vcycle_v2(EV::Cells, FE::Cells, f::Int)
-	vpairs = [EV[e] for e in FE[f]]
+function find_vcycle(EV::Cells)
 	ordered = []
-	(A, B), todo = vpairs[1], vpairs[2:end]
+	(A, B), todo = EV[1], EV[2:end]
 	push!(ordered, A)
 	while length(todo) > 0
 		found = false
@@ -252,7 +329,146 @@ function find_vcycle_v2(EV::Cells, FE::Cells, f::Int)
 	edges = [[a, b] for (a, b) in zip(ordered[1:end-1], ordered[2:end])]
 	return Array{Int}(ordered[1:end-1]), edges
 end
-export find_vcycle_v2
+export find_vcycle
+
+# //////////////////////////////////////////////////////////////////////////////
+""" return ordered vertices  and edges of the 1-cycle f """
+function find_vcycle(EV::Cells, FE::Cells, f::Int)
+	return find_vcycle([EV[e] for e in FE[f]])
+end
+export find_vcycle
+
+
+# //////////////////////////////////////////////////////////////////////////////
+function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"], explode=1.5, user_color=nothing)::Vector{GLBatch}
+
+  V = lar.V
+  EV = haskey(lar.C, :EV) ? lar.C[:EV] : nothing
+  FV = haskey(lar.C, :FV) ? lar.C[:FV] : nothing
+
+  # want V to be 3 dimensional
+  if size(V, 1) == 2
+    zeros = Matrix{Int64}([0.0 for I in 1:size(V, 2)][:,:]')
+		V=vcat(V,zeros)
+  end
+
+  batches = Vector{GLBatch}()
+
+  batch_points    = GLBatch(POINTS)
+  batch_lines     = GLBatch(LINES)
+  batch_triangles = GLBatch(TRIANGLES)
+
+	push!(batches, batch_points)
+	push!(batches, batch_lines)
+	push!(batches, batch_triangles)
+
+  batch_points.point_size = 4
+  batch_lines.line_width  = 2
+	batch_triangles.line_width = 0
+
+	Vtext  = haskey(lar.text, :V ) ? lar.text[:V ] : Dict(I => string(I) for I in eachindex(V))
+  
+  function render_point(pos, color, text)
+    if "V" in show
+      push!(batch_points.vertices.vector, pos...)
+      push!(batch_points.colors.vector, color...)
+    end
+    if "V_text" in show
+      append!(batches, GLText(text, center=pos, color=color, fontsize=0.04))
+    end
+  end
+
+	function do_explode(cell_points)
+		ret=copy(cell_points)
+		centroid = compute_centroid(ret)
+		vt = (centroid .* [explode; explode; explode]) - centroid
+		for C in 1:size(ret,2)
+			ret[:,C]=ret[:,C] .+ vt
+		end
+		return ret, compute_centroid(ret)
+	end
+
+	show_edges=true
+  if show_edges && !isnothing(EV)
+		EVtext = haskey(lar.text, :EV) ? lar.text[:EV] : Dict(I => string(I) for I in eachindex(EV))
+
+    for (E,ev) in enumerate(EV)
+      cell_points, centroid = do_explode(V[:, ev])
+			color = isnothing(user_color) ? RandomColor(E) :  user_color
+
+			if "EV" in show
+				render_point(cell_points[:,1], color, Vtext[ev[1]]); push!(batch_lines.vertices.vector, cell_points[:,1]...);push!(batch_lines.colors.vector, color...)
+				render_point(cell_points[:,2], color, Vtext[ev[2]]); push!(batch_lines.vertices.vector, cell_points[:,2]...);push!(batch_lines.colors.vector, color...)
+			end
+			if "EV_text" in show
+				append!(batches, GLText(EVtext[E], center=centroid, color=LIGHT_GRAY, fontsize=0.04))
+			end
+    end
+  end
+
+	show_faces=true
+  if show_faces && !isnothing(FV)
+
+		FVtext = haskey(lar.text, :FV) ? lar.text[:FV] : Dict(I => string(I) for I in eachindex(FV))
+
+    for (F, fv) in enumerate(FV)
+      cell_points, centroid = do_explode(V[:, fv])
+      color = isnothing(user_color) ? RandomColor(F) : user_color
+
+			# scrgiorgio: I do not think find_vcycle or TRIANGULATE support generic faces with holes...
+			# note that probably after arrangement I am not getting any hole so it should work...
+			vmap=Dict(zip(fv,1:length(fv)))
+			cell_EV = convert(Cells, [[vmap[a],vmap[b]] for (a, b) in EV if a in fv && b in fv])
+			__, cell_EV = find_vcycle(cell_EV)
+
+      if "FV" in show
+
+				for (v_index, pos) in zip(fv,eachcol(cell_points))
+					render_point(pos, color, Vtext[v_index])
+				end
+
+				for (a,b) in cell_EV
+					push!(batch_lines.vertices.vector, cell_points[:,a]...);push!(batch_lines.colors.vector, color...)
+					push!(batch_lines.vertices.vector, cell_points[:,b]...);push!(batch_lines.colors.vector, color...)
+				end
+
+        # faces in lar can be anything so I need to triangulate
+				begin
+					cell_points_2d = project_points3d(cell_points; double_check=true)(cell_points)
+					for (u, v, w) in TRIANGULATE(cell_points_2d, cell_EV)
+						p0 = cell_points[:,u]
+						p1 = cell_points[:,v]
+						p2 = cell_points[:,w]
+						n = ComputeTriangleNormal(p0, p1, p2)
+						push!(batch_triangles.vertices.vector, p0...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
+						push!(batch_triangles.vertices.vector, p1...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
+						push!(batch_triangles.vertices.vector, p2...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
+					end
+				end
+
+      end
+
+      if "FV_text" in show
+        append!(batches, GLText(FVtext[F], center=centroid, color=color, fontsize=0.04))
+      end
+
+    end
+  end
+
+  return batches
+
+end
+export BATCHES
+
+# //////////////////////////////////////////////////////////////////////////////
+function BATCHES(lars::Vector{Lar}; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"], explode=1.5)::Vector{GLBatch}
+	batches=Vector{GLBatch}()
+	for (I,lar) in enumerate(lars)
+		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor(I)))
+	end
+	return batches
+end
+
 
 # //////////////////////////////////////////////////////////////////////////////
 function RandomLine(size_min::Float64,size_max::Float64)

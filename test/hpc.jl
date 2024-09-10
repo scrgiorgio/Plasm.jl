@@ -540,9 +540,9 @@ function TestProperties2()
     "zfar"             => 100.0,
     "walk_speed"       => 10.0,
 
-    "text_v_color"      => DEFAULT_TEXT_V_COLOR,
-    "text_ev_color"     => DEFAULT_TEXT_EV_COLOR,
-    "text_fv_color"     => DEFAULT_TEXT_FV_COLOR,
+    "v_text_color"      => DEFAULT_V_TEXT_COLOR,
+    "ev_text_color"     => DEFAULT_EV_TEXT_COLOR,
+    "fv_text_color"     => DEFAULT_FV_TEXT_COLOR,
 
     "v_fontsize"        => DEFAULT_V_FONTSIZE,
     "ev_fontsize"       => DEFAULT_EV_FONTSIZE,

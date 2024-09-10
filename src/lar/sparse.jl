@@ -58,25 +58,6 @@ end
 export FV2EV
 
 
-# //////////////////////////////////////////////////////////////////////////////
-""" Coherently orient the edges of f face """
-
-function find_vcycle_v1(copEV::ChainOp, copFE::ChainOp, f::Int)
-	function mycat(a::Cells)
-		out = []
-		for cell in a append!(out, cell) end
-		return out
-	end
-	edges, signs = findnz(copFE[f, :])
-	vpairs = [s > 0 ? findnz(copEV[e, :])[1] : reverse(findnz(copEV[e, :])[1]) for (e, s) in zip(edges, signs)]
-	a = [pair for pair in vpairs if length(pair) == 2]
-	vs = collect(Set(mycat(a)))
-	vdict = Dict(zip(vs, 1:length(vs)))
-	edges = [[vdict[pair[1]], vdict[pair[2]]] for pair in vpairs if length(pair) == 2]
-	return vs, edges
-end
-export find_vcycle_v1
-
-function find_vcycle_v2(copEV::ChainOp, copFE::ChainOp, f::Int)
-	return find_vcycle_v2(cop2lar(copEV), cop2lar(copFE), f)
+function find_vcycle(copEV::ChainOp, copFE::ChainOp, f::Int)
+	return find_vcycle(cop2lar(copEV), cop2lar(copFE), f)
 end

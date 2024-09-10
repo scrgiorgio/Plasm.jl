@@ -1088,6 +1088,8 @@ Properties = Dict{String,Any}
 # ///////////////////////////////////////////////////////////////////////
 function GLView(batches::Vector{GLBatch}, properties::Properties=Properties())
 
+	batches=[batch for batch in batches if length(batch.vertices.vector)>0]
+
 	show_axis = get(properties, "show_axis", true)
 	if show_axis
 		push!(batches, GLAxis(Point3d(0, 0, 0), Point3d(2, 2, 2)))
