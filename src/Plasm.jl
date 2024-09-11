@@ -23,7 +23,7 @@ export LAR_DEFAULT_ERR
 include("./lar/points.jl")
 include("./lar/plane.jl")
 include("./lar/bbox.jl")
-include("./lar/dense.jl")
+include("./lar/lar.jl")
 include("./lar/sparse.jl")
 include("./lar/classify.jl")
 
