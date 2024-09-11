@@ -68,21 +68,6 @@ using Plasm, LinearAlgebra
       @test length(grid213.C[:EV]) == 46
    end;
 
-   @testset "misc" begin
-      hpc = Plasm.CUBE(1) 
-      lar = LAR(hpc)
-      V, EV, FV  = lar.V, lar.C[:EV], lar.C[:FV]
-      
-      # each vertex has 3 edges
-      VE=compute_VE(EV)
-      @test(length(VE)==8 && all([length(it)==3 for it in VE]))
-
-      # each face has 4 edges
-      FE=compute_FE(EV,FV,double_check=true)
-      @test(length(FE)==6 && all([length(it)==4 for it in FE]))
-   end
-   
-
    @testset "simplify" begin
       @test(SIMPLIFY([3,2,1,1,2,3])==[1,2,3])
 

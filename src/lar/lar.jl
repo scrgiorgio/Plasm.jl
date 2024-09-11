@@ -29,6 +29,15 @@ mutable struct Lar
 end
 export Lar
 
+"""
+Important!
+usually we represent a LAR complex using FV and EV
+but we cannot reconstruct FE combinatorially because it would fail on non-convex or holed-faces
+
+So we should migrate to a representation using FE and EV
+
+"""
+
 # ////////////////////////////////////////////
 function Base.show(io::IO, lar::Lar) 
 	println(io, "Lar(")
@@ -133,6 +142,8 @@ function SELECT(src::Lar, selected_faces::Cell)::Lar
   FV=src.C[:FV]
   EV=src.C[:EV]
 
+	# TODO: I need to keep FE which is needed for rendering
+
   selected_vertices=Set(CAT([FV[F] for F in selected_faces]))
   selected_edges=[E for (E,(a,b)) in enumerate(EV) if a in selected_vertices && b in selected_vertices]
 
@@ -181,6 +192,7 @@ function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	ret.C[:EV] = geo.edges
 	ret.C[:FV] = geo.faces
 	ret.C[:CV] = geo.hulls
+	# to add fe?
 	return ret
 end
 export LAR
@@ -189,6 +201,7 @@ export LAR
 """ Create an Hpc from Lar 
 
 use MKPOLS to specify what Hpc you want to build (like only edges or only 2d-faces)
+note: they input arguments must be convex otherwise it will not work....
 """
 function HPC(lar::Lar)::Hpc
 
@@ -259,51 +272,6 @@ export LAR_SIMPLEX
 
 
 
-# /////////////////////////////////////////////////////////
-# scrgiorgio: NOT (!!!) well tested
-function compute_VE(EV::Cells)
-
-	num_vertices=maximum([maximum([v1,v2]) for (v1,v2) in EV])
-  ret=convert(Cells,[[] for k in 1:num_vertices])
-  for (E,(v1,v2)) in enumerate(EV)
-    push!(ret[v1],E)
-    push!(ret[v2],E)
-  end
-  return ret
-end
-export compute_VE
-
-# /////////////////////////////////////////////////////////
-# scrgiorgio: NOT (!!!) well tested
-function compute_FE(EV::Cells, FV::Cells; double_check=false)
-  VE=compute_VE(EV)
-  ret = convert(Cells,[])
-  for face in FV
-    fe=[]
-    for vertex_index in face
-      for edge_index in VE[vertex_index]
-        a,b=EV[edge_index]
-        if a in face && b in face
-          push!(fe,edge_index)
-        end
-      end
-    end
-    push!(ret,sort(union(fe)))
-  end
-
-  if double_check
-    for (F,face) in enumerate(ret)
-      for edge in face
-        a,b=EV[edge]
-        @assert(a in FV[F])
-        @assert(b in FV[F])
-      end
-    end
-  end
-
-  return ret
-end
-export compute_FE
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -333,14 +301,12 @@ export find_vcycle
 
 # //////////////////////////////////////////////////////////////////////////////
 """ return ordered vertices  and edges of the 1-cycle f """
-function find_vcycle(EV::Cells, FE::Cells, f::Int)
-	return find_vcycle([EV[e] for e in FE[f]])
+function find_vcycle(EV::Cells, FE::Cells, F::Int)
+	return find_vcycle([EV[e] for e in FE[F]])
 end
-export find_vcycle
-
 
 # //////////////////////////////////////////////////////////////////////////////
-function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"], explode=1.5, user_color=nothing, show_edges=true, show_faces=true)::Vector{GLBatch}
+function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"], explode=1.5, user_color=nothing)::Vector{GLBatch}
 
   V = lar.V
   EV = haskey(lar.C, :EV) ? lar.C[:EV] : nothing
@@ -389,7 +355,7 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 	end
 
 	
-  if show_edges && !isnothing(EV)
+  if !isnothing(EV)
 		EVtext = haskey(lar.text, :EV) ? lar.text[:EV] : Dict(I => string(I) for I in eachindex(EV))
 
     for (E,ev) in enumerate(EV)
@@ -407,7 +373,7 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
   end
 
 	
-  if show_faces && !isnothing(FV)
+  if !isnothing(FV)
 
 		FVtext = haskey(lar.text, :FV) ? lar.text[:FV] : Dict(I => string(I) for I in eachindex(FV))
 
@@ -415,16 +381,24 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
       cell_points, centroid = do_explode(V[:, fv])
       color = isnothing(user_color) ? RandomColor(F) : user_color
 
-			# scrgiorgio: I do not think find_vcycle or TRIANGULATE support generic faces with holes...
-			# note that probably after arrangement I am not getting any hole so it should work...
-			vmap=Dict(zip(fv,1:length(fv)))
-			cell_EV = convert(Cells, [[vmap[a],vmap[b]] for (a, b) in EV if a in fv && b in fv])
+			# how to compute FE if it's not pre-computed? (see Lar note below the class)
+			# technically is wrong to compute FE combinatorially
+      if "FV" in show && haskey(lar.C,:FE)
 
-			@show(fv,[(a, b) for (a, b) in EV if a in fv && b in fv])
+				# scrgiorgio: I do not think find_vcycle or TRIANGULATE support generic faces with holes...
+				# note that probably after arrangement I am not getting any hole so it should work...
+				vmap=Dict(zip(fv,1:length(fv)))
 
-			__, cell_EV = find_vcycle(cell_EV)
+				# WRONG
+				# cell_EV = convert(Cells, [[vmap[a],vmap[b]] for (a, b) in EV if a in fv && b in fv])
 
-      if "FV" in show
+				cell_EV=Cells()
+				fe=lar.C[:FE][F]
+				for E in fe
+					a,b=EV[E]
+					push!(cell_EV,[vmap[a],vmap[b]])
+				end
+				__, cell_EV = find_vcycle(cell_EV)
 
 				for (v_index, pos) in zip(fv,eachcol(cell_points))
 					render_point(pos, color, Vtext[v_index])

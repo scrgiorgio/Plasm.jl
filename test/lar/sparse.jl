@@ -68,9 +68,9 @@ import Base.size
       copFV1 = SparseArrays.spmatmul(copFE, copEV) .÷ Int8(2)
       copFV2 = lar2cop(FV)
       @test copFV1 == copFV2 # calcolato con due diversi metodi
-      vs, edges = find_vcycle(copEV::ChainOp, copFE::ChainOp, 1)
+      vs, edges = find_vcycle(copEV, copFE, 1)
       @test LEN(vs) == LEN(edges)
-      vs, edges = find_vcycle(copEV::ChainOp, copFE::ChainOp, copFE.m)
+      vs, edges = find_vcycle(copEV, copFE, copFE.m)
       @test LEN(vs) == LEN(edges)   
       @test all([vs[k] == edges[k][1] for k=1:LEN(vs)]) 
       @test all([(edges[k][2] == vs[(k%LEN(vs))+1]) for k=1:LEN(vs)]) 

@@ -58,6 +58,6 @@ end
 export FV2EV
 
 
-function find_vcycle(copEV::ChainOp, copFE::ChainOp, f::Int)
-	return find_vcycle(cop2lar(copEV), cop2lar(copFE), f)
+function find_vcycle(copEV::ChainOp, copFE::ChainOp, F::Int)
+	return find_vcycle(cop2lar(copEV), cop2lar(copFE), F)
 end
