@@ -12,18 +12,18 @@ julia --project=. test/hpc.jl
 julia --project=. test/bbox.jl
 julia --project=. test/points.jl
 julia --project=. test/plane.jl
-
-# dense and sparse
 julia --project=. test/lar.jl
 
-# 2d
+# 2d arrangement
 julia --project=. test/randomlines.jl
 julia --project=. test/randombubbles.jl
 
-# 3d
+# 3d arrangement
 julia --project=. test/twocubes.jl
 julia --project=. test/randomcubes.jl
 julia --project=. test/cylinders.jl
+
+# boolean
 julia --project=. test/boolean.jl
 
 

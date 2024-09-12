@@ -1012,7 +1012,12 @@ function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="")
 	end
 
 	batches = GetBatchesForHpc(hpc)
-	return GLView(batches, properties=properties, title=title)
+
+	if title!=""
+		properties["title"]=title
+	end
+
+	return GLView(batches, properties=properties)
 end
 
 

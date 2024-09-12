@@ -324,7 +324,8 @@ function VIEWCOMPLEX(batches::Vector{GLBatch})
 	GLView(batches, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
-		"lighting_enabled" => true 
+		"lighting_enabled" => true,
+		"title" => "LAR"
 	))
 end
 export VIEWCOMPLEX
@@ -391,8 +392,8 @@ function VIEWCOMPLEX(
 
 				function render_lines(vcycles)
 					for (a,b) in vcycles
-						push!(batch_lines.vertices.vector, cell_points[:,a]...);push!(batch_lines.colors.vector, DARK_GRAY...)
-						push!(batch_lines.vertices.vector, cell_points[:,b]...);push!(batch_lines.colors.vector, DARK_GRAY...)
+						append!(batch_lines.vertices.vector, cell_points[:,a]);append!(batch_lines.colors.vector, DARK_GRAY)
+						append!(batch_lines.vertices.vector, cell_points[:,b]);append!(batch_lines.colors.vector, DARK_GRAY)
 					end
 				end
 
@@ -402,9 +403,9 @@ function VIEWCOMPLEX(
 						p1 = cell_points[:,v]
 						p2 = cell_points[:,w]
 						n = ComputeTriangleNormal(p0, p1, p2)
-						push!(batch_triangles.vertices.vector, p0...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
-						push!(batch_triangles.vertices.vector, p1...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
-						push!(batch_triangles.vertices.vector, p2...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
+						append!(batch_triangles.vertices.vector, p0);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
+						append!(batch_triangles.vertices.vector, p1);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
+						append!(batch_triangles.vertices.vector, p2);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
 					end
 				end
 
@@ -430,7 +431,7 @@ function VIEWCOMPLEX(
 					# I need to know FE (which cannot be computed automatically from FV EV considering non-convex faces)
 					continue
 				end
-				
+
 				render_points()
 				render_lines(vcycles)
 				render_triangles(triangles)
@@ -443,14 +444,12 @@ function VIEWCOMPLEX(
 
     end
 
-		@show(length(batch_triangles.vertices.vector))
-
 	# show lines
   elseif !isnothing(EV)
 
 		batch_lines = GLBatch(LINES)
 		push!(batches, batch_lines)
-		batch_lines.line_width  = 3
+		batch_lines.line_width  = 2
 
 		EVtext = haskey(lar.text, :EV) ? lar.text[:EV] : Dict(I => string(I) for I in eachindex(EV))
 
@@ -460,8 +459,8 @@ function VIEWCOMPLEX(
 
 			if "EV" in show
 
-				push!(batch_lines.vertices.vector, cell_points[:,1]...);push!(batch_lines.colors.vector, color...)
-				push!(batch_lines.vertices.vector, cell_points[:,2]...);push!(batch_lines.colors.vector, color...)				
+				append!(batch_lines.vertices.vector, cell_points[:,1]);append!(batch_lines.colors.vector, color)
+				append!(batch_lines.vertices.vector, cell_points[:,2]);append!(batch_lines.colors.vector, color)				
 
 				if "V_text" in show
 					append!(batches, GLText(Vtext[ev[1]], center=cell_points[:,1], color=DARK_GRAY, fontsize=0.04))
