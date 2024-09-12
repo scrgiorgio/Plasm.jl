@@ -938,10 +938,6 @@ function UkPol(self::Hpc)
 end
 
 
-
-
-
-
 # //////////////////////////////////////////////////////////////////////////////////////////
 function GetBatchesForHpc(hpc::Hpc)
 
@@ -970,17 +966,10 @@ function GetBatchesForHpc(hpc::Hpc)
 	return batches
 end
 
-# //////////////////////////////////////////////////////////////////////////////////////////
-function View(batches::Vector{GLBatch}, properties::Properties=Properties())
-	GLView(batches, properties)
-end
 
-function View(batches::Vector{GLBatch}, title::String)
-	GLView(batches, Properties("title" => title))
-end
 
 # //////////////////////////////////////////////////////////
-function View(hpc::Hpc, properties::Properties=Properties())
+function VIEW(hpc::Hpc, properties::Properties=Properties(), title::String="")
 
 	pdim = dim(hpc)
 
@@ -1023,13 +1012,10 @@ function View(hpc::Hpc, properties::Properties=Properties())
 	end
 
 	batches = GetBatchesForHpc(hpc)
-	return View(batches, properties)
+	return GLView(batches, properties=properties, title=title)
 end
 
 
-function View(hpc::Hpc, title::String)
-	return View(hpc, Properties("title" => title))
-end
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////

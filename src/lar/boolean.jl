@@ -74,12 +74,9 @@ export is_internal_point
 function find_internal_point(lar::Lar;num_attempts=13) 
 
   println("find_internal_point")
-  @show(lar)
+  # @show(lar)
 
-  #delete!(lar.text, :EV)
-  #delete!(lar.text, :FV)
-  # batches=BATCHES(lar)
-  #GLView(batches)
+  #VIEWCOMPLEX(lar)
 
 	# TODO: reintroduce space index to avoid O(N^2) complexity
 
@@ -88,8 +85,8 @@ function find_internal_point(lar::Lar;num_attempts=13)
   # i want to move out of the complex
   move_out = LinearAlgebra.norm(b2 - b1)   
 
-  @show(b1,b2)
-  @show(move_out)
+  #@show(b1,b2)
+  #@show(move_out)
 
   for attempt in 1:num_attempts
 
@@ -99,14 +96,14 @@ function find_internal_point(lar::Lar;num_attempts=13)
     external_point = inside_bbox + move_out * random_dir()
     ray_dir    = normalized(inside_bbox-external_point)
 
-    @show("Trying", external_point, ray_dir)
+    #@show("Trying", external_point, ray_dir)
 
     ts=[]
     for F in 1:length(lar.C[:FV])
       hit,t=ray_face_intersection(external_point, ray_dir, lar, F)
       if !isnothing(hit)
         push!(ts,t)
-        @show("hit", external_point,ray_dir,t)
+        #@show("hit", external_point,ray_dir,t)
       end
     end
     
@@ -118,7 +115,7 @@ function find_internal_point(lar::Lar;num_attempts=13)
 
     # take the internal range which is bigger
     ts=sort(ts)
-    @show(ts)
+    #@show(ts)
 
     best_delta=nothing
     internal_point=nothing
@@ -128,10 +125,10 @@ function find_internal_point(lar::Lar;num_attempts=13)
         t=ts[I]+delta/2
         if isnothing(best_delta) || delta>best_delta
           internal_point=external_point+ray_dir*t
-          @show("new best", external_point, ray_dir, t,internal_point, best_delta,delta)
+          #@show("new best", external_point, ray_dir, t,internal_point, best_delta,delta)
           best_delta=delta
         else
-          @show("not the best",delta)
+          #@show("not the best",delta)
         end
       end
     end
@@ -143,7 +140,7 @@ function find_internal_point(lar::Lar;num_attempts=13)
     # how to go from internal_point to outside
     ray_dir=-ray_dir
     @assert(is_internal_point(lar, internal_point, ray_dir))
-    @show(internal_point, ray_dir)
+    #@show(internal_point, ray_dir)
     return internal_point, ray_dir 
   end
 
@@ -158,7 +155,7 @@ function example_save_points()
 
   ray_dir=random_dir()
 
-  @show(is_internal_point(atoms[1], [1.0,1.0,-2.0], ray_dir))
+  # @show(is_internal_point(atoms[1], [1.0,1.0,-2.0], ray_dir))
   aaa()
 
   points=[]
@@ -216,7 +213,7 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
   
   atoms=[[atom,find_internal_point(atom)...]  for atom in atoms]
 
-  @show(atoms)
+  # @show(atoms)
 
   # view atoms 
   if debug_mode
@@ -250,7 +247,7 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
     push!(ret,[is_internal_point(arg, ray_origin, ray_dir) for arg in args])
   end
 
-  @show(ret)
+  # @show(ret)
   return ret
 end
 export bool3d

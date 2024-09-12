@@ -55,7 +55,7 @@ function TestViewer()
 			EV_color=Point4d(1,0,0,1),
 			FV_color=Point4d(0,1,0,1)))
 	
-		View(batches)
+		GLView(batches)
 	
 	end
 
@@ -539,21 +539,11 @@ function TestProperties2()
     "znear"            => 0.1,
     "zfar"             => 100.0,
     "walk_speed"       => 10.0,
-
-    "v_text_color"      => DEFAULT_V_TEXT_COLOR,
-    "ev_text_color"     => DEFAULT_EV_TEXT_COLOR,
-    "fv_text_color"     => DEFAULT_FV_TEXT_COLOR,
-
-    "v_fontsize"        => DEFAULT_V_FONTSIZE,
-    "ev_fontsize"       => DEFAULT_EV_FONTSIZE,
-    "fv_fontsize"       => DEFAULT_FV_FONTSIZE,
   )
 
   VIEW(obj, viewer_properties)
 
-
 end
-
 
 
 # /////////////////////////////////////////////////////////////
@@ -866,7 +856,7 @@ function TestViewText()
 		batches=Vector{GLBatch}()
 		append!(batches,GetBatchesForGeometry(geometry))
 		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.faces))
-		View(batches)
+		GLView(batches)
 	end
 	
 	if true
@@ -874,7 +864,7 @@ function TestViewText()
 		batches=Vector{GLBatch}()
 		append!(batches,GetBatchesForGeometry(geometry))
 		append!(batches,GLText(geometry.points,EV=geometry.edges,FV=geometry.faces))
-		View(batches)
+		GLView(batches)
 	end
 end
 
@@ -1153,7 +1143,7 @@ function TestFenvs()
 			Translate(Cube(2)     , [1.0, 1.0, 0.0]),
 			Translate(Cube(3)     , [2.0, 1.0, 0.0]),
 		])
-		View(obj, Properties("title" => "Example" ))
+		GLView(obj, title="Example")
 
 		TestArguments()
 		TestCube()

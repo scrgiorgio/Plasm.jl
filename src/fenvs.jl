@@ -847,10 +847,7 @@ end
 
 
 
-
 # /////////////////////////////////////////////////////////////////
-VIEW = View
-
 function LINE(p1, p2; line_color=Point4d(1.0, 1.0, 1.0, 1.0), line_width=1)
 	return PROPERTIES(
 		MKPOL([p1, p2], [[1, 2]]),

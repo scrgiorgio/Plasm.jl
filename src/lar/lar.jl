@@ -321,7 +321,12 @@ export find_vcycles
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"], explode=1.5, user_color=nothing)::Vector{GLBatch}
+function BATCHES(
+	lar::Lar; 
+	show=["V", "EV", "FV"], 
+	explode::Vector{Float64}=[1.5,1.5,1.5], 
+	user_color=nothing
+	)::Vector{GLBatch}
 
   V = lar.V
   EV = haskey(lar.C, :EV) ? lar.C[:EV] : nothing
@@ -335,65 +340,31 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 
   batches = Vector{GLBatch}()
 
-  batch_points    = GLBatch(POINTS)
-  batch_lines     = GLBatch(LINES)
-  batch_triangles = GLBatch(TRIANGLES)
-
-	push!(batches, batch_points)
-	push!(batches, batch_lines)
-	push!(batches, batch_triangles)
-
-  batch_points.point_size = 4
-  batch_lines.line_width  = 2
-	batch_triangles.line_width = 0
-
 	Vtext  = haskey(lar.text, :V ) ? lar.text[:V ] : Dict(I => string(I) for I in eachindex(V))
-  
-  function render_point(v_index::Int, pos, color, text)
-
-		if !(v_index in [3, 6, 9, 12, 14, 16, 17, 18, 19, 20, 21])
-			return
-		end
-
-    if "V" in show
-      push!(batch_points.vertices.vector, pos...)
-      push!(batch_points.colors.vector, color...)
-    end
-    if "V_text" in show
-      append!(batches, GLText(text, center=pos, color=color, fontsize=0.04))
-    end
-  end
 
 	function do_explode(cell_points)
 		ret=copy(cell_points)
 		centroid = compute_centroid(ret)
-		vt = (centroid .* [explode; explode; explode]) - centroid
-		for C in 1:size(ret,2)
-			ret[:,C]=ret[:,C] .+ vt
-		end
+		vt = (centroid .* [explode[1]; explode[2]; explode[3]]) - centroid
+		for C in 1:size(ret,2) ret[:,C]=ret[:,C] .+ vt end
 		return ret, compute_centroid(ret)
 	end
 
-	
-  if !isnothing(EV)
-		EVtext = haskey(lar.text, :EV) ? lar.text[:EV] : Dict(I => string(I) for I in eachindex(EV))
-
-    for (E,ev) in enumerate(EV)
-      cell_points, centroid = do_explode(V[:, ev])
-			color = isnothing(user_color) ? RandomColor(E) :  user_color
-
-			if "EV" in show
-				render_point(ev[1], cell_points[:,1], color, Vtext[ev[1]]); push!(batch_lines.vertices.vector, cell_points[:,1]...);push!(batch_lines.colors.vector, color...)
-				render_point(ev[2], cell_points[:,2], color, Vtext[ev[2]]); push!(batch_lines.vertices.vector, cell_points[:,2]...);push!(batch_lines.colors.vector, color...)
-			end
-			if "EV_text" in show
-				append!(batches, GLText(EVtext[E], center=centroid, color=LIGHT_GRAY, fontsize=0.04))
-			end
-    end
-  end
-
-	
   if !isnothing(FV)
+
+		# I think the order is important for polygon offset
+		batch_triangles = GLBatch(TRIANGLES)
+		push!(batches, batch_triangles)
+		batch_triangles.line_width = 0 # otherwise I would see the triangulation
+		batch_triangles.enable_polygon_offset=true
+
+		batch_lines     = GLBatch(LINES)
+		push!(batches, batch_lines)
+		batch_lines.line_width  = 3
+
+		# batch_points    = GLBatch(POINTS)
+		# push!(batches, batch_points)
+		# batch_points.point_size = 4
 
 		FVtext = haskey(lar.text, :FV) ? lar.text[:FV] : Dict(I => string(I) for I in eachindex(FV))
 
@@ -415,8 +386,8 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 				cell_EV=Cells()
 				fe=lar.C[:FE][F]
 
-				@show(fe)
-				@show([EV[E] for E in fe])
+				# @show(fe)
+				# @show([EV[E] for E in fe])
 
 				for E in fe
 					a,b=EV[E]
@@ -425,12 +396,21 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 				vcycles = find_vcycles(cell_EV)
 
 				for (v_index, pos) in zip(fv,eachcol(points3d))
-					render_point(v_index, pos, color, Vtext[v_index])
+
+					#if "V" in show
+					#	push!(batch_points.vertices.vector, pos...)
+					#	push!(batch_points.colors.vector, DARK_GRAY...)
+					#end
+
+					if "V_text" in show
+						append!(batches, GLText(Vtext[v_index], center=pos, color=DARK_GRAY, fontsize=0.04))
+					end
 				end
 
+				# cell border
 				for (a,b) in vcycles
-					push!(batch_lines.vertices.vector, points3d[:,a]...);push!(batch_lines.colors.vector, color...)
-					push!(batch_lines.vertices.vector, points3d[:,b]...);push!(batch_lines.colors.vector, color...)
+					push!(batch_lines.vertices.vector, points3d[:,a]...);push!(batch_lines.colors.vector, DARK_GRAY...)
+					push!(batch_lines.vertices.vector, points3d[:,b]...);push!(batch_lines.colors.vector, DARK_GRAY...)
 				end
 
         # faces in lar can be anything so I need to triangulate
@@ -454,7 +434,45 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
       end
 
     end
-  end
+
+  elseif !isnothing(EV)
+
+		# batch_points    = GLBatch(POINTS)
+		# push!(batches, batch_points)
+		# batch_points.point_size = 4
+
+		batch_lines     = GLBatch(LINES)
+		push!(batches, batch_lines)
+		batch_lines.line_width  = 3
+
+		EVtext = haskey(lar.text, :EV) ? lar.text[:EV] : Dict(I => string(I) for I in eachindex(EV))
+
+    for (E,ev) in enumerate(EV)
+      cell_points, centroid = do_explode(V[:, ev])
+			color = isnothing(user_color) ? RandomColor(E) :  user_color
+
+			if "EV" in show
+
+				push!(batch_lines.vertices.vector, cell_points[:,1]...);push!(batch_lines.colors.vector, color...)
+				push!(batch_lines.vertices.vector, cell_points[:,2]...);push!(batch_lines.colors.vector, color...)				
+
+				# if "V" in show
+				#	push!(batch_points.vertices.vector, cell_points[:,1]...);push!(batch_points.colors.vector, DARK_GRAY...)
+				#	push!(batch_points.vertices.vector, cell_points[:,2]...);push!(batch_points.colors.vector, DARK_GRAY...)
+				#end
+
+				if "V_text" in show
+					append!(batches, GLText(Vtext[ev[1]], center=cell_points[:,1], color=DARK_GRAY, fontsize=0.04))
+					append!(batches, GLText(Vtext[ev[2]], center=cell_points[:,2], color=DARK_GRAY, fontsize=0.04))
+				end
+
+			end
+
+			if "EV_text" in show
+				append!(batches, GLText(EVtext[E], center=centroid, color=LIGHT_GRAY, fontsize=0.04))
+			end
+    end
+	end
 
   return batches
 
@@ -462,7 +480,7 @@ end
 export BATCHES
 
 # //////////////////////////////////////////////////////////////////////////////
-function BATCHES(lars::Vector{Lar}; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"], explode=1.5)::Vector{GLBatch}
+function BATCHES(lars::Vector{Lar}; show=["V", "EV", "FV"], explode::Vector{Float64}=[1.5,1.5,1.5])::Vector{GLBatch}
 	batches=Vector{GLBatch}()
 	for (I,lar) in enumerate(lars)
 		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor(I)))
@@ -470,6 +488,22 @@ function BATCHES(lars::Vector{Lar}; show=["V", "EV", "FV", "V_text", "FV_text", 
 	return batches
 end
 
+# //////////////////////////////////////////////////////////////////////////////
+function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode::Vector{Float64}=[1.5,1.5,1.5],title::String="")
+	properties=Properties(
+			"background_color" => Point4d([0.9,0.9,0.9,1.0]),
+			"use_ortho" => false
+		)
+	batches=BATCHES(lar, show=show, explode=explode)
+	return GLView(batches, properties=properties,title=title)
+end
+export VIEWCOMPLEX
+	
+# //////////////////////////////////////////////////////////////////////////////
+function VIEWCOMPLEX(lars::Vector{Lar}; show=["V", "EV", "FV"], explode::Vector{Float64}=[1.5,1.5,1.5],title::String="")
+	GLView(BATCHES(lars, show=show, explode=explode),title=title)
+end
+	
 
 # //////////////////////////////////////////////////////////////////////////////
 function RandomLine(size_min::Float64,size_max::Float64)

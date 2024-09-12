@@ -545,6 +545,8 @@ mutable struct GLBatch
 	line_color::Point4d
 	face_color::Point4d
 
+	enable_polygon_offset::Bool
+
 	# constructor
 	function GLBatch(prim::UInt32=GL_POINTS)
 		ret = new(
@@ -558,7 +560,8 @@ mutable struct GLBatch
 			1,
 			Point4d(0.0, 0.0, 0.0, 1.0),
 			Point4d(1.0, 1.0, 1.0, 1.0),
-			Point4d(0.5, 0.5, 0.5, 1.0)
+			Point4d(0.5, 0.5, 0.5, 1.0),
+			false
 		)
 		finalizer(releaseGpuResources, ret)
 		return ret
@@ -777,122 +780,7 @@ function disableProgram(shader)
 end
 
 # /////////////////////////////////////////////////////////////////////
-vert_source = """
- 
- #define LIGHTING_ENABLED        arg(LIGHTING_ENABLED)
- #define COLOR_ATTRIBUTE_ENABLED arg(COLOR_ATTRIBUTE_ENABLED)
- 
- uniform mat4 u_modelview_matrix;
- uniform mat4 u_projection_matrix;
- uniform vec4 u_color;
- 
- attribute  vec4 a_position;
- 
- #if LIGHTING_ENABLED
- attribute  vec3 a_normal;
- #endif
- 
- #if COLOR_ATTRIBUTE_ENABLED
- attribute vec4 a_color;
- #endif
- 
- #if LIGHTING_ENABLED
- uniform mat3 u_normal_matrix;
- uniform vec3 u_light_position;
- varying vec3 v_normal;
- varying vec3 v_light_dir;
- varying vec3 v_eye_vec;
- #endif
- 
- #if COLOR_ATTRIBUTE_ENABLED
- varying vec4 v_color;
- #endif
- 
- void main() 
- {
- 	vec4 eye_pos= u_modelview_matrix * a_position;
- 	
- #if LIGHTING_ENABLED	
- 	v_normal = u_normal_matrix * a_normal;
- 	vec3 vVertex = vec3(u_modelview_matrix * a_position);
- 	v_light_dir  = normalize(u_light_position - vVertex);
- 	v_eye_vec    = normalize(-vVertex);
- #endif	
- 
- #if COLOR_ATTRIBUTE_ENABLED
- 	v_color=a_color;
- #endif
- 	
- 	gl_Position = u_projection_matrix * eye_pos;
- }
- """
-
-
-# /////////////////////////////////////////////////////////////////////
-frag_source = """
- 
- #define LIGHTING_ENABLED        arg(LIGHTING_ENABLED)
- #define COLOR_ATTRIBUTE_ENABLED arg(COLOR_ATTRIBUTE_ENABLED)
- 
- uniform vec4 u_color;
- 
- #if LIGHTING_ENABLED
- varying vec3 v_normal;
- varying vec3 v_light_dir;
- varying vec3 v_eye_vec;
- #endif
- 
- #if COLOR_ATTRIBUTE_ENABLED
- varying vec4 v_color;
- #endif
- 
- void main() 
- {
- 	vec4 frag_color=u_color; 
- 	
- 	#if LIGHTING_ENABLED
- 	vec3 N = normalize(v_normal   );
- 	vec3 L = normalize(v_light_dir);
- 	vec3 E = normalize(v_eye_vec  );
- 
- 	vec4  u_material_ambient  = vec4(0.2,0.2,0.2,1.0);
- 	vec4  u_material_diffuse  = vec4(0.8,0.8,0.8,1.0) * u_color;
- 	vec4  u_material_specular = vec4(0.1,0.1,0.1,1.0) * u_color;
- 	float u_material_shininess=100.0;	
- 	
- 	if(gl_FrontFacing)
- 	{
- 		frag_color = u_material_ambient;
- 		float NdotL = abs(dot(N,L));
- 		if (NdotL>0.0)
- 			{
- 			vec3 R = reflect(-L, N);
- 			float NdotHV = abs(dot(R, E));
- 			frag_color += u_material_diffuse * NdotL;
- 			frag_color += u_material_specular * pow(NdotHV,u_material_shininess);
- 		}
- 	}
- 	else
- 	{
- 		frag_color = u_material_ambient;
- 		float NdotL = abs(dot(-N,L));
- 		if (NdotL>0.0);
- 		{
- 			vec3 R = reflect(-L, -N);
- 			float NdotHV=abs(dot(R, E));
- 			frag_color += u_material_diffuse * NdotL;
- 			frag_color += u_material_specular * pow(NdotHV,u_material_shininess);
- 		}
- 	}
- #endif
- 
- #if COLOR_ATTRIBUTE_ENABLED
- 	frag_color =v_color;
- #endif
- 
- 	gl_FragColor = frag_color;
- }
- """
+include("./viewer.shader.jl")
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -1086,7 +974,11 @@ end
 Properties = Dict{String,Any}
 
 # ///////////////////////////////////////////////////////////////////////
-function GLView(batches::Vector{GLBatch}, properties::Properties=Properties())
+function GLView(batches::Vector{GLBatch}; properties::Properties=Properties(), title::String="")
+
+	if title!=""
+		properties["title"]=title
+	end
 
 	batches=[batch for batch in batches if length(batch.vertices.vector)>0]
 
@@ -1255,8 +1147,17 @@ function glRender(viewer::Viewer)
 
 			else
 				if batch.face_color[4] > 0.0
+					
 					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-					glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+
+					if !isnothing(batch.enable_polygon_offset)
+						glEnable(GL_POLYGON_OFFSET_FILL)
+						glPolygonOffset(1.0, 1.0)
+						glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+					else
+						glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+					end
+
 				end
 			end
 
@@ -1292,7 +1193,7 @@ function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELV
 
 	u_color = glGetUniformLocation(shader.program_id, "u_color")
 	# println(u_color," ", color, " lighting_enabled ",lighting_enabled, " color_attribute_enabled ",color_attribute_enabled)
-	if u_color >= 0 && color != nothing
+	if u_color >= 0 && !isnothing(color)
 		glUniform4f(u_color, color[1], color[2], color[3], color[4])
 	end
 

@@ -5,22 +5,15 @@ import Random
 # ///////////////////////////////////////////////////////
 function TestToLAR()
 
-  # SPHERE: ::Hpc -> ::Lar
-  obj = LAR(SPHERE(1.)([3,3]));
-  V, FV, EV = obj.V, obj.C[:FV], obj.C[:EV];
+  Random.seed!(0)
 
-  # SPHERE: ::Lar -> ::Hpc
-  obj2 = MKPOLS(V,EV);
-  VIEW(obj2)
-  obj3 = MKPOLS(V,FV);
-  VIEW(obj3)
+  lar = LAR(SPHERE(1.)([3,3]));
+  VIEW(MKPOLS(lar.V,lar.C[:EV]))
+  VIEW(MKPOLS(lar.V,lar.C[:FV]))
 
-  # SPHERE: ::Hpc -> ::Lar
-  obj4 = LAR(obj3);
-  V, FV, EV = obj4.V, obj4.C[:FV], obj4.C[:EV]
 
 	# test2D
-  if true
+  begin
     points=[
       [0.5,0.5],
       [0.0,0.0],[1.0,0.0],[1.0,1.0], [0.5,2.0], [0.0,1.0],
@@ -36,7 +29,7 @@ function TestToLAR()
   end
 
 	# test3D
-  if true
+  begin
     points=[
       [0.5,0.5,0.5],
       [0.0,0.0,0.0],[1.0,0.0,0.0],[1.0,1.0,0.0], [0.5,2.0,0.0], [0.0,1.0,0.0],
@@ -52,7 +45,7 @@ function TestToLAR()
   end
 
   # test two 3d cubes
-  if true
+  begin
     hpc=STRUCT([
       CUBOID([1,1,1]),
       T([1])([3]),
@@ -107,8 +100,7 @@ function TestToLAR()
       MKPOLS(lar.V, lar.C[:EV])
     )
 
-    VIEW(
-      PROPERTIES(
+    VIEW(PROPERTIES(
         STRUCT(hpc1, T(2)(2.5),hpc2), 
         Properties("line_color" => WHITE,"line_width"=>2)
       ))
@@ -119,50 +111,73 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestRandomLines()
+  Random.seed!(0)
   hpc = STRUCT([RandomLine(2.0,3.0) for I in 1:6])
   lar = LAR(hpc)
   V,FVs,EVs = ARRANGE2D(lar.V,lar.C[:EV])
-  GLView(BATCHES([Lar(V, Dict( :EV => EV)) for EV in EVs],explode=1.2))
-  GLView(BATCHES([Lar(V, Dict( :FV => FV)) for FV in FVs],explode=1.2))
+  VIEWCOMPLEX([Lar(V, Dict( :EV => EV)) for EV in EVs],explode=[1.2,1.2,1.2])
+  VIEWCOMPLEX([Lar(V, Dict( :FV => FV)) for FV in FVs],explode=[1.2,1.2,1.2])
 end
 
 
 # ////////////////////////////////////////////////////////
 function TestRandomBubbles()
+  Random.seed!(0)
   hpc = STRUCT([RandomBubble() for I in 1:50])
   lar = LAR(hpc)
   V, EV  = lar.V, lar.C[:EV]
   V,FVs,EVs = ARRANGE2D(V,EV)
-  GLView(BATCHES([Lar(V, Dict( :EV => EV)) for EV in EVs],explode=1.2))
-  GLView(BATCHES([Lar(V, Dict( :FV => FV)) for FV in FVs],explode=1.2))
+  VIEWCOMPLEX([Lar(V, Dict( :EV => EV)) for EV in EVs],explode=[1.2,1.2,1.2])
+  VIEWCOMPLEX([Lar(V, Dict( :FV => FV)) for FV in FVs],explode=[1.2,1.2,1.2])
 end
 
+# //////////////////////////////////////////////////////////////////////////////
+function TestTwoCubes()
+  Random.seed!(0)
+  cube = CUBOID([1,1,1])
+  hpc = STRUCT(
+    cube, 
+    T(1,2,3)(.5,.5,0.75), 
+    R(2,3)(pi/4), 
+    R(1,3)(pi/4),
+    cube)
+  lar = LAR(hpc)
+  
+  arrangement = ARRANGE3D(lar)
+  VIEWCOMPLEX(arrangement, explode=[1.2,1.2,2.0])
+end
 
 # ///////////////////////////////////////////////////////////
-function TestRandomCubes()
+function TestSixCubes()
+  Random.seed!(0)
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
   lar = LAR(hpc)
   arrangement = ARRANGE3D(lar)
-  GLView(BATCHES(arrangement,explode=1.4))
+  VIEWCOMPLEX(arrangement,explode=[1.4,1.4,1.4])
 end
 
 # ///////////////////////////////////////////////////////////
 function TestCubeAndCylinders()
-  cyl = T(3)(-2)(CYLINDER([0.5,4])(4))
+  Random.seed!(0)
+  cyl = T(3)(-2)(CYLINDER([0.5,4])(8))
   hpc = STRUCT( 
-    T(1,2,3)(-1,-1,-1)(CUBE(2)), 
+    STRUCT(
+      T(1,2,3)(-1,-1,-1),
+      CUBE(2)), 
     cyl, R(2,3)(π/2), 
     cyl, R(1,3)(π/2), 
     cyl 
   )
   lar = LAR(hpc)
   arrangement = ARRANGE3D(lar)
-  GLView(BATCHES(arrangement,explode=1.5))
+  VIEWCOMPLEX(arrangement,explode=[1.2,1.2,1.8])
 end
 
 
 # /////////////////////////////////////////////////////////
 function TestBool3D()
+
+  Random.seed!(0)
 
   assembly = STRUCT(
     CUBE(1), 
@@ -173,7 +188,7 @@ function TestBool3D()
   lar=LAR(assembly)
 
   arrangement = ARRANGE3D(lar)
-  GLView(BATCHES(arrangement,explode=1.5))
+  VIEWCOMPLEX(arrangement,explode=[1.4,1.4,1.4])
 
   bool3d(assembly, arrangement, CF)
 
@@ -196,10 +211,10 @@ function TestBool3D()
 	inters = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
 	diff   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
 	
-	arrangement = GLView(BATCHES(V_original, copEV, copFE, copCF) 
-	arrangement = GLView(BATCHES((subassembly3d(V_original, copEV, copFE, copCF, diff  )...)
-	arrangement = GLView(BATCHES((subassembly3d(V_original, copEV, copFE, copCF, inters) ...)
-	arrangement = ViGLViewew(BATCHES((subassembly3d(V_original, copEV, copFE, copCF, union )...)
+	arrangement = VIEWCOMPLEX(V_original, copEV, copFE, copCF) 
+	arrangement = VIEWCOMPLEX((SELECT(V_original, copEV, copFE, copCF, diff  )...)
+	arrangement = VIEWCOMPLEX(SELECT(V_original, copEV, copFE, copCF, inters) ...)
+	arrangement = VIEWCOMPLEX((SELECT(V_original, copEV, copFE, copCF, union )...)
 
   """
 	
@@ -207,14 +222,15 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function TestLar()
-  Random.seed!(0)
   
   # TestToLAR()
   
   # TestRandomLines()
   # TestRandomBubbles()
   
-  # TestRandomCubes()
+  # TestTwoCubes()
+
+  # TestSixCubes()
   TestCubeAndCylinders()
 
   # TestBool3D()
