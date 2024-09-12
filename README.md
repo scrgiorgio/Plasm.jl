@@ -8,13 +8,25 @@
 ```bash
 julia --project=. test/hpc.jl
 
-julia --project=. test/lar/bbox.jl
-julia --project=. test/lar/points.jl
-julia --project=. test/lar/plane.jl
-julia --project=. test/lar/lar.jl
-julia --project=. test/lar/sparse.jl
+# lar part
+julia --project=. test/bbox.jl
+julia --project=. test/points.jl
+julia --project=. test/plane.jl
 
+# dense and sparse
 julia --project=. test/lar.jl
+julia --project=. test/sparse.jl
+
+# 2d
+julia --project=. test/randomlines.jl
+julia --project=. test/randombubbles.jl
+
+# 3d
+julia --project=. test/twocubes.jl
+julia --project=. test/randomcubes.jl
+julia --project=. test/cylinders.jl
+julia --project=. test/boolean.jl
+
 
 
 ```

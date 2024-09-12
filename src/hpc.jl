@@ -969,7 +969,7 @@ end
 
 
 # //////////////////////////////////////////////////////////
-function VIEW(hpc::Hpc, properties::Properties=Properties(), title::String="")
+function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="")
 
 	pdim = dim(hpc)
 
