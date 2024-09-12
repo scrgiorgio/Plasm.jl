@@ -163,7 +163,6 @@ export SELECT
 # //////////////////////////////////////////////////////////////////////
 function TRIANGULATE(V::Points, EV::Cells)::Cells
 
-	# scrgiorgio: I think EV should be the boundary !?
 	triin = Triangulate.TriangulateIO()
 	triin.pointlist = V 
 	triin.segmentlist = hcat(EV...)
@@ -272,38 +271,54 @@ export LAR_SIMPLEX
 
 
 
-
-
 # //////////////////////////////////////////////////////////////////////////////
-""" return ordered vertices  and edges of the 1-cycle f """
-function find_vcycle(EV::Cells)
-	ordered = []
-	(A, B), todo = EV[1], EV[2:end]
-	push!(ordered, A)
-	while length(todo) > 0
-		found = false
-		for (I, (a, b)) in enumerate(todo)
-			if a == B || b == B
-				push!(ordered, B)
-				B = (b == B) ? a : b
-				found = true
+""" can find multiple cycles, a cycle interrupts when the previous edge does not have a common vertex 
+
+e.g two cicles
+
+ret=[[a,b],[b,c],[c,d], [h,k],[k,h],...]
+"""
+function find_vcycles(EV::Cells)::Cells
+
+	todo=copy(EV)
+	
+	ret=Cells()
+	push!(ret,todo[1])
+	todo=todo[2:end]
+
+	while length(todo)>0
+
+		# try to attach to the last cycle
+		found=false
+		for (I,(a,b)) in enumerate(todo)
+			if a == ret[end][2]
+				push!(ret, [a,b])
 				deleteat!(todo, I)
+				found=true
+				break
+			elseif b == ret[end][2]
+				push!(ret, [b,a])
+				deleteat!(todo, I)
+				found=true
 				break
 			end
 		end
-		@assert found
-	end
-	push!(ordered, ordered[1])
-	edges = [[a, b] for (a, b) in zip(ordered[1:end-1], ordered[2:end])]
-	return Array{Int}(ordered[1:end-1]), edges
-end
-export find_vcycle
 
-# //////////////////////////////////////////////////////////////////////////////
-""" return ordered vertices  and edges of the 1-cycle f """
-function find_vcycle(EV::Cells, FE::Cells, F::Int)
-	return find_vcycle([EV[e] for e in FE[F]])
+		# create a new cycle
+		if !found
+			push!(ret,todo[1])
+			todo=todo[2:end]
+		end
+
+	end
+
+	@assert(length(ret)==length(EV))
+
+	return ret
+
 end
+export find_vcycles
+
 
 # //////////////////////////////////////////////////////////////////////////////
 function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"], explode=1.5, user_color=nothing)::Vector{GLBatch}
@@ -334,7 +349,12 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 
 	Vtext  = haskey(lar.text, :V ) ? lar.text[:V ] : Dict(I => string(I) for I in eachindex(V))
   
-  function render_point(pos, color, text)
+  function render_point(v_index::Int, pos, color, text)
+
+		if !(v_index in [3, 6, 9, 12, 14, 16, 17, 18, 19, 20, 21])
+			return
+		end
+
     if "V" in show
       push!(batch_points.vertices.vector, pos...)
       push!(batch_points.colors.vector, color...)
@@ -363,8 +383,8 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 			color = isnothing(user_color) ? RandomColor(E) :  user_color
 
 			if "EV" in show
-				render_point(cell_points[:,1], color, Vtext[ev[1]]); push!(batch_lines.vertices.vector, cell_points[:,1]...);push!(batch_lines.colors.vector, color...)
-				render_point(cell_points[:,2], color, Vtext[ev[2]]); push!(batch_lines.vertices.vector, cell_points[:,2]...);push!(batch_lines.colors.vector, color...)
+				render_point(ev[1], cell_points[:,1], color, Vtext[ev[1]]); push!(batch_lines.vertices.vector, cell_points[:,1]...);push!(batch_lines.colors.vector, color...)
+				render_point(ev[2], cell_points[:,2], color, Vtext[ev[2]]); push!(batch_lines.vertices.vector, cell_points[:,2]...);push!(batch_lines.colors.vector, color...)
 			end
 			if "EV_text" in show
 				append!(batches, GLText(EVtext[E], center=centroid, color=LIGHT_GRAY, fontsize=0.04))
@@ -378,14 +398,14 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 		FVtext = haskey(lar.text, :FV) ? lar.text[:FV] : Dict(I => string(I) for I in eachindex(FV))
 
     for (F, fv) in enumerate(FV)
-      cell_points, centroid = do_explode(V[:, fv])
+      points3d, centroid = do_explode(V[:, fv])
       color = isnothing(user_color) ? RandomColor(F) : user_color
 
 			# how to compute FE if it's not pre-computed? (see Lar note below the class)
 			# technically is wrong to compute FE combinatorially
       if "FV" in show && haskey(lar.C,:FE)
 
-				# scrgiorgio: I do not think find_vcycle or TRIANGULATE support generic faces with holes...
+				# scrgiorgio: not sure the triangulate supports holes....to verify
 				# note that probably after arrangement I am not getting any hole so it should work...
 				vmap=Dict(zip(fv,1:length(fv)))
 
@@ -394,28 +414,32 @@ function BATCHES(lar::Lar; show=["V", "EV", "FV", "V_text", "FV_text", "EV_text"
 
 				cell_EV=Cells()
 				fe=lar.C[:FE][F]
+
+				@show(fe)
+				@show([EV[E] for E in fe])
+
 				for E in fe
 					a,b=EV[E]
 					push!(cell_EV,[vmap[a],vmap[b]])
 				end
-				__, cell_EV = find_vcycle(cell_EV)
+				vcycles = find_vcycles(cell_EV)
 
-				for (v_index, pos) in zip(fv,eachcol(cell_points))
-					render_point(pos, color, Vtext[v_index])
+				for (v_index, pos) in zip(fv,eachcol(points3d))
+					render_point(v_index, pos, color, Vtext[v_index])
 				end
 
-				for (a,b) in cell_EV
-					push!(batch_lines.vertices.vector, cell_points[:,a]...);push!(batch_lines.colors.vector, color...)
-					push!(batch_lines.vertices.vector, cell_points[:,b]...);push!(batch_lines.colors.vector, color...)
+				for (a,b) in vcycles
+					push!(batch_lines.vertices.vector, points3d[:,a]...);push!(batch_lines.colors.vector, color...)
+					push!(batch_lines.vertices.vector, points3d[:,b]...);push!(batch_lines.colors.vector, color...)
 				end
 
         # faces in lar can be anything so I need to triangulate
 				begin
-					cell_points_2d = project_points3d(cell_points; double_check=true)(cell_points)
-					for (u, v, w) in TRIANGULATE(cell_points_2d, cell_EV)
-						p0 = cell_points[:,u]
-						p1 = cell_points[:,v]
-						p2 = cell_points[:,w]
+					points2d = project_points3d(points3d; double_check=true)(points3d)
+					for (u, v, w) in TRIANGULATE(points2d, vcycles)
+						p0 = points3d[:,u]
+						p1 = points3d[:,v]
+						p2 = points3d[:,w]
 						n = ComputeTriangleNormal(p0, p1, p2)
 						push!(batch_triangles.vertices.vector, p0...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
 						push!(batch_triangles.vertices.vector, p1...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)

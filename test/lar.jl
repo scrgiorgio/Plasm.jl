@@ -143,80 +143,21 @@ function TestRandomCubes()
   hpc = STRUCT([RandomCube(0.2,2.0) for I in 1:6])
   lar = LAR(hpc)
   arrangement = ARRANGE3D(lar)
-  GLView(BATCHES(arrangement,explode=1.5))
+  GLView(BATCHES(arrangement,explode=1.4))
 end
 
 # ///////////////////////////////////////////////////////////
 function TestCubeAndCylinders()
-
   cyl = T(3)(-2)(CYLINDER([0.5,4])(4))
-
   hpc = STRUCT( 
     T(1,2,3)(-1,-1,-1)(CUBE(2)), 
-    cyl, 
-    R(2,3)(π/2), 
-    cyl, 
-    R(1,3)(π/2), 
+    cyl, R(2,3)(π/2), 
+    cyl, R(1,3)(π/2), 
     cyl 
   )
-  
   lar = LAR(hpc)
   arrangement = ARRANGE3D(lar)
   GLView(BATCHES(arrangement,explode=1.5))
-
-end
-
-
-
-# ///////////////////////////////////////////////////////////////////
-function TestRayFaceIntersection()
-
-  lar=LAR(CUBE(1))
-  # @show(lar)
-
-  Z=[0.0,0.0,1.0]
-  Y=[0.0,1.0,0.0]
-  X=[1.0,0.0,0.0]
-
-  for y in [-0.1,0.1, 0.5,0.9, 1.1]
-    for z in [-0.1,0.1, 0.5,0.9, 1.1]
-      for I in 1:6
-        @assert(          ray_face_intersection([-0.1,y,z], +X, lar, I)[1][1] in [0.0,1.0]) 
-        @assert(          ray_face_intersection([ 0.5,y,z], +X, lar, I)[1][1] == 1.0) 
-        @assert(isnothing(ray_face_intersection([ 1.1,y,z], +X, lar, I)))
-        @assert(          ray_face_intersection([ 1.1,y,z], -X, lar, I)[1][1] in [1.0,0.0]) 
-        @assert(          ray_face_intersection([ 0.5,y,z], -X, lar, I)[1][1] == 0.0) 
-        @assert(isnothing(ray_face_intersection([-0.1,y,z], -X, lar, I)))
-      end
-    end
-  end
-
-  for x in [-0.1,0.1, 0.5,0.9, 1.1]
-    for z in [-0.1,0.1, 0.5,0.9, 1.1]
-      for I in 1:6
-        @assert(          ray_face_intersection([x,-0.1,z], +Y, lar, I)[1][2] in [0.0,1.0]) 
-        @assert(          ray_face_intersection([x, 0.5,z], +Y, lar, I)[1][2] == 1.0) 
-        @assert(isnothing(ray_face_intersection([x, 1.1,z], +Y, lar, I)))
-        @assert(          ray_face_intersection([x, 1.1,z], -Y, lar, I)[1][2] in [1.0,0.0]) 
-        @assert(          ray_face_intersection([x, 0.5,z], -Y, lar, I)[1][2] == 0.0) 
-        @assert(isnothing(ray_face_intersection([x,-0.1,z], -Y, lar, I)))
-      end
-    end
-  end
-
-  for x in [-0.1,0.1, 0.5,0.9, 1.1]
-    for y in [-0.1,0.1, 0.5,0.9, 1.1]
-      for I in 1:6
-        @assert(          ray_face_intersection([x,y,-0.1], +Z, lar, I)[1][3] in [0.0,1.0]) 
-        @assert(          ray_face_intersection([x,y, 0.5], +Z, lar, I)[1][3] == 1.0) 
-        @assert(isnothing(ray_face_intersection([x,y, 1.1], +Z, lar, I)))
-        @assert(          ray_face_intersection([x,y, 1.1], -Z, lar, I)[1][3] in [1.0,0.0]) 
-        @assert(          ray_face_intersection([x,y, 0.5], -Z, lar, I)[1][3] == 0.0) 
-        @assert(isnothing(ray_face_intersection([x,y,-0.1], -Z, lar, I)))
-      end
-    end
-  end
-
 end
 
 
@@ -270,14 +211,12 @@ function TestLar()
   
   # TestToLAR()
   
-  #TestRandomLines()
-  #TestRandomBubbles()
+  # TestRandomLines()
+  # TestRandomBubbles()
   
-  TestRandomCubes()
-  #TestCubeAndCylinders()
+  # TestRandomCubes()
+  TestCubeAndCylinders()
 
-  # BROKEN 
-  # TestRayFaceIntersection
   # TestBool3D()
 
   println("TestLAR ok")

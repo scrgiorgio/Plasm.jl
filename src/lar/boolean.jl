@@ -50,9 +50,6 @@ function ray_face_intersection(ray_origin::Vector{Float64}, ray_dir::Vector{Floa
   end
   
   # println("ray ", ray_origin, " ",ray_dir, " intersecting  with face ",F, " ", BYROW(face_points3d),"---",hit2d, BYROW(face_points2d), face_edges)
-  #@show(hit2d)
-  #@show(BYROW(face_points2d))
-  #@show(face_edges)
   return hit3d, t
 
 end

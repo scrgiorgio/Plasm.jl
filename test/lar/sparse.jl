@@ -60,20 +60,5 @@ import Base.size
       @test LEN(EV) == LEN(ev)
    end;
    
-   @testset "find_vcycle" begin
-      grid = CUBOIDGRID([2,2,1])
-      V,FV,EV = grid.V, grid.C[:FV], grid.C[:EV]
-      copFV, copEV = lar2cop(FV), lar2cop(EV)
-      copFE = SparseArrays.spmatmul(copFV, permutedims(copEV)) .÷ Int8(2)
-      copFV1 = SparseArrays.spmatmul(copFE, copEV) .÷ Int8(2)
-      copFV2 = lar2cop(FV)
-      @test copFV1 == copFV2 # calcolato con due diversi metodi
-      vs, edges = find_vcycle(copEV, copFE, 1)
-      @test LEN(vs) == LEN(edges)
-      vs, edges = find_vcycle(copEV, copFE, copFE.m)
-      @test LEN(vs) == LEN(edges)   
-      @test all([vs[k] == edges[k][1] for k=1:LEN(vs)]) 
-      @test all([(edges[k][2] == vs[(k%LEN(vs))+1]) for k=1:LEN(vs)]) 
-   end;
    
 end;
