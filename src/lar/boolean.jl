@@ -218,7 +218,7 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
   # view atoms 
   if debug_mode
     for (atom,ray_origin,ray_dir) in atoms
-      batches=BATCHES(atom)
+      batches=VIEW(atom, render=False)
 
       begin
         batch = GLBatch(POINTS)

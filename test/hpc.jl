@@ -848,7 +848,7 @@ function TestArguments()
 end
 
 function TestViewText()
-  if true
+  begin
     geometry = ToGeometry(CUBOID([1.0, 1.0]))
     batches = Vector{GLBatch}()
     append!(batches, GetBatchesForGeometry(geometry))
@@ -856,7 +856,7 @@ function TestViewText()
     GLView(batches)
   end
 
-  if true
+  begin
     geometry = ToGeometry(CUBOID([1.0, 1.0, 1.0]))
     batches = Vector{GLBatch}()
     append!(batches, GetBatchesForGeometry(geometry))
@@ -870,8 +870,7 @@ end
 # ////////////////////////////////////////////////////////
 function TestFenvs()
 
-  """
-  if true
+  begin
 
     @assert C(v -> sum(v))(1)(2) == 3
     @assert CAT([[1, 2], [3, 4]]) == [1, 2, 3, 4]
@@ -1078,7 +1077,7 @@ function TestFenvs()
 
 
   # some new tests
-  if true
+  begin
 
 
     # OK
@@ -1128,10 +1127,9 @@ function TestFenvs()
     # VIEW(hpc3) 
 
   end
-"""
 
   # ok
-  if true
+  begin
 
     obj = Struct([
       Translate(Simplex(1), [0.0, 0.0, 0.0]),
@@ -1183,7 +1181,7 @@ function TestFenvs()
         LINE([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], line_color=GREEN, line_width=3),
         LINE([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], line_color=BLUE, line_width=3),
       ),
-      Properties(
+      properties=Properties(
         "show_axis" => false,
         "title" => "Frame"
       )
@@ -1229,7 +1227,7 @@ function TestFenvs()
     CUBOID([1, 1, 1]),
 
     # view properties
-    Properties(
+    properties=Properties(
       "title" => "view with properties",
 
       # 3d pipeline position

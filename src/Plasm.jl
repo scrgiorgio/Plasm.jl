@@ -24,7 +24,6 @@ include("./lar/points.jl")
 include("./lar/plane.jl")
 include("./lar/bbox.jl")
 include("./lar/lar.jl")
-include("./lar/sparse.jl")
 include("./lar/classify.jl")
 
 # from Alberto: do not touch. Too complicate to do any reorganization right now

@@ -15,7 +15,6 @@ julia --project=. test/plane.jl
 
 # dense and sparse
 julia --project=. test/lar.jl
-julia --project=. test/sparse.jl
 
 # 2d
 julia --project=. test/randomlines.jl

@@ -319,20 +319,30 @@ function find_vcycles(EV::Cells)::Cells
 end
 export find_vcycles
 
+# //////////////////////////////////////////////////////////////////////////////
+function VIEWCOMPLEX(batches::Vector{GLBatch})
+	GLView(batches, properties=Properties(
+		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
+		"use_ortho" => true,
+		"lighting_enabled" => true 
+	))
+end
+export VIEWCOMPLEX
 
 # //////////////////////////////////////////////////////////////////////////////
-function BATCHES(
-	lar::Lar; 
-	show=["V", "EV", "FV"], 
-	explode::Vector{Float64}=[1.5,1.5,1.5], 
-	user_color=nothing
+function VIEWCOMPLEX(
+		lar::Lar; 
+		show=["V", "EV", "FV"], 
+		explode::Vector{Float64}=[1.5,1.5,1.5], 
+		user_color=nothing,
+		render=true
 	)::Vector{GLBatch}
 
   V = lar.V
   EV = haskey(lar.C, :EV) ? lar.C[:EV] : nothing
   FV = haskey(lar.C, :FV) ? lar.C[:FV] : nothing
 
-  # want V to be 3 dimensional
+  # want V to be 3 dimensional 
   if size(V, 1) == 2
     zeros = Matrix{Int64}([0.0 for I in 1:size(V, 2)][:,:]')
 		V=vcat(V,zeros)
@@ -358,74 +368,72 @@ function BATCHES(
 		batch_triangles.line_width = 0 # otherwise I would see the triangulation
 		batch_triangles.enable_polygon_offset=true
 
-		batch_lines     = GLBatch(LINES)
+		batch_lines = GLBatch(LINES)
 		push!(batches, batch_lines)
-		batch_lines.line_width  = 3
-
-		# batch_points    = GLBatch(POINTS)
-		# push!(batches, batch_points)
-		# batch_points.point_size = 4
+		batch_lines.line_width  = 2
 
 		FVtext = haskey(lar.text, :FV) ? lar.text[:FV] : Dict(I => string(I) for I in eachindex(FV))
 
+		# for each face
     for (F, fv) in enumerate(FV)
-      points3d, centroid = do_explode(V[:, fv])
+      cell_points, centroid = do_explode(V[:, fv])
       color = isnothing(user_color) ? RandomColor(F) : user_color
 
-			# how to compute FE if it's not pre-computed? (see Lar note below the class)
-			# technically is wrong to compute FE combinatorially
-      if "FV" in show && haskey(lar.C,:FE)
+      if "FV" in show 
 
-				# scrgiorgio: not sure the triangulate supports holes....to verify
-				# note that probably after arrangement I am not getting any hole so it should work...
-				vmap=Dict(zip(fv,1:length(fv)))
-
-				# WRONG
-				# cell_EV = convert(Cells, [[vmap[a],vmap[b]] for (a, b) in EV if a in fv && b in fv])
-
-				cell_EV=Cells()
-				fe=lar.C[:FE][F]
-
-				# @show(fe)
-				# @show([EV[E] for E in fe])
-
-				for E in fe
-					a,b=EV[E]
-					push!(cell_EV,[vmap[a],vmap[b]])
+				function render_points()
+					for (v_index, pos) in zip(fv,eachcol(cell_points))
+						if "V_text" in show
+							append!(batches, GLText(Vtext[v_index], center=pos, color=DARK_GRAY, fontsize=0.04))
+						end
+					end		
 				end
-				vcycles = find_vcycles(cell_EV)
 
-				for (v_index, pos) in zip(fv,eachcol(points3d))
-
-					#if "V" in show
-					#	push!(batch_points.vertices.vector, pos...)
-					#	push!(batch_points.colors.vector, DARK_GRAY...)
-					#end
-
-					if "V_text" in show
-						append!(batches, GLText(Vtext[v_index], center=pos, color=DARK_GRAY, fontsize=0.04))
+				function render_lines(vcycles)
+					for (a,b) in vcycles
+						push!(batch_lines.vertices.vector, cell_points[:,a]...);push!(batch_lines.colors.vector, DARK_GRAY...)
+						push!(batch_lines.vertices.vector, cell_points[:,b]...);push!(batch_lines.colors.vector, DARK_GRAY...)
 					end
 				end
 
-				# cell border
-				for (a,b) in vcycles
-					push!(batch_lines.vertices.vector, points3d[:,a]...);push!(batch_lines.colors.vector, DARK_GRAY...)
-					push!(batch_lines.vertices.vector, points3d[:,b]...);push!(batch_lines.colors.vector, DARK_GRAY...)
-				end
-
-        # faces in lar can be anything so I need to triangulate
-				begin
-					points2d = project_points3d(points3d; double_check=true)(points3d)
-					for (u, v, w) in TRIANGULATE(points2d, vcycles)
-						p0 = points3d[:,u]
-						p1 = points3d[:,v]
-						p2 = points3d[:,w]
+				function render_triangles(triangles)
+					for (u, v, w) in triangles
+						p0 = cell_points[:,u]
+						p1 = cell_points[:,v]
+						p2 = cell_points[:,w]
 						n = ComputeTriangleNormal(p0, p1, p2)
 						push!(batch_triangles.vertices.vector, p0...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
 						push!(batch_triangles.vertices.vector, p1...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
 						push!(batch_triangles.vertices.vector, p2...);push!(batch_triangles.normals.vector, n...);push!(batch_triangles.colors.vector, color...)
 					end
 				end
+
+				# generic solution is to use FE to compute constrained triangulation and then triangles
+				if haskey(lar.C,:FE)
+					vmap=Dict(zip(fv,1:length(fv)))
+					cell_EV=Cells()
+					fe=lar.C[:FE][F]
+					for E in fe
+						a,b=EV[E]
+						push!(cell_EV,[vmap[a],vmap[b]])
+					end
+					vcycles = find_vcycles(cell_EV)
+					points2d = project_points3d(cell_points; double_check=true)(cell_points)
+					triangles = TRIANGULATE(points2d, vcycles)
+
+				# is it a simple triangle?
+				elseif length(fv)==3
+					vcycles=[1,2],[2,3],[3,1]
+					triangles=[[1,2,3]]
+
+				else
+					# I need to know FE (which cannot be computed automatically from FV EV considering non-convex faces)
+					continue
+				end
+				
+				render_points()
+				render_lines(vcycles)
+				render_triangles(triangles)
 
       end
 
@@ -435,13 +443,12 @@ function BATCHES(
 
     end
 
+		@show(length(batch_triangles.vertices.vector))
+
+	# show lines
   elseif !isnothing(EV)
 
-		# batch_points    = GLBatch(POINTS)
-		# push!(batches, batch_points)
-		# batch_points.point_size = 4
-
-		batch_lines     = GLBatch(LINES)
+		batch_lines = GLBatch(LINES)
 		push!(batches, batch_lines)
 		batch_lines.line_width  = 3
 
@@ -456,11 +463,6 @@ function BATCHES(
 				push!(batch_lines.vertices.vector, cell_points[:,1]...);push!(batch_lines.colors.vector, color...)
 				push!(batch_lines.vertices.vector, cell_points[:,2]...);push!(batch_lines.colors.vector, color...)				
 
-				# if "V" in show
-				#	push!(batch_points.vertices.vector, cell_points[:,1]...);push!(batch_points.colors.vector, DARK_GRAY...)
-				#	push!(batch_points.vertices.vector, cell_points[:,2]...);push!(batch_points.colors.vector, DARK_GRAY...)
-				#end
-
 				if "V_text" in show
 					append!(batches, GLText(Vtext[ev[1]], center=cell_points[:,1], color=DARK_GRAY, fontsize=0.04))
 					append!(batches, GLText(Vtext[ev[2]], center=cell_points[:,2], color=DARK_GRAY, fontsize=0.04))
@@ -474,35 +476,34 @@ function BATCHES(
     end
 	end
 
-  return batches
+	if render
+		VIEWCOMPLEX(batches)
+	end
+
+	return batches
 
 end
-export BATCHES
 
 # //////////////////////////////////////////////////////////////////////////////
-function BATCHES(lars::Vector{Lar}; show=["V", "EV", "FV"], explode::Vector{Float64}=[1.5,1.5,1.5])::Vector{GLBatch}
+function VIEWCOMPLEX(
+	lars::Vector{Lar}; 
+	show=["V", "EV", "FV"], 
+	explode::Vector{Float64}=[1.5,1.5,1.5],
+	render=true)::Vector{GLBatch}
+
 	batches=Vector{GLBatch}()
 	for (I,lar) in enumerate(lars)
-		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor(I)))
+		v=VIEWCOMPLEX(lar, show=show, explode=explode, user_color=RandomColor(I), render=false)
+		append!(batches,v)
 	end
+
+	if render
+		VIEWCOMPLEX(batches)
+	end
+
 	return batches
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode::Vector{Float64}=[1.5,1.5,1.5],title::String="")
-	properties=Properties(
-			"background_color" => Point4d([0.9,0.9,0.9,1.0]),
-			"use_ortho" => false
-		)
-	batches=BATCHES(lar, show=show, explode=explode)
-	return GLView(batches, properties=properties,title=title)
-end
-export VIEWCOMPLEX
-	
-# //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(lars::Vector{Lar}; show=["V", "EV", "FV"], explode::Vector{Float64}=[1.5,1.5,1.5],title::String="")
-	GLView(BATCHES(lars, show=show, explode=explode),title=title)
-end
 	
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -542,3 +543,67 @@ function RandomCube(size_min::Float64,size_max::Float64)
   )
 end
 export RandomCube
+
+
+# /////////////////////////////////////////////////////
+# From here the sparse part
+# /////////////////////////////////////////////////////
+
+
+const Chain        = SparseVector{Int8,Int}
+const ChainOp      = SparseMatrixCSC{Int8,Int}
+const ChainComplex = Vector{ChainOp}
+
+export Chain, ChainOp, ChainComplex
+
+# ///////////////////////////////////////////////////////////
+""" converte dense to sparse"""
+function lar2cop(cells::Cells)::ChainOp
+	I, J, V = Int[], Int[], Int[]
+	for (C,cell) in enumerate(cells)
+		for K in cell
+			push!(I, C)
+			push!(J, K)
+			push!(V, 1)
+		end
+	end
+	return sparse(I, J, V)
+end
+export lar2cop
+
+
+""" converte sparse to dense"""
+function cop2lar(cop::ChainOp)::Cells
+	return [findnz(cop[k, :])[1] for k = 1:size(cop, 1)]
+end
+export cop2lar
+
+""" EV dense to sparse """
+function cop_coboundary_0(EV::Cells)::ChainOp
+	copEV = lar2cop(EV)
+	copVE = copEV'
+	for (E,ev) in enumerate(EV)
+		v1,v2=ev
+		copVE[v1, E] = -1 # from +1 -> -1
+	end
+	copEV=LinearAlgebra.transpose(copVE)
+	return convert(ChainOp,copEV)
+end
+export cop_coboundary_0
+
+# //////////////////////////////////////////////////////////////////////////////
+function FV2EVs(copEV::ChainOp, copFE::ChainOp)
+	EV = cop2lar(copEV) 
+	FE = cop2lar(copFE)
+	return [[EV[e] for e in fe] for fe in FE]
+end
+export FV2EVs
+
+
+# //////////////////////////////////////////////////////////////////////////////
+"""From (EV,FE) to EV"""
+function FV2EV(copEV::ChainOp, copFE::ChainOp)
+	return union(CAT(FV2EVs(copEV,copFE))) 
+end
+export FV2EV
+
