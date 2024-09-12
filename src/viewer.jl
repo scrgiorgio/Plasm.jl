@@ -1306,7 +1306,11 @@ end
 
 # ///////////////////////////////////////////////////////////////////////
 function handleMouseWheelEvent(viewer::Viewer, delta)
-	viewer.pos = viewer.pos + viewer.dir * ((delta >= 0 ? 10.0 : -10.0) * viewer.walk_speed)
+	if viewer.use_ortho
+		viewer.fov*=(delta<0) ? 1.1 : 1.0/1.1;
+	else
+		viewer.pos = viewer.pos + viewer.dir * ((delta >= 0 ? 10.0 : -10.0) * viewer.walk_speed)
+	end
 	redisplay(viewer)
 end
 
@@ -1381,14 +1385,11 @@ function handleKeyPressEvent(viewer::Viewer, key, scancode, action, mods)
 		return
 	end
 
-
-
 	if (key == GLFW.KEY_L)
 		viewer.show_lines = !viewer.show_lines
 		redisplay(viewer)
 		return
 	end
-
 
 end
 
