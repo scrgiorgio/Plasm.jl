@@ -26,8 +26,6 @@ julia --project=. test/cylinders.jl
 # boolean
 julia --project=. test/boolean.jl
 
-
-
 ```
 
 ## Developing Plasm.jl

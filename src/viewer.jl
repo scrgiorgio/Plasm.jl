@@ -995,30 +995,30 @@ function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
 		push!(batches, GLAxis(Point3d(0, 0, 0), Point3d(2, 2, 2)))
 	end
 
-	global viewer
-	viewer = Viewer(batches)
-
 	@show(BOX)
-	if false && Size[3]==0.0
-		default_pos=Center + Point3d(0, 0, 1) 
-		default_dir=Point3d(0,0,-1)
+	if Size[3]==0.0
+		default_pos=Center + Point3d(0, 0, 1.0) 
+		default_dir=Point3d(0, 0, -1) 
 		default_vup=Point3d(0, 1, 0)
-		default_znear=0.1
-		default_zfar=10.0
-		default_walk_speed=0.05
-		viewer.use_ortho=true # override, does not make sense to use perspective
+		default_use_ortho=true 
+		default_znear      = 0.001
+		default_zfar       = 10.0
+		default_walk_speed = 0.01 
 	else
 		default_pos=Center + Point3d(MaxSize, MaxSize, MaxSize) * 3.0
-		default_dir=Center - default_pos
+		default_dir=normalized(Center-default_pos)
 		default_vup=Point3d(0, 0, 1)
-		default_znear=MaxSize / 50.0
-		default_zfar=MaxSize * 10.0
-		default_walk_speed=MaxSize / 100.0
+		default_use_ortho=false 
+		default_znear      = MaxSize * 0.001
+		default_zfar       = MaxSize * 10.0
+		default_walk_speed = MaxSize * 0.01 
 	end
 
+	global viewer
+	viewer = Viewer(batches)
 	viewer.background_color = get(properties, "background_color", viewer.background_color)
 	viewer.title = get(properties, "title", viewer.title)
-	viewer.use_ortho = get(properties, "use_ortho", viewer.use_ortho)
+	viewer.use_ortho = get(properties, "use_ortho", default_use_ortho)
 	viewer.show_lines = get(properties, "show_lines", viewer.show_lines)
 	viewer.fov = get(properties, "fov", viewer.fov)
 	viewer.pos = get(properties, "pos", default_pos)

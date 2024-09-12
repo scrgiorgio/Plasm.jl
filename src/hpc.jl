@@ -971,46 +971,6 @@ end
 # //////////////////////////////////////////////////////////
 function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="")
 
-	pdim = dim(hpc)
-
-	# special case for 2D (i.e. use ortho)
-	if pdim == 2
-
-		BOX = box(hpc)
-		Size = BOX.p2 - BOX.p1
-		Center = center(BOX)
-
-		if length(Center) == 2
-			Center = Point3d(Center[1], Center[2], 0.0)
-		end
-		if length(Size) == 2
-			Size = Point3d(Size[1], Size[2], 0.0)
-		end
-
-		if Size[3] == 0.0
-			Size[3] = 1.0
-		end
-
-		pos = Point3d(Center[1], Center[2], Center[3] + 1.0 * Size[3])
-		dir = Point3d(0, 0, -1)
-		vup = Point3d(0, 1, 0)
-
-		# default properties if not specified
-		properties = Properties(properties)
-		properties["background_color"] = get(properties, "background_color", DEFAULT_BACKGROUND_COLOR)
-		properties["use_ortho"] = get(properties, "use_ortho", DEFAULT_USE_ORTHO)
-		properties["pos"] = get(properties, "pos", pos)
-		properties["dir"] = get(properties, "dir", dir)
-		properties["vup"] = get(properties, "vup", vup)
-		properties["znear"] = get(properties, "znear", 0.001 * Size[3])
-		properties["zfar"] = get(properties, "zfar", 10 * Size[3])
-		properties["lighting_enabled"] = get(properties, "lighting_enabled", DEFAULT_LIGHTING_ENABLED)
-		properties["line_color"] = get(properties, "line_color", DEFAULT_LINE_COLOR)
-		properties["line_width"] = get(properties, "line_width", DEFAULT_LINE_WIDTH)
-		properties["show_axis"] = get(properties, "show_axis", false)
-
-	end
-
 	batches = GetBatchesForHpc(hpc)
 
 	if title!=""
