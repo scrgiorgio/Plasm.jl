@@ -58,6 +58,23 @@ function Base.show(io::IO, lar::Lar)
 	println(io, "  ))")
 end
 
+# //////////////////////////////////////////////////////////////////////////////
+function lar_used_vertices(lar::Lar)
+	ret=[]
+	for (a,b) in lar.C[:EV]
+		append!(ret,[a,b])
+	end
+	return remove_duplicates(ret)
+end
+export lar_used_vertices
+
+
+# //////////////////////////////////////////////////////////////////////////////
+function lar_bounding_box(lar::Lar; only_used_vertices=false)
+  V=only_used_vertices ? lar.V[:, CAT(lar.C[:EV]) ] : lar.V
+  return collect([vec(it) for it in bbox_create(V)])
+end
+export lar_bounding_box
 
 # //////////////////////////////////////////////////////////////////////////////
 """ remove duplicate int indices """
@@ -71,16 +88,18 @@ export remove_duplicates
 # //////////////////////////////////////////////////////////////////////////////
 """can be used also to simplify
 
-NOTE: ignoring :CF that is generally used to crate the `face_indices`
+NOTE: ignoring :CF that is generally used to crate the `sel`
 """
-function SELECT(lar::Lar, face_indices::Cell)::Lar
+function SELECT(lar::Lar, sel::Cell)::Lar
+
+	sel=remove_duplicates(sel)
 
 	ret=Lar(lar.V, Dict(:EV => Cells(), :FV => Cells(), :FE => Cells() ))
 	ret.mapping=Dict(:F => Dict{Int,Int}(), :E => Dict{Int,Int}())
 
 	fmap=Set{Vector{Int}}() # from (a,b,c,d,...) 
 	emap=Dict{Cell,Int}() # from (a,b) to new edge index
-	for Fold in face_indices
+	for Fold in sel
 
 		fv=remove_duplicates(lar.C[:FV][Fold])
 		if fv in fmap  continue end
@@ -115,7 +134,7 @@ function SELECT(lar::Lar, face_indices::Cell)::Lar
 
 				# adding anyway then I will simplify
 				push!(ret.C[:FE][Fnew], Enew)
-				
+
 				push!(ret.C[:FV][Fnew], a)
 				push!(ret.C[:FV][Fnew], b)
 
@@ -344,7 +363,7 @@ export VIEWBATCHES
 function BATCHES(
 	lar::Lar; 
 	show=["V", "EV", "FV"], 
-	explode=[1.5,1.5,1.5], 
+	explode=[1.0,1.0,1.0], 
 	user_color=nothing
 )::Vector{GLBatch}
 
@@ -368,7 +387,7 @@ function BATCHES(
 		return ret, compute_centroid(ret)
 	end
 
-  if !isnothing(FV)
+  if "FV" in show && !isnothing(FV)
 
 		# I think the order is important for polygon offset
 		batch_triangles = GLBatch(TRIANGLES)
@@ -450,7 +469,7 @@ function BATCHES(
     end
 
 	# show lines
-  elseif !isnothing(EV)
+  elseif "EV" in show && !isnothing(EV)
 
 		batch_lines = GLBatch(LINES)
 		push!(batches, batch_lines)
@@ -478,7 +497,7 @@ function BATCHES(
     end
 	end
 
-	@show([GetBoundingBox(it) for it in batches])
+	# @show([GetBoundingBox(it) for it in batches])
 	return batches
 
 end
@@ -487,10 +506,12 @@ export BATCHES
 # //////////////////////////////////////////////////////////////////////////////
 function VIEWCOMPLEX(lar::Lar; 
 	show=["V", "EV", "FV"], 
-	explode=[1.5,1.5,1.5], 
-	user_color=nothing)
+	explode=[1.0,1.0,1.0], 
+	user_color=nothing,
+	user_batches=[])
 
 	batches=BATCHES(lar,show=show,explode=explode,user_color=user_color)
+	append!(batches,user_batches)
 	VIEWBATCHES(batches)
 end
 export VIEWCOMPLEX
@@ -499,13 +520,15 @@ export VIEWCOMPLEX
 function VIEWCOMPLEX(
 	lars::Vector{Lar}; 
 	show=["V", "EV", "FV"], 
-	explode=[1.5,1.5,1.5]
+	explode=[1.0,1.0,1.0],
+	user_batches=[]
 	)
 
 	batches=Vector{GLBatch}()
 	for (I,lar) in enumerate(lars)
 		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor(I)))
 	end
+	append!(batches,user_batches)
 	VIEWBATCHES(batches)
 end
 

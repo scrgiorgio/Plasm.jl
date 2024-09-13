@@ -3,6 +3,7 @@ using Plasm, LinearAlgebra
 using SparseArrays
 using Random
 import Base.size
+using Combinatorics
 
 @testset "lar.jl" begin
 
@@ -25,9 +26,9 @@ import Base.size
       ]
       hpc = MkPol(points)
       geo = ToGeometry(hpc)
-      @assert length(geo.points) == 5
-      @assert length(geo.hulls) == 1
-      @assert length(geo.faces) == 1
+      @test length(geo.points) == 5
+      @test length(geo.hulls) == 1
+      @test length(geo.faces) == 1
     end
 
     # test3D
@@ -41,9 +42,9 @@ import Base.size
       ]
       hpc = MkPol(points)
       geo = ToGeometry(hpc)
-      @assert length(geo.points) == 10
-      @assert length(geo.hulls) == 1
-      @assert length(geo.faces) == 7
+      @test length(geo.points) == 10
+      @test length(geo.hulls) == 1
+      @test length(geo.faces) == 7
     end
 
     # test two 3d cubes
@@ -55,28 +56,28 @@ import Base.size
       ])
 
       geo = ToGeometry(hpc)
-      @assert(length(geo.points) == 8 * 2)    # each cube is 8 vertices
-      @assert(length(geo.hulls) == 2)       # each cube is 1 hull
-      @assert(length(geo.faces) == 6 * 2)    # each cube has 6 boundary faces
+      @test(length(geo.points) == 8 * 2)    # each cube is 8 vertices
+      @test(length(geo.hulls) == 2)       # each cube is 1 hull
+      @test(length(geo.faces) == 6 * 2)    # each cube has 6 boundary faces
     end
 
     # 2D b-rep
     begin
       geo = ToGeometry(CIRCUMFERENCE(1.0)(8))
-      @assert(length(geo.points[1]) == 2)
-      @assert(length(geo.hulls) == 0)
-      @assert(length(geo.edges) == 8)
-      @assert(length(geo.hulls) == 0)
+      @test(length(geo.points[1]) == 2)
+      @test(length(geo.hulls) == 0)
+      @test(length(geo.edges) == 8)
+      @test(length(geo.hulls) == 0)
     end
 
 
     # 3D brep
     begin
       geo = ToGeometry(SPHERE(1.0)([4, 8]), precision=0.0)
-      @assert(length(geo.points) == (4 + 1) * (8 + 1))
-      @assert(length(geo.points[1]) == 3)
-      @assert(length(geo.faces) == 4 * 8)
-      @assert(length(geo.hulls) == 0)
+      @test(length(geo.points) == (4 + 1) * (8 + 1))
+      @test(length(geo.points[1]) == 3)
+      @test(length(geo.faces) == 4 * 8)
+      @test(length(geo.hulls) == 0)
     end
 
 
@@ -125,26 +126,24 @@ import Base.size
       0.0 1.0 0.0 0.0
       1.0 0.0 0.0 0.0
       0.0 0.0 0.0 1.0]
-    @test larobj.C == Dict{Symbol,AbstractArray}(:CV => [[1, 2, 3, 4]], :FV => [[1, 2, 3], [2, 3, 4], [1, 3, 4], [1, 2, 4]], :EV => [[2, 3], [1, 3], [1, 2], [3, 4], [2, 4], [1, 4]])
+    @test larobj.C[:CV] == [[1, 2, 3, 4]]
+    @test larobj.C[:FV] == [[1, 2, 3], [2, 3, 4], [1, 3, 4], [1, 2, 4]]
+    @test larobj.C[:EV] == [[2, 3], [1, 3], [1, 2], [3, 4], [2, 4], [1, 4]]
   end
 
   @testset "LAR" begin
     obj = Q(1) * Q(1) * Q(1)
     @test typeof(obj) == Hpc
     @test typeof(LAR(obj)) == Lar
-    @test (LAR(obj)).V == [1.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0;
-      1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0; 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0]
+    @test (LAR(obj)).V == [1.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0; 1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0; 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0]
     @test (LAR(obj)).C[:CV] == [[1, 2, 3, 4, 5, 6, 7, 8]]
-    @test (LAR(obj)).C[:FV] == [[1, 2, 3, 4], [3, 4, 5, 6], [1, 3, 5, 7],
-      [2, 4, 6, 8], [1, 2, 7, 8], [5, 6, 7, 8]]
-    @test (LAR(obj)).C[:EV] == [[3, 4], [2, 4], [1, 2], [1, 3], [5, 6],
-      [4, 6], [3, 5], [5, 7], [1, 7], [6, 8], [2, 8], [7, 8]]
+    @test (LAR(obj)).C[:FV] == [[1, 2, 3, 4], [3, 4, 5, 6], [1, 3, 5, 7],[2, 4, 6, 8], [1, 2, 7, 8], [5, 6, 7, 8]]
+    @test (LAR(obj)).C[:EV] == [[3, 4], [2, 4], [1, 2], [1, 3], [5, 6], [4, 6], [3, 5], [5, 7], [1, 7], [6, 8], [2, 8], [7, 8]]
   end
 
   @testset "HPC" begin
     obj = Q(1) * Q(1) * Q(1)
-    points = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [0.0, 1.0,
-        1.0], [1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]]
+    points = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]]
     hulls = [[1, 2, 3, 4, 5, 6, 7, 8]]
     obj = MkPol(points, hulls).childs[1]
     @test dim(obj) == 3
@@ -174,7 +173,7 @@ import Base.size
   end
 
 
-  @testset "remove_duplicates" begin
+  @testset "SELECT" begin
     @test(remove_duplicates([3, 2, 1, 1, 2, 3]) == [1, 2, 3])
 
     # cube3d
@@ -188,79 +187,54 @@ import Base.size
       1.0 1.0 1.0;
       0.0 1.0 1.0;
     ])
-
+    
     EV=convert(Cells,[
       [1,2],[2,3],[3,4],[4,1],    
       [5,6],[6,7],[7,8],[8,5], 
-      [1,5],[2,6],[3,7],[4,8],
-    ])
-
-    FE=Cells()
-    for fe in [
+      [1,5],[2,6],[3,7],[4,8]])
+    FE=convert(Cells,[
       [ 1, 2, 3, 4], 
       [ 5, 6, 7, 8],
       [ 1,10, 5, 9], 
       [10, 6,11, 2], 
       [11, 3,12, 7], 
-      [ 9, 4,12, 8]
-    ]
-
-
-      push!(FE,fe)
-
-    end
-
-    FV=Cells()
-    for fv in [
+      [ 9, 4,12, 8]])
+    FV=convert(Cells,[
       [ 1, 2, 3, 4], 
       [ 5, 6, 7, 8], 
       [ 1, 2, 6, 5], 
       [ 6, 7, 2, 3],
       [ 3, 4, 7, 8],
-      [ 1, 5, 8, 4], 
-      ]
-
-      push!(FV,fv)
-
-    end
-
+      [ 1, 5, 8, 4]])
+    
     lar=Lar(V, Dict(:EV => EV, :FE => FE, :FV => FV))
-    # @show(lar)
-
-    begin
-      sub=SELECT(lar,[1,2,3,4,5,6])
-      @assert(size(sub.V,2)==8)
-      @assert(length(sub.C[:EV])==12)
-
-      @assert(length(sub.C[:FE])==6)
-      for fe in sub.C[:FE] 
-        @assert(length(fe)==4) 
-      end
-
-      @assert(length(sub.C[:FV])==6)
-      for fv in sub.C[:FV] 
-        @assert(length(fv)==4) 
+    
+    for num_faces in 1:6
+      for face_indices in collect(Combinatorics.combinations(collect(1:6), num_faces))
+    
+        sub=SELECT(lar,face_indices)
+    
+        @test(length(sub.C[:FV])==num_faces)
+        @test(length(sub.C[:FE])==num_faces)
+    
+        # check vertices
+        begin
+          vertices=[]
+          for F in face_indices append!(vertices,FV[F]) end
+          vertices=remove_duplicates(vertices)
+          @test(vertices==lar_used_vertices(sub))
+        end
+    
+        # check edges
+        begin
+          edges=[]
+          for F in face_indices append!(edges,FE[F]) end
+          edges=remove_duplicates(edges)
+        end
+        @test(length(edges)==length(sub.C[:EV]))
       end
     end
-
-    for F in 1:6
-      local sub=SELECT(lar,[F])
-      @assert(size(sub.V,2)==8)
-      @assert(length(sub.C[:EV])==4)
-      
-      @assert(length(sub.C[:FV])==1)
-      for fv in sub.C[:FV] 
-        @assert(length(fv)==4) 
-      end
-
-      @assert(length(sub.C[:FE])==1)
-      for fe in sub.C[:FE] 
-        @assert(length(fe)==4) 
-      end
-
-    end
-  end
-  """
+  end    
 
   @testset "sparse.jl" begin
   
@@ -320,9 +294,5 @@ import Base.size
         @test LEN(EV) == LEN(ev)
      end
      
-     
   end
-
-
-
 end

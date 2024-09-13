@@ -133,9 +133,9 @@ end
 
 function center(box::Box3d)
 	return Point3d(
-		box.p2[1] - box.p1[1],
-		box.p2[2] - box.p1[2],
-		box.p2[3] - box.p1[3])
+		0.5 * box.p1[1] + 0.5 * box.p2[1],
+		0.5 * box.p1[2] + 0.5 * box.p2[2],
+		0.5 * box.p1[3] + 0.5 * box.p2[3])
 end
 
 
@@ -979,7 +979,7 @@ function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
 	batches=[batch for batch in batches if length(batch.vertices.vector)>0]
 
 	# calculate bounding box
-	BOX = invalidBox()
+	BOX::Box3d = invalidBox()
 	for batch in batches
 		box = GetBoundingBox(batch)
 		addPoint(BOX, box.p1)
@@ -996,24 +996,14 @@ function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
 	end
 
 	#@show(BOX)
-	
-	if Size[3]==0.0
-		default_pos=Center + Point3d(0, 0, 1.0) 
-		default_dir=Point3d(0, 0, -1) 
-		default_vup=Point3d(0, 1, 0)
-		default_use_ortho=true 
-		default_znear      = 0.001
-		default_zfar       = 10.0
-		default_walk_speed = 0.01 
-	else
-		default_pos=Center + Point3d(MaxSize, MaxSize, MaxSize) * 3.0
-		default_dir=normalized(Center-default_pos)
-		default_vup=Point3d(0, 0, 1)
-		default_use_ortho=false 
-		default_znear      = MaxSize * 0.001
-		default_zfar       = MaxSize * 10.0
-		default_walk_speed = MaxSize * 0.01 
-	end
+	default_use_ortho=Size[3]==0.0
+	default_pos=Center + 3.0*Point3d(default_use_ortho ? 0 : MaxSize, default_use_ortho ? 0 : MaxSize, MaxSize) 
+	default_dir=normalized(Center - default_pos)
+	default_vup=default_use_ortho ? Point3d(0, 1, 0) : Point3d(0, 0, 1)
+
+	default_znear      = MaxSize * 0.001
+	default_zfar       = MaxSize * 10.0
+	default_walk_speed = MaxSize * 0.01 
 
 	global viewer
 	viewer = Viewer(batches)
@@ -1407,7 +1397,8 @@ end
 export GLText
 
 vectors = [
-	([0.0, 0.0], [[1]]),
+	
+	([0.0, 0.0], [[1,1]]), # space
 	([1.75 1.75 2.0 2.0 1.5 1.5; 1.75 5.5 0.5 1.0 1.0 0.5], [[1, 2], [3, 4], [4, 5], [5, 6], [6, 3]]),
 	([1.0 2.0 2.0 2.0 1.5 1.5 2.0 3.0 3.0 3.0 2.5 2.5; 4.0 5.0 5.5 6.0 6.0 5.5 4.0 5.0 5.5 6.0 6.0 5.5], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3], [7, 8], [8, 9], [9, 10], [10, 11], [11, 12], [12, 9]]),
 	([1.0 3.0 1.0 3.0 1.25 1.75 2.25 2.75; 2.5 2.5 3.5 3.5 1.75 4.0 1.75 4.0], [[1, 2], [3, 4], [5, 6], [7, 8]]),
@@ -1503,8 +1494,8 @@ vectors = [
 	([1.5 2.0 2.0 2.5 2.0 2.0 1.5; 6.5 6.0 3.5 3.0 2.5 0.0 -0.5], [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]]),
 	([1.0 1.75 2.75 3.5; 5.0 5.5 5.0 5.5], [[1, 2], [2, 3], [3, 4]])]
 
-# seems coordinates are in the range 4x6, is it right?
 
+# seems coordinates are in the range 4x6, is it right?
 
 # ////////////////////////////////////////////////////////////////////////////
 function GLText(mystring; center=Point3d(0.0, 0.0, 0.0), align="center", fontsize=0.05, color=Point4d(0, 0, 0, 1))

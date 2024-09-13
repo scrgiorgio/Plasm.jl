@@ -21,7 +21,7 @@ julia --project=. test/randombubbles.jl
 # 3d arrangement
 julia --project=. test/twocubes.jl
 julia --project=. test/randomcubes.jl
-julia --project=. test/cylinders.jl
+julia --project=. test/mechanical_piece.jl
 
 # boolean
 julia --project=. test/boolean.jl

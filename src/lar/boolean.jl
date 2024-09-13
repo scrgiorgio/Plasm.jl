@@ -15,11 +15,7 @@ function random_dir()
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////
-function bbox(lar::Lar; only_used_vertices=false)
-  V=only_used_vertices ? lar.V[:, CAT(lar.C[:EV]) ] : lar.V
-  return collect([vec(it) for it in bbox_create(V)])
-end
+
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -72,16 +68,15 @@ export is_internal_point
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function find_internal_point(lar::Lar;num_attempts=13) 
+function find_internal_point(lar::Lar;max_attempts=10) 
 
-  println("find_internal_point")
   # @show(lar)
 
   #VIEWCOMPLEX(lar)
 
 	# TODO: reintroduce space index to avoid O(N^2) complexity
 
-  b1,b2=bbox(lar; only_used_vertices=true)
+  b1,b2=lar_bounding_box(lar; only_used_vertices=true)
   
   # i want to move out of the complex
   move_out = LinearAlgebra.norm(b2 - b1)   
@@ -89,7 +84,7 @@ function find_internal_point(lar::Lar;num_attempts=13)
   #@show(b1,b2)
   #@show(move_out)
 
-  for attempt in 1:num_attempts
+  for attempt in 1:max_attempts
 
     # choose a random point inside the box and a random direction
     inside_bbox = [random(b1[I],b2[I]) for I in 1:3 ]
@@ -99,53 +94,57 @@ function find_internal_point(lar::Lar;num_attempts=13)
 
     #@show("Trying", external_point, ray_dir)
 
-    ts=[]
+    distances=Vector{Float64}()
     for F in 1:length(lar.C[:FV])
-      hit,t=ray_face_intersection(external_point, ray_dir, lar, F)
+      hit,distance=ray_face_intersection(external_point, ray_dir, lar, F)
       if !isnothing(hit)
-        push!(ts,t)
-        #@show("hit", external_point,ray_dir,t)
+        push!(distances,distance)
+        #@show("hit", external_point,ray_dir,distance)
       end
     end
     
     # I should be outside after I've hit all faces (starting from the outside)
-    num_hits=length(ts)
+    num_hits=length(distances)
     if (num_hits < 2) || (num_hits % 2) != 0
       continue
     end
 
-    # take the internal range which is bigger
-    ts=sort(ts)
-    #@show(ts)
-
-    best_delta=nothing
-    internal_point=nothing
-    for I in 1:length(ts)-1
-      delta=ts[I+1]-ts[I]
-      if ((I % 2) ==1) && delta>LAR_DEFAULT_ERR # only if is inside and delta is not too small
-        t=ts[I]+delta/2
-        if isnothing(best_delta) || delta>best_delta
-          internal_point=external_point+ray_dir*t
-          #@show("new best", external_point, ray_dir, t,internal_point, best_delta,delta)
-          best_delta=delta
-        else
-          #@show("not the best",delta)
+    # I am going from OUT to in the OUT then in... finally OUT
+    # I want to find the inner IN range which is bigger
+    begin
+      distances=sort(distances)
+      #@show(distances)
+      best_delta,internal_point=nothing,nothing
+      for I in 1:length(distances)-1
+        delta=distances[I+1]-distances[I]
+        if ((I % 2) ==1) && delta>LAR_DEFAULT_ERR # only if is inside and delta is not too small
+          distance=distances[I]+delta/2
+          if isnothing(best_delta) || delta>best_delta
+            internal_point=external_point+ray_dir*distance
+            #@show("new best", external_point, ray_dir, distance,internal_point, best_delta,delta)
+            best_delta=delta
+          else
+            #@show("not the best",delta)
+          end
         end
       end
     end
 
+    # try another time...
     if isnothing(internal_point)
-      return nothing
+      continue
     end
 
     # how to go from internal_point to outside
-    ray_dir=-ray_dir
+    ray_dir=-ray_dir 
+    internal_external_distance=LinearAlgebra.norm(external_point-internal_point)
+    distances=[(internal_external_distance-distance) for distance in distances]
     @assert(is_internal_point(lar, internal_point, ray_dir))
-    #@show(internal_point, ray_dir)
-    return internal_point, ray_dir 
+    #@show(internal_point, ray_dir, distances)
+    return internal_point, ray_dir, distances
+
   end
 
-  aaa()
 	error("cannot find internal point")
 end
 export find_internal_point
@@ -162,7 +161,7 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
 
   # remove outer atoms (i.e. the one that contains all other atoms) by using diagonal measurement
   begin
-    diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [bbox(atom,only_used_vertices=true) for atom in atoms]]
+    diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom,only_used_vertices=true) for atom in atoms]]
     __outer, outer_index = findmax(diags)
     deleteat!(atoms, outer_index)
   end
