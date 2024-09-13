@@ -995,7 +995,8 @@ function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
 		push!(batches, GLAxis(Point3d(0, 0, 0), Point3d(2, 2, 2)))
 	end
 
-	@show(BOX)
+	#@show(BOX)
+	
 	if Size[3]==0.0
 		default_pos=Center + Point3d(0, 0, 1.0) 
 		default_dir=Point3d(0, 0, -1) 

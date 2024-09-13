@@ -377,7 +377,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
-function ARRANGE3D(lar::Lar)
+function ARRANGE3D(lar::Lar)::Lar
 
 	V=lar.V
 	EV=lar.C[:EV]

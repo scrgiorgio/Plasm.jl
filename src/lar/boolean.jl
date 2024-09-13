@@ -9,6 +9,7 @@ function random(a::Float64,b::Float64)
   return a+rand()*(b-a)
 end
 
+# //////////////////////////////////////////////////////////////////////////////
 function random_dir()
   return normalized([random(-1.0,1.0) for I in 1:3])
 end
@@ -149,47 +150,9 @@ function find_internal_point(lar::Lar;num_attempts=13)
 end
 export find_internal_point
 
-# ///////////////////////////////////////////////////////////
-"""
-function example_save_points()
-
-  ray_dir=random_dir()
-
-  # @show(is_internal_point(atoms[1], [1.0,1.0,-2.0], ray_dir))
-  aaa()
-
-  points=[]
-  for z in range(-2.0,+2.0,step=0.05)
-    for y in range(-2.0,+2.0,step=0.05)
-      for x in range(-2.0,+2.0,step=0.05)
-        if is_internal_point(atoms[1], [x,y,z], [0.0,0.0,1.0])
-          push!(points,[x,y,z])
-        end
-      end
-    end
-  end
-
-  open("tmp.ply", "w") do file
-    println(file, "ply")
-    println(file, "format ascii 1.0")
-    println(file, "element vertex ", length(points))
-    println(file, "property float x")
-    println(file, "property float y")
-    println(file, "property float z")
-    println(file, "property float intensity")
-    println(file, "end_header")
-    for (x,y,z) in points
-      println(file,x," ",y," ",z," ", 1)
-    end
-  end
-end
-"""
 
 # //////////////////////////////////////////////////////////////////////////////
 function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
-
-  #@show(arrangement)
-  #@show(CF)
 
   atoms=[]
   for sel in CF
@@ -204,50 +167,46 @@ function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
     deleteat!(atoms, outer_index)
   end
 
-  # todo: remove
-  # atoms=[atoms[1]]
-
-
   # create the boolean matrix
   # TODO: probably if I work on the overall assembly I have to test few faces (ref. old Alberto's face span code)
   
-  atoms=[[atom,find_internal_point(atom)...]  for atom in atoms]
-
-  # @show(atoms)
+  atoms=[ [atom,find_internal_point(atom)...]  for atom in atoms]
 
   # view atoms 
   if debug_mode
-    for (atom,ray_origin,ray_dir) in atoms
-      batches=VIEW(atom, render=False)
+    for (atom, ray_origin, ray_dir) in atoms
+
+      batches=BATCHES(atom)
 
       begin
-        batch = GLBatch(POINTS)
-        push!(batches,batch)
-        batch.point_size = 4
-        batch.point_color = RED
-        push!(batch.vertices.vector, ray_origin...)
+        points = GLBatch(POINTS)
+        points.point_size = 3
+        points.point_color = RED
+        append(points.vertices.vector, ray_origin)
+        push!(batches,points)
       end
 
       begin
-        batch = GLBatch(LINES)
-        push!(batches,batch)
-        batch.line_width = 3
-        batch.point_color = YELLOW
-        push!(batch.vertices.vector, (ray_origin+0.0*ray_dir)...)
-        push!(batch.vertices.vector, (ray_origin+1.0*ray_dir)...)
+        lines = GLBatch(LINES)
+        lines.line_width = 3
+        lines.point_color = YELLOW
+        append(lines.vertices.vector, (ray_origin+0.0*ray_dir))
+        append(lines.vertices.vector, (ray_origin+1.0*ray_dir))
+        push!(batches,points)
       end
 
-      GLView(batches)
+      VIEWBATCHES(batches)
+
     end
   end
 
+  # TOPOS is needed to isolate input arguments (will create one lar for each input arg)
   ret=[]
   args = [LAR(it) for it in TOPOS(assembly)]
   for (atom, ray_origin, ray_dir) in atoms
     push!(ret,[is_internal_point(arg, ray_origin, ray_dir) for arg in args])
   end
 
-  # @show(ret)
   return ret
 end
 export bool3d

@@ -173,18 +173,94 @@ import Base.size
     @test length(grid213.C[:EV]) == 46
   end
 
-  @testset "simplify" begin
-    @test(SIMPLIFY([3, 2, 1, 1, 2, 3]) == [1, 2, 3])
 
-    lar = SIMPLIFY(Lar(BYCOL([0.0 0.0; 1.0 0.0; 1.0 1.0; 0.0 1.0]), Dict(
-      :EV => [[2, 1], [3, 2], [1, 2], [1, 4], [4, 3], [2, 3], [3, 4], [4, 1]],
-      :FV => [[1, 2, 3], [3, 2, 1], [4, 3, 1], [1, 3, 4]],
-      :CF => [[2, 1], [1, 2, 3, 4], [1, 2, 3], [1, 3, 4], [4, 3]]
-    )))
-    @test(lar.C[:EV] == [[1, 2], [2, 3], [1, 4], [3, 4]])
-    @test(lar.C[:FV] == [[1, 2, 3], [1, 3, 4]])
-    @test(lar.C[:CF] == [[1], [1, 2], [1, 2], [1, 2], [2]])
+  @testset "remove_duplicates" begin
+    @test(remove_duplicates([3, 2, 1, 1, 2, 3]) == [1, 2, 3])
+
+    # cube3d
+    V=BYCOL([
+      0.0 0.0 0.0;
+      1.0 0.0 0.0;
+      1.0 1.0 0.0;
+      0.0 1.0 0.0;
+      0.0 0.0 1.0;
+      1.0 0.0 1.0;
+      1.0 1.0 1.0;
+      0.0 1.0 1.0;
+    ])
+
+    EV=convert(Cells,[
+      [1,2],[2,3],[3,4],[4,1],    
+      [5,6],[6,7],[7,8],[8,5], 
+      [1,5],[2,6],[3,7],[4,8],
+    ])
+
+    FE=Cells()
+    for fe in [
+      [ 1, 2, 3, 4], 
+      [ 5, 6, 7, 8],
+      [ 1,10, 5, 9], 
+      [10, 6,11, 2], 
+      [11, 3,12, 7], 
+      [ 9, 4,12, 8]
+    ]
+
+
+      push!(FE,fe)
+
+    end
+
+    FV=Cells()
+    for fv in [
+      [ 1, 2, 3, 4], 
+      [ 5, 6, 7, 8], 
+      [ 1, 2, 6, 5], 
+      [ 6, 7, 2, 3],
+      [ 3, 4, 7, 8],
+      [ 1, 5, 8, 4], 
+      ]
+
+      push!(FV,fv)
+
+    end
+
+    lar=Lar(V, Dict(:EV => EV, :FE => FE, :FV => FV))
+    # @show(lar)
+
+    begin
+      sub=SELECT(lar,[1,2,3,4,5,6])
+      @assert(size(sub.V,2)==8)
+      @assert(length(sub.C[:EV])==12)
+
+      @assert(length(sub.C[:FE])==6)
+      for fe in sub.C[:FE] 
+        @assert(length(fe)==4) 
+      end
+
+      @assert(length(sub.C[:FV])==6)
+      for fv in sub.C[:FV] 
+        @assert(length(fv)==4) 
+      end
+    end
+
+    for F in 1:6
+      local sub=SELECT(lar,[F])
+      @assert(size(sub.V,2)==8)
+      @assert(length(sub.C[:EV])==4)
+      
+      @assert(length(sub.C[:FV])==1)
+      for fv in sub.C[:FV] 
+        @assert(length(fv)==4) 
+      end
+
+      @assert(length(sub.C[:FE])==1)
+      for fe in sub.C[:FE] 
+        @assert(length(fe)==4) 
+      end
+
+    end
   end
+  """
 
   @testset "sparse.jl" begin
   

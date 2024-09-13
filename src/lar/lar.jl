@@ -1,3 +1,4 @@
+export VIEWCOMPLEX
 
 const Cell = Vector{Int}
 export Cell
@@ -7,6 +8,12 @@ export Cells
 
 # //////////////////////////////////////////////////////////////////////////////
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
+"""
+Important!
+usually we represent a LAR complex using :FV and :EV
+but we cannot reconstruct FE combinatorially because it would fail on non-convex or holed-faces
+So we should migrate to a representation using FE and EV
+"""
 mutable struct Lar
 
 	# object geometry
@@ -18,25 +25,18 @@ mutable struct Lar
 	# object topology (C for cells)
 	C::Dict{Symbol,AbstractArray}
 
-	# for rendering text
-	text::Dict{Symbol, Dict{Int,String}}
+	# for mapping new cell ids to old cell idx
+	mapping::Dict{Symbol, Dict{Int,Int}}
 
 	# constructor
 	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,AbstractArray}()) = begin
-		new(V, C, Dict{Int,String}())
+		new(V, C, Dict{Int,Int}())
 	end
 
 end
 export Lar
 
-"""
-Important!
-usually we represent a LAR complex using FV and EV
-but we cannot reconstruct FE combinatorially because it would fail on non-convex or holed-faces
 
-So we should migrate to a representation using FE and EV
-
-"""
 
 # ////////////////////////////////////////////
 function Base.show(io::IO, lar::Lar) 
@@ -61,100 +61,74 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ remove duplicate int indices """
-function SIMPLIFY(cell::Cell)::Cell
+function remove_duplicates(cell::AbstractVector)::AbstractVector
+	# note I want the resuned value to be sorted too (needed for edge for example)
 	return collect(sort(collect(Set(cell))))
 end
+export remove_duplicates
 
-
-""" simplify all lar cells by sorting vertex indices and removing duplicates
-
-it also try to keep :CF for exploded view
-"""
-function SIMPLIFY(lar::Lar)
-
-	ret=Lar(lar.V,Dict())
-
-	# techically I could remove replicated vertices, not doing it
-
-	for key in keys(lar.C)
-
-		# ____________________________ EV
-		if key==:EV
-			ret.C[:EV]=[]
-			mapping=Dict{Cell,Int}() # from vertex indices to new edge id
-			for (E,ev) in enumerate(lar.C[:EV])
-				ev=SIMPLIFY(ev)
-				if !(ev in keys(mapping))
-					push!(ret.C[:EV], ev)
-					mapping[ev]=length(ret.C[:EV])
-				end
-			end
-
-			continue
-		end
-
-		# ____________________________  FV
-		if key==:FV
-			ret.C[:FV]=[]
-			mapping=Dict{Cell,Int}() # from vertex indices to new face id
-			for (F,fv) in enumerate(lar.C[:FV])
-				fv=SIMPLIFY(fv)
-				if ! (fv in keys(mapping))
-					push!(ret.C[:FV], fv)
-					mapping[fv]=length(ret.C[:FV])
-				end
-			end
-
-			if haskey(lar.C,:CF)
-				ret.C[:CF]=[]
-				for cf in lar.C[:CF]
-					v::Cell=[]
-					for face in cf
-						fv=SIMPLIFY(lar.C[:FV][face])
-						append!(v,mapping[fv])
-					end
-					push!(ret.C[:CF],SIMPLIFY(v))
-				end
-			end
-
-			continue
-
-		end
-
-		#already handled in FV case (see code above)
-		if key==:CF
-			continue 
-		end	
-		
-		# should I support this case?
-		@assert(false)
-
-	end
-
-	return ret
-
-end
-export SIMPLIFY
 
 # //////////////////////////////////////////////////////////////////////////////
-function SELECT(src::Lar, selected_faces::Cell)::Lar
+"""can be used also to simplify
 
-  FV=src.C[:FV]
-  EV=src.C[:EV]
+NOTE: ignoring :CF that is generally used to crate the `face_indices`
+"""
+function SELECT(lar::Lar, face_indices::Cell)::Lar
 
-	# TODO: I need to keep FE which is needed for rendering
+	ret=Lar(lar.V, Dict(:EV => Cells(), :FV => Cells(), :FE => Cells() ))
+	ret.mapping=Dict(:F => Dict{Int,Int}(), :E => Dict{Int,Int}())
 
-  selected_vertices=Set(CAT([FV[F] for F in selected_faces]))
-  selected_edges=[E for (E,(a,b)) in enumerate(EV) if a in selected_vertices && b in selected_vertices]
+	fmap=Set{Vector{Int}}() # from (a,b,c,d,...) 
+	emap=Dict{Cell,Int}() # from (a,b) to new edge index
+	for Fold in face_indices
 
-  ret=Lar(src.V, Dict(
-    :FV => [FV[F] for F in selected_faces],
-    :EV => [EV[E] for E in selected_edges]
-    ))
+		fv=remove_duplicates(lar.C[:FV][Fold])
+		if fv in fmap  continue end
 
-  # name mapping
-  ret.text[:FV]=Dict{Int,String}(I => string(F) for (I,F) in enumerate(selected_faces))
-  ret.text[:EV]=Dict{Int,String}(I => string(E) for (I,E) in enumerate(selected_edges))
+		# add new face
+		push!(fmap,fv)
+		push!(ret.C[:FV], [])
+		push!(ret.C[:FE], [])
+		Fnew=length(ret.C[:FV])
+		ret.mapping[:F][Fnew]=Fold
+
+		# add FE and FV
+		# I need FE here, because I cannot know FE from FV,EV especially for non convex-faces
+		@assert(haskey(lar.C,:FE))
+		begin
+			
+			for Eold in lar.C[:FE][Fold]
+
+				(a,b)=remove_duplicates(lar.C[:EV][Eold])
+
+				# already added
+				if haskey(emap,[a,b])
+					Enew=emap[ [a,b] ]
+
+				# add edge
+				else
+					push!(ret.C[:EV], [a,b])
+					Enew=length(ret.C[:EV])
+					emap[ [a,b] ]=Enew
+					ret.mapping[:E][Enew]=Eold	
+				end
+
+				# adding anyway then I will simplify
+				push!(ret.C[:FE][Fnew], Enew)
+				
+				push!(ret.C[:FV][Fnew], a)
+				push!(ret.C[:FV][Fnew], b)
+
+			end
+
+			ret.C[:FV][Fnew]=remove_duplicates(ret.C[:FV][Fnew])
+			ret.C[:FE][Fnew]=remove_duplicates(ret.C[:FE][Fnew])
+
+			@assert(ret.C[:FV][Fnew]==fv)
+
+		end
+
+	end
 
   return ret
 end
@@ -180,10 +154,46 @@ function TRIANGULATE(V::Points, EV::Cells)::Cells
 end
 export TRIANGULATE
 
+# //////////////////////////////////////////////////////////////////////////////
+function compute_VE(lar::Lar)
+	VE=[ [] for I in 1:size(lar.V,2)]
+	for (E,(a,b)) in enumerate(lar.C[:EV])
+		if !(E in VE[a]) push!(VE[a],E) end
+		if !(E in VE[b]) push!(VE[b],E) end
+	end
+	return VE
+end
+export compute_VE
 
 # //////////////////////////////////////////////////////////////////////////////
-"""from Hpc -> Lar 
-"""
+function compute_FE(lar::Lar; is_convex=False)
+
+	# only convex cells supported
+	@assert(is_convex && !haskey(lar.C,:FE)) 
+
+	VE=compute_VE(lar)
+
+	ret = Cells()
+  for fv in lar.C[:FV]
+    fe=Cell()
+    for vertex_index in fv
+      for edge_index in VE[vertex_index]
+				# if both vertices are in the face, it is an edge of the complex (but this works only if the lar complex is made of complex cells)
+        a,b=lar.C[:EV][edge_index]
+        if (a in fv) && (b in fv)
+          push!(fe,edge_index)
+        end
+      end
+    end
+    push!(ret,remove_duplicates(fe))
+  end
+
+	return ret
+end
+export compute_FE
+
+# //////////////////////////////////////////////////////////////////////////////
+"""from Hpc -> Lar """
 function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	geo = ToGeometry(obj, precision=precision)
 	ret = Lar()
@@ -191,7 +201,7 @@ function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	ret.C[:EV] = geo.edges
 	ret.C[:FV] = geo.faces
 	ret.C[:CV] = geo.hulls
-	# to add fe?
+	ret.C[:FE] = compute_FE(ret, is_convex=true)  # I need FE for display
 	return ret
 end
 export LAR
@@ -320,7 +330,7 @@ end
 export find_vcycles
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(batches::Vector{GLBatch})
+function VIEWBATCHES(batches::Vector{GLBatch})
 	GLView(batches, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
@@ -328,16 +338,17 @@ function VIEWCOMPLEX(batches::Vector{GLBatch})
 		"title" => "LAR"
 	))
 end
-export VIEWCOMPLEX
+export VIEWBATCHES
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(
-		lar::Lar; 
-		show=["V", "EV", "FV"], 
-		explode::Vector{Float64}=[1.5,1.5,1.5], 
-		user_color=nothing,
-		render=true
-	)::Vector{GLBatch}
+function BATCHES(
+	lar::Lar; 
+	show=["V", "EV", "FV"], 
+	explode=[1.5,1.5,1.5], 
+	user_color=nothing
+)::Vector{GLBatch}
+
+	batches=Vector{GLBatch}()
 
   V = lar.V
   EV = haskey(lar.C, :EV) ? lar.C[:EV] : nothing
@@ -348,10 +359,6 @@ function VIEWCOMPLEX(
     zeros = Matrix{Int64}([0.0 for I in 1:size(V, 2)][:,:]')
 		V=vcat(V,zeros)
   end
-
-  batches = Vector{GLBatch}()
-
-	Vtext  = haskey(lar.text, :V ) ? lar.text[:V ] : Dict(I => string(I) for I in eachindex(V))
 
 	function do_explode(cell_points)
 		ret=copy(cell_points)
@@ -373,8 +380,6 @@ function VIEWCOMPLEX(
 		push!(batches, batch_lines)
 		batch_lines.line_width  = 2
 
-		FVtext = haskey(lar.text, :FV) ? lar.text[:FV] : Dict(I => string(I) for I in eachindex(FV))
-
 		# for each face
     for (F, fv) in enumerate(FV)
       cell_points, centroid = do_explode(V[:, fv])
@@ -385,7 +390,7 @@ function VIEWCOMPLEX(
 				function render_points()
 					for (v_index, pos) in zip(fv,eachcol(cell_points))
 						if "V_text" in show
-							append!(batches, GLText(Vtext[v_index], center=pos, color=DARK_GRAY, fontsize=0.04))
+							append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04))
 						end
 					end		
 				end
@@ -439,7 +444,7 @@ function VIEWCOMPLEX(
       end
 
       if "FV_text" in show
-        append!(batches, GLText(FVtext[F], center=centroid, color=color, fontsize=0.04))
+        append!(batches, GLText(string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=centroid, color=color, fontsize=0.04))
       end
 
     end
@@ -451,8 +456,6 @@ function VIEWCOMPLEX(
 		push!(batches, batch_lines)
 		batch_lines.line_width  = 2
 
-		EVtext = haskey(lar.text, :EV) ? lar.text[:EV] : Dict(I => string(I) for I in eachindex(EV))
-
     for (E,ev) in enumerate(EV)
       cell_points, centroid = do_explode(V[:, ev])
 			color = isnothing(user_color) ? RandomColor(E) :  user_color
@@ -463,47 +466,48 @@ function VIEWCOMPLEX(
 				append!(batch_lines.vertices.vector, cell_points[:,2]);append!(batch_lines.colors.vector, color)				
 
 				if "V_text" in show
-					append!(batches, GLText(Vtext[ev[1]], center=cell_points[:,1], color=DARK_GRAY, fontsize=0.04))
-					append!(batches, GLText(Vtext[ev[2]], center=cell_points[:,2], color=DARK_GRAY, fontsize=0.04))
+					append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=cell_points[:,1], color=DARK_GRAY, fontsize=0.04))
+					append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=cell_points[:,2], color=DARK_GRAY, fontsize=0.04))
 				end
 
 			end
 
 			if "EV_text" in show
-				append!(batches, GLText(EVtext[E], center=centroid, color=LIGHT_GRAY, fontsize=0.04))
+				append!(batches, GLText(string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=centroid, color=LIGHT_GRAY, fontsize=0.04))
 			end
     end
 	end
 
-	if render
-		VIEWCOMPLEX(batches)
-	end
-
+	@show([GetBoundingBox(it) for it in batches])
 	return batches
 
 end
+export BATCHES
+
+# //////////////////////////////////////////////////////////////////////////////
+function VIEWCOMPLEX(lar::Lar; 
+	show=["V", "EV", "FV"], 
+	explode=[1.5,1.5,1.5], 
+	user_color=nothing)
+
+	batches=BATCHES(lar,show=show,explode=explode,user_color=user_color)
+	VIEWBATCHES(batches)
+end
+export VIEWCOMPLEX
 
 # //////////////////////////////////////////////////////////////////////////////
 function VIEWCOMPLEX(
 	lars::Vector{Lar}; 
 	show=["V", "EV", "FV"], 
-	explode::Vector{Float64}=[1.5,1.5,1.5],
-	render=true)::Vector{GLBatch}
+	explode=[1.5,1.5,1.5]
+	)
 
 	batches=Vector{GLBatch}()
 	for (I,lar) in enumerate(lars)
-		v=VIEWCOMPLEX(lar, show=show, explode=explode, user_color=RandomColor(I), render=false)
-		append!(batches,v)
+		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor(I)))
 	end
-
-	if render
-		VIEWCOMPLEX(batches)
-	end
-
-	return batches
+	VIEWBATCHES(batches)
 end
-
-	
 
 # //////////////////////////////////////////////////////////////////////////////
 function RandomLine(size_min::Float64,size_max::Float64)
