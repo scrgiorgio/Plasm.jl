@@ -8,9 +8,11 @@ Per alberto:
 
 # book
 git checkout main
+git pull
 
 # Boolean operation
 git checkout fixing-bool
+git pull
 ```
 
 ## Run tests
