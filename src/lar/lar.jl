@@ -212,6 +212,18 @@ end
 export compute_FE
 
 # //////////////////////////////////////////////////////////////////////////////
+function compute_FV(lar::Lar)
+	@assert(!haskey(lar.C,:FV)) 
+	lar.C[:FV]=Cells()
+	for (F,fe) in enumerate(lar.C[:FE])
+		v=Cell()
+		for E in fe append!(v,lar.C[:EV][E]) end
+		v=remove_duplicates(v)
+		push!(lar.C[:FV],v)
+	end
+end
+
+# //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
 function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
 	geo = ToGeometry(obj, precision=precision)
@@ -617,19 +629,5 @@ function cop_coboundary_0(EV::Cells)::ChainOp
 end
 export cop_coboundary_0
 
-# //////////////////////////////////////////////////////////////////////////////
-function FV2EVs(copEV::ChainOp, copFE::ChainOp)
-	EV = cop2lar(copEV) 
-	FE = cop2lar(copFE)
-	return [[EV[e] for e in fe] for fe in FE]
-end
-export FV2EVs
 
-
-# //////////////////////////////////////////////////////////////////////////////
-"""From (EV,FE) to EV"""
-function FV2EV(copEV::ChainOp, copFE::ChainOp)
-	return union(CAT(FV2EVs(copEV,copFE))) 
-end
-export FV2EV
 

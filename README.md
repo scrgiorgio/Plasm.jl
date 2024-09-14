@@ -27,7 +27,6 @@ julia --project=. test/plane.jl
 julia --project=. test/lar.jl
 
 # 2d arrangement
-# TODO: togliere TRIANGULATE
 julia --project=. test/randomlines.jl
 julia --project=. test/randombubbles.jl
 

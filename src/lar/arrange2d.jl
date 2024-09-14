@@ -777,51 +777,12 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function ARRANGE2D(V::Points, EV::Cells)
+function ARRANGE2D(lar::Lar)
+	copEV = convert(ChainOp, cop_coboundary_0(lar.C[:EV]))
+	V, copEV, copFE = planar_arrangement(lar.V, copEV)
+	ret=Lar(V, Dict( :EV => cop2lar(copEV), :FE => cop2lar(copFE)))
+	compute_FV(ret)
+	return ret
 
-	copEV = cop_coboundary_0(EV)
-	cop_EW = convert(ChainOp, copEV)
-	V, copEV, copFE = planar_arrangement(V, cop_EW::ChainOp)
-	EVs = FV2EVs(copEV, copFE) # polygonal face fragments
-
-	V_row = BYROW(V)
-
-	# triangulate
-	triangles_per_face = Array{Any,1}(undef, copFE.m)
-	if size(V_row, 2) == 2
-		V_row = [V_row zeros(size(V_row, 1), 1)]
-	end
-
-	polygons, edgecycles = faces2polygons(copEV, copFE) #new
-
-	for f in 1:copFE.m
-		edges_idxs = copFE[f, :].nzind
-		edge_num = length(edges_idxs)
-		edges = Array{Int,1}[] #zeros(Int, edge_num, 2)
-
-		# fv = buildFV(copEV, copFE[f, :])
-		fv = union(polygons[f]...)
-		vs = V_row[fv, :]
-		edges = union(edgecycles[f]...)
-		edges = convert(Array{Int,2}, hcat(edges...)')
-
-		v = convert(Points, vs'[1:2, :])
-		global_to_local = Dict(zip(fv, 1:length(fv))) # vertex map
-		local_to_global = Dict(zip(1:length(fv), fv)) # inverse vertex map
-		ev = [[global_to_local[e] for e in edges[k, :]] for k = 1:size(edges, 1)]
-		triangles_per_face[f] = [[local_to_global[u],local_to_global[v],local_to_global[w]] for (u,v,w) in TRIANGULATE(v, ev)]
-
-		tV = V_row[:, 1:2]
-
-		area = face_area(tV, copEV, copFE[f, :])
-		if area < 0
-			for i in 1:length(triangles_per_face[f])
-				triangles_per_face[f][i] = triangles_per_face[f][i][end:-1:1]
-			end
-		end
-	end
-
-	FVs = convert(Vector{Cells}, triangles_per_face)
-	return V, FVs, EVs
 end
 export ARRANGE2D

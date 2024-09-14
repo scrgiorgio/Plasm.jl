@@ -283,16 +283,7 @@ using Combinatorics
         @test length(FE) == length(FV) == 20
      end
      
-     @testset "FV2EV" begin
-        grid = CUBOIDGRID([2,2,1])
-        V,FV,EV = grid.V, grid.C[:FV], grid.C[:EV]
-        copFV, copEV = lar2cop(FV), lar2cop(EV)
-        copFE = SparseArrays.spmatmul(copFV,permutedims(copEV)) .÷ Int8(2)
-        ev = FV2EV(copEV::ChainOp, copFE::ChainOp)
-        @test sort(ev) == sort(EV)
-        @test typeof(ev) == Cells
-        @test LEN(EV) == LEN(ev)
-     end
+
      
   end
 end
