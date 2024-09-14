@@ -1,5 +1,6 @@
 using Plasm
 using Random
+using LinearAlgebra
 
 Random.seed!(0)
 
@@ -10,34 +11,12 @@ assembly = STRUCT(
 )
 
 lar=LAR(assembly)
+# VIEWCOMPLEX(lar)
 
 arrangement = ARRANGE3D(lar)
-VIEWCOMPLEX(arrangement,explode=[1.4,1.4,1.4])
+# VIEWCOMPLEX(arrangement, explode=[1.4,1.4,1.4])
 
-bool3d(assembly, arrangement, CF)
+input_args=[LAR(it) for it in TOPOS(assembly)]
+bool = bool3d(arrangement, bool_op=Difference, input_args=input_args, debug_mode=true)
+VIEWCOMPLEX(bool, explode=[1.4,1.4,1.4])
 
-"""
-
-# 3 atoms
-A = boolmatrix[:,2];
-B = boolmatrix[:,3];
-C = boolmatrix[:,4];
-AorB = A .| B;
-AandB = A .& B;
-AxorB = AorB .⊻ (.!AandB) 
-AorBorC = A .| B .| C
-AorBorC = .|(A, B, C)
-AandBandC = A .& B .& C
-AandBandC = .&(A, B, C)
-AminBminC = .&(A, .!B, .!C) # A - B - C
-
-union  = Matrix(copCF)' * Int.(AorBorC  ) # coord vector of Faces
-inters = Matrix(copCF)' * Int.(AandBandC) # coord vector of Faces
-diff   = Matrix(copCF)' * Int.(AminBminC) # coord vector of Faces
-
-arrangement = VIEWCOMPLEX(V_original, copEV, copFE, copCF) 
-arrangement = VIEWCOMPLEX((SELECT(V_original, copEV, copFE, copCF, diff  )...)
-arrangement = VIEWCOMPLEX(SELECT(V_original, copEV, copFE, copCF, inters) ...)
-arrangement = VIEWCOMPLEX((SELECT(V_original, copEV, copFE, copCF, union )...)
-
-"""

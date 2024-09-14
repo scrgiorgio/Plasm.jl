@@ -150,62 +150,68 @@ end
 export find_internal_point
 
 
-# //////////////////////////////////////////////////////////////////////////////
-function bool3d(assembly::Hpc, arrangement::Lar, CF::Cells; debug_mode=true)
+function Union(v::AbstractArray)        return any(v) end
+function Intersection(v::AbstractArray) return all(v) end
+function Difference(v::AbstractArray)   return v[1] && !any(v[2:end]) end
+function Xor(v::AbstractArray)          return (length([it for it in v if it]) % 2)==1  end
+
+export Union, Intersection,Difference,Xor
+
+# ////////////////////////////////////////////////////////////////
+function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
+
+  atom_faces=arrangement.C[:CF]
 
   atoms=[]
-  for sel in CF
-    atom=SELECT(arrangement,sel)
+  for sel in atom_faces
+    atom=SELECT(arrangement, sel)
     push!(atoms,atom)
+    # VIEWCOMPLEX(atom, explode=[1.4,1.4,1.4])
   end
-
+  
   # remove outer atoms (i.e. the one that contains all other atoms) by using diagonal measurement
   begin
-    diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom,only_used_vertices=true) for atom in atoms]]
+    diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
     __outer, outer_index = findmax(diags)
-    deleteat!(atoms, outer_index)
+    deleteat!(atoms,      outer_index)
+    deleteat!(atom_faces, outer_index)
   end
-
-  # create the boolean matrix
-  # TODO: probably if I work on the overall assembly I have to test few faces (ref. old Alberto's face span code)
   
-  atoms=[ [atom,find_internal_point(atom)...]  for atom in atoms]
-
-  # view atoms 
-  if debug_mode
-    for (atom, ray_origin, ray_dir) in atoms
-
-      batches=BATCHES(atom)
-
-      begin
-        points = GLBatch(POINTS)
-        points.point_size = 3
-        points.point_color = RED
-        append(points.vertices.vector, ray_origin)
-        push!(batches,points)
+  internal_points=[find_internal_point(atom) for atom in atoms] 
+  
+  bool_matrix=zeros(Bool,length(atoms),length(input_args))
+  
+  for (A,(atom, (internal_point, ray_dir, distances))) in enumerate(zip(atoms, internal_points))
+    # @show(internal_point, ray_dir, distances)
+  
+    # find for each input arg if the internal point is inside or outside
+    for (I,input_arg) in enumerate(input_args)
+      bool_matrix[A,I]=is_internal_point(input_arg, internal_point, ray_dir)
+    end
+  
+    if debug_mode
+      points = GLBatch(POINTS); points.point_size = 8
+      lines  = GLBatch(LINES) ; lines.line_width  = 2
+      append!(points.colors.vector,RED); append!(points.vertices.vector, internal_point)
+      for distance in distances
+        append!(points.colors.vector, GREEN ); append!(points.vertices.vector, internal_point+distance*ray_dir)
+        append!(lines.colors.vector,  YELLOW); append!(lines.vertices.vector, internal_point)
+        append!(lines.colors.vector,  YELLOW); append!(lines.vertices.vector, internal_point+distance*ray_dir)
       end
-
-      begin
-        lines = GLBatch(LINES)
-        lines.line_width = 3
-        lines.point_color = YELLOW
-        append(lines.vertices.vector, (ray_origin+0.0*ray_dir))
-        append(lines.vertices.vector, (ray_origin+1.0*ray_dir))
-        push!(batches,points)
-      end
-
-      VIEWBATCHES(batches)
-
+  
+      text=GLText(join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)
+      VIEWCOMPLEX(atom, show=["V", "EV"], explode=[1.0,1.0,1.0], user_batches=[points,lines,text...])
+    end
+  end
+  
+  sel=Cell()
+  for (A,row) in enumerate(eachrow(bool_matrix))
+    if bool_op(row)
+      append!(sel,atom_faces[A])
     end
   end
 
-  # TOPOS is needed to isolate input arguments (will create one lar for each input arg)
-  ret=[]
-  args = [LAR(it) for it in TOPOS(assembly)]
-  for (atom, ray_origin, ray_dir) in atoms
-    push!(ret,[is_internal_point(arg, ray_origin, ray_dir) for arg in args])
-  end
+  return SELECT(arrangement, remove_duplicates(sel))
 
-  return ret
 end
 export bool3d

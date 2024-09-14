@@ -2,6 +2,16 @@
 
 [![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
+Per alberto:
+
+```bash
+
+# book
+git checkout main
+
+# Boolean operation
+git checkout fixing-bool
+```
 
 ## Run tests
 
@@ -15,6 +25,7 @@ julia --project=. test/plane.jl
 julia --project=. test/lar.jl
 
 # 2d arrangement
+# TODO: togliere TRIANGULATE
 julia --project=. test/randomlines.jl
 julia --project=. test/randombubbles.jl
 
@@ -24,6 +35,7 @@ julia --project=. test/randomcubes.jl
 julia --project=. test/mechanical_piece.jl
 
 # boolean
+# TODO UNION e' outer atom
 julia --project=. test/boolean.jl
 
 ```
