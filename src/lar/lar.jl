@@ -371,6 +371,109 @@ function VIEWBATCHES(batches::Vector{GLBatch})
 end
 export VIEWBATCHES
 
+# /////////////////////////////////////////////////////
+function get_explosion_vt(points::Points, explode)
+	centroid = compute_centroid(points)
+	vt = (centroid .* [explode[1]; explode[2]; explode[3]]) - centroid
+	return vt
+end
+
+# /////////////////////////////////////////////////////
+function do_explode(points::Points, vt)
+	ret=copy(points)
+	for C in 1:size(ret,2) 
+		ret[:,C]=ret[:,C] .+ vt 
+	end
+	return ret
+end
+# /////////////////////////////////////////////////////
+function render_edge(batches::Vector{GLBatch},	batch_lines::GLBatch, lar::Lar, E::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
+
+	ev=lar.C[:EV][E]
+	edge_points=do_explode(lar.V[:, ev], vt)
+	
+	append!(batch_lines.vertices.vector, edge_points[:,1]);append!(batch_lines.colors.vector, color)
+	append!(batch_lines.vertices.vector, edge_points[:,2]);append!(batch_lines.colors.vector, color)				
+
+	if "V_text" in show
+		append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=0.04))
+		append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=0.04))
+	end
+
+	if "EV_text" in show
+		append!(batches, GLText(string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=0.04))
+	end
+end
+
+
+# /////////////////////////////////////////////////////
+function render_face(batches::Vector{GLBatch},	batch_triangles::GLBatch, batch_lines::GLBatch, lar::Lar, F::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
+
+	fv=lar.C[:FV][F]
+	face_points=do_explode(lar.V[:, fv], vt)
+	
+	# generic solution is to use FE to compute constrained triangulation and then triangles
+	if haskey(lar.C,:FE)
+		vmap=Dict(zip(fv,1:length(fv)))
+		cell_EV=Cells()
+		fe=lar.C[:FE][F]
+		for E in fe
+			a,b=lar.C[:EV][E]
+			push!(cell_EV,[vmap[a],vmap[b]])
+		end
+		vcycles = find_vcycles(cell_EV)
+		points2d = project_points3d(face_points; double_check=true)(face_points)
+		triangles = TRIANGULATE(points2d, vcycles)
+
+	# is it a simple triangle?
+	elseif length(fv)==3
+		vcycles=[1,2],[2,3],[3,1]
+		triangles=[[1,2,3]]
+
+	else
+		# I need to know FE (which cannot be computed automatically from FV EV considering non-convex faces)
+		return 
+	end
+
+	# render points
+	begin
+		for (v_index, pos) in zip(fv,eachcol(face_points))
+			if "V_text" in show
+				append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04))
+			end
+		end		
+		
+	end
+
+	# render lines
+	begin
+		for (a,b) in vcycles
+			append!(batch_lines.vertices.vector, face_points[:,a]);append!(batch_lines.colors.vector, DARK_GRAY)
+			append!(batch_lines.vertices.vector, face_points[:,b]);append!(batch_lines.colors.vector, DARK_GRAY)
+		end			
+	end
+
+	# render triangles
+	begin
+		for (u, v, w) in triangles
+			p0 = face_points[:,u]
+			p1 = face_points[:,v]
+			p2 = face_points[:,w]
+			n = ComputeTriangleNormal(p0, p1, p2)
+			append!(batch_triangles.vertices.vector, p0);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
+			append!(batch_triangles.vertices.vector, p1);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
+			append!(batch_triangles.vertices.vector, p2);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
+		end
+	end
+
+	if "FV_text" in show
+		centroid=compute_centroid(face_points)
+		append!(batches, GLText(string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=color, fontsize=0.04))
+	end
+
+end
+
+
 # //////////////////////////////////////////////////////////////////////////////
 function BATCHES(
 	lar::Lar; 
@@ -381,132 +484,69 @@ function BATCHES(
 
 	batches=Vector{GLBatch}()
 
-  V = lar.V
-  EV = haskey(lar.C, :EV) ? lar.C[:EV] : nothing
-  FV = haskey(lar.C, :FV) ? lar.C[:FV] : nothing
-
-  # want V to be 3 dimensional 
-  if size(V, 1) == 2
-    zeros = Matrix{Int64}([0.0 for I in 1:size(V, 2)][:,:]')
-		V=vcat(V,zeros)
-  end
-
-	function do_explode(cell_points)
-		ret=copy(cell_points)
-		centroid = compute_centroid(ret)
-		vt = (centroid .* [explode[1]; explode[2]; explode[3]]) - centroid
-		for C in 1:size(ret,2) ret[:,C]=ret[:,C] .+ vt end
-		return ret, compute_centroid(ret)
+  # want lar to be 3 dimensional 
+	begin
+		lar = Lar(lar.V, lar.C)
+		if size(lar.V, 1) == 2
+			zeros = Matrix{Int64}([0.0 for I in 1:size(lar.V, 2)][:,:]')
+			lar.V=vcat(lar.V,zeros)
+		end
 	end
 
-  if "FV" in show && !isnothing(FV)
+	# I think the order is important for polygon offset
+	batch_triangles = GLBatch(TRIANGLES)
+	push!(batches, batch_triangles)
+	batch_triangles.line_width = 0 # otherwise I would see the triangulation
+	batch_triangles.enable_polygon_offset=true
 
-		# I think the order is important for polygon offset
-		batch_triangles = GLBatch(TRIANGLES)
-		push!(batches, batch_triangles)
-		batch_triangles.line_width = 0 # otherwise I would see the triangulation
-		batch_triangles.enable_polygon_offset=true
+	batch_lines = GLBatch(LINES)
+	push!(batches, batch_lines)
+	batch_lines.line_width  = 2
 
-		batch_lines = GLBatch(LINES)
-		push!(batches, batch_lines)
-		batch_lines.line_width  = 2
+	# ____________________________________________
+  if "FV" in show && haskey(lar.C,:FV)
 
-		# for each face
-    for (F, fv) in enumerate(FV)
-      cell_points, centroid = do_explode(V[:, fv])
-      color = isnothing(user_color) ? RandomColor(F) : user_color
-
-      if "FV" in show 
-
-				function render_points()
-					for (v_index, pos) in zip(fv,eachcol(cell_points))
-						if "V_text" in show
-							append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04))
-						end
-					end		
+		# explode by cell
+		if "atom" in show && haskey(lar.C, :CF)
+			for (C,cf) in enumerate(lar.C[:CF])
+				v_indices=[]
+				for F in cf append!(v_indices,lar.C[:FV][F]) end
+				v_indices=remove_duplicates(v_indices)
+				vt=get_explosion_vt(lar.V[:, v_indices], explode)
+				color = isnothing(user_color) ? RandomColor() : user_color
+				for F in cf
+					render_face(batches, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
 				end
-
-				function render_lines(vcycles)
-					for (a,b) in vcycles
-						append!(batch_lines.vertices.vector, cell_points[:,a]);append!(batch_lines.colors.vector, DARK_GRAY)
-						append!(batch_lines.vertices.vector, cell_points[:,b]);append!(batch_lines.colors.vector, DARK_GRAY)
-					end
-				end
-
-				function render_triangles(triangles)
-					for (u, v, w) in triangles
-						p0 = cell_points[:,u]
-						p1 = cell_points[:,v]
-						p2 = cell_points[:,w]
-						n = ComputeTriangleNormal(p0, p1, p2)
-						append!(batch_triangles.vertices.vector, p0);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
-						append!(batch_triangles.vertices.vector, p1);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
-						append!(batch_triangles.vertices.vector, p2);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
-					end
-				end
-
-				# generic solution is to use FE to compute constrained triangulation and then triangles
-				if haskey(lar.C,:FE)
-					vmap=Dict(zip(fv,1:length(fv)))
-					cell_EV=Cells()
-					fe=lar.C[:FE][F]
-					for E in fe
-						a,b=EV[E]
-						push!(cell_EV,[vmap[a],vmap[b]])
-					end
-					vcycles = find_vcycles(cell_EV)
-					points2d = project_points3d(cell_points; double_check=true)(cell_points)
-					triangles = TRIANGULATE(points2d, vcycles)
-
-				# is it a simple triangle?
-				elseif length(fv)==3
-					vcycles=[1,2],[2,3],[3,1]
-					triangles=[[1,2,3]]
-
-				else
-					# I need to know FE (which cannot be computed automatically from FV EV considering non-convex faces)
-					continue
-				end
-
-				render_points()
-				render_lines(vcycles)
-				render_triangles(triangles)
-
-      end
-
-      if "FV_text" in show
-        append!(batches, GLText(string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=centroid, color=color, fontsize=0.04))
-      end
-
-    end
+			end
+		# expode by single face
+		else
+			for (F, fv) in enumerate(lar.C[:FV])
+				vt=get_explosion_vt(lar.V[:, fv], explode)
+				color = isnothing(user_color) ? RandomColor() : user_color
+				render_face(batches, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
+			end
+		end
 
 	# show lines
-  elseif "EV" in show && !isnothing(EV)
+  elseif "EV" in show && haskey(lar.C,:EV)
 
-		batch_lines = GLBatch(LINES)
-		push!(batches, batch_lines)
-		batch_lines.line_width  = 2
-
-    for (E,ev) in enumerate(EV)
-      cell_points, centroid = do_explode(V[:, ev])
-			color = isnothing(user_color) ? RandomColor(E) :  user_color
-
-			if "EV" in show
-
-				append!(batch_lines.vertices.vector, cell_points[:,1]);append!(batch_lines.colors.vector, color)
-				append!(batch_lines.vertices.vector, cell_points[:,2]);append!(batch_lines.colors.vector, color)				
-
-				if "V_text" in show
-					append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=cell_points[:,1], color=DARK_GRAY, fontsize=0.04))
-					append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=cell_points[:,2], color=DARK_GRAY, fontsize=0.04))
+		# explode by polygon
+		if "atom" in show && haskey(lar.C, :FV) && haskey(lar.C, :FE)
+			for (F,fv) in enumerate(lar.C[:FV])
+				vt=get_explosion_vt(lar.V[:, fv], explode)
+				color = isnothing(user_color) ? RandomColor() : user_color
+				for E in lar.C[:FE][F]
+					render_edge(batches, batch_lines, lar, E, vt=vt, color=color, show=show)
 				end
-
 			end
-
-			if "EV_text" in show
-				append!(batches, GLText(string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=centroid, color=LIGHT_GRAY, fontsize=0.04))
+		# explode by single edge
+		else
+			for (E,ev) in enumerate(lar.C[:EV])
+				vt=get_explosion_vt(lar.V[:, ev], explode)
+				color = isnothing(user_color) ? RandomColor() :  user_color
+				render_edge(batches, batch_lines, lar, E, vt=vt, color=color, show=show)
 			end
-    end
+		end
 	end
 
 	# @show([GetBoundingBox(it) for it in batches])
@@ -538,7 +578,7 @@ function VIEWCOMPLEX(
 
 	batches=Vector{GLBatch}()
 	for (I,lar) in enumerate(lars)
-		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor(I)))
+		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor()))
 	end
 	append!(batches,user_batches)
 	VIEWBATCHES(batches)

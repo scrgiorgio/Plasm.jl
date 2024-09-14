@@ -8,5 +8,11 @@ lar = LAR(hpc)
 
 arrangement = ARRANGE2D(lar)
 
-# VIEWCOMPLEX(arrangement, show=["V","EV"], explode=[1.2,1.2,1.2])
-VIEWCOMPLEX(arrangement, show=["V","FV"], explode=[1.2,1.2,1.2])
+# show edges exploded by single edge
+VIEWCOMPLEX(arrangement, show=["V","EV"], explode=[1.5,1.5,1.5])
+
+# show edges exploded by atom centroid
+VIEWCOMPLEX(arrangement, show=["V","EV", "atom"], explode=[1.5,1.5,1.5])
+
+# show faces exploded by single face
+VIEWCOMPLEX(arrangement, show=["V","FV"], explode=[1.5,1.5,1.5])

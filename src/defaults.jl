@@ -43,8 +43,8 @@ function GetColorByName(name)
 end
 
 
-function RandomColor(index::Int)::Point4d
-	ret=Point4d(Plasm.COLORS[(index-1)%12+1] - (rand(Float64,4)*0.1))
+function RandomColor()::Point4d
+	ret=0.5*Plasm.COLORS[rand(1:12)] +0.5* Plasm.COLORS[rand(1:12)]
 	ret[4] = 1.0
 	return ret
 end

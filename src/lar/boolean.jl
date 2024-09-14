@@ -158,6 +158,14 @@ function Xor(v::AbstractArray)          return (length([it for it in v if it]) %
 export Union, Intersection,Difference,Xor
 
 # ////////////////////////////////////////////////////////////////
+function get_outer_atom(atoms)
+  diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
+  outer, outer_index = findmax(diags)
+  return outer, outer_index
+end
+export get_outer_atom
+
+# ////////////////////////////////////////////////////////////////
 function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
 
   atom_faces=arrangement.C[:CF]
@@ -169,13 +177,9 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
     # VIEWCOMPLEX(atom, explode=[1.4,1.4,1.4])
   end
   
-  # remove outer atoms (i.e. the one that contains all other atoms) by using diagonal measurement
-  begin
-    diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
-    __outer, outer_index = findmax(diags)
-    deleteat!(atoms,      outer_index)
-    deleteat!(atom_faces, outer_index)
-  end
+  outer_atom, outer_index = get_outer_atom(atoms)
+  deleteat!(atoms,      outer_index)
+  deleteat!(atom_faces, outer_index)
   
   internal_points=[find_internal_point(atom) for atom in atoms] 
   

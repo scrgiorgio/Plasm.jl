@@ -66,23 +66,23 @@ end
 
 function normalized(p::Point4d)
 	len = norm(p)
-	return Point3d(p[1] / len, p[2] / len, p[3] / len, p[4] / len)
+	return Point4d(p[1] / len, p[2] / len, p[3] / len, p[4] / len)
 end
 
 function dropW(p::Point4d)
-	return Point3d(p[1] / p[4], p[2] / p[4], p[3] / p[4])
+	return Point4d(p[1] / p[4], p[2] / p[4], p[3] / p[4])
 end
 
 function +(a::Point4d, b::Point4d)
-	return Point3d(a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4] + b[4])
+	return Point4d(a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4] + b[4])
 end
 
 function -(a::Point4d, b::Point4d)
-	return Point3d(a[1] - b[1], a[2] - b[2], a[3] - b[3], a[4] - b[4])
+	return Point4d(a[1] - b[1], a[2] - b[2], a[3] - b[3], a[4] - b[4])
 end
 
 function *(a::Point4d, vs::Float64)
-	return Point3d(a[1] * vs, a[2] * vs, a[3] * vs, a[4] * vs)
+	return Point4d(a[1] * vs, a[2] * vs, a[3] * vs, a[4] * vs)
 end
 
 
