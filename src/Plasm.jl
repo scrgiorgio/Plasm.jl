@@ -5,7 +5,9 @@ include("./geometry.jl")
 include("./defaults.jl")
 
 include("./viewer.jl")
-include("./glfw/viewer.jl")
+
+# function RunViewer(viewer::Viewer)
+include("./viewer.glfw.jl")
 
 include("./hpc.jl")
 include("./fenvs.jl")
