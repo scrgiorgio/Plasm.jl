@@ -396,12 +396,12 @@ function render_edge(batches::Vector{GLBatch},	batch_lines::GLBatch, lar::Lar, E
 	append!(batch_lines.vertices.vector, edge_points[:,2]);append!(batch_lines.colors.vector, color)				
 
 	if "V_text" in show
-		append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=0.04))
-		append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=0.04))
+		push!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=0.04))
+		push!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=0.04))
 	end
 
 	if "EV_text" in show
-		append!(batches, GLText(string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=0.04))
+		push!(batches, GLText(string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=0.04))
 	end
 end
 
@@ -439,7 +439,7 @@ function render_face(batches::Vector{GLBatch},	batch_triangles::GLBatch, batch_l
 	begin
 		for (v_index, pos) in zip(fv,eachcol(face_points))
 			if "V_text" in show
-				append!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04))
+				push!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04))
 			end
 		end		
 		
@@ -468,7 +468,7 @@ function render_face(batches::Vector{GLBatch},	batch_triangles::GLBatch, batch_l
 
 	if "FV_text" in show
 		centroid=compute_centroid(face_points)
-		append!(batches, GLText(string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=color, fontsize=0.04))
+		push!(batches, GLText(string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=color, fontsize=0.04))
 	end
 
 end

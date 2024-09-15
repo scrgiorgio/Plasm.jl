@@ -1,7 +1,12 @@
 module Plasm
 
 include("./config.jl")
+include("./geometry.jl")
+include("./defaults.jl")
+
 include("./viewer.jl")
+include("./glfw/viewer.jl")
+
 include("./hpc.jl")
 include("./fenvs.jl")
 

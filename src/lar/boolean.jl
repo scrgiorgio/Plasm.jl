@@ -204,7 +204,7 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
       end
   
       text=GLText(join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)
-      VIEWCOMPLEX(atom, show=["V", "EV"], explode=[1.0,1.0,1.0], user_batches=[points,lines,text...])
+      VIEWCOMPLEX(atom, show=["V", "EV"], explode=[1.0,1.0,1.0], user_batches=[points,lines,text])
     end
   end
   

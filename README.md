@@ -36,7 +36,6 @@ julia --project=. test/randomcubes.jl
 julia --project=. test/mechanical_piece.jl
 
 # boolean
-# TODO UNION e' outer atom
 julia --project=. test/boolean.jl
 
 ```
