@@ -67,9 +67,6 @@ julia
 using Pkg
 Pkg.activate(".")
 
-
-
-# add packages
 Pkg.add([
   "Combinatorics", 
   "GLFW", 
@@ -89,7 +86,9 @@ Pkg.add([
   "Colors",
   "FileIO",
   "MeshCat",
-  "IJulia"
+  "IJulia",
+  "Random",
+  "Statistics"
 ])
 
 # update the manifest too

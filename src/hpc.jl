@@ -958,7 +958,7 @@ function GetBatchesForHpc(hpc::Hpc)
 			batch.point_color = get(properties, "point_color", DEFAULT_POINT_COLOR)
 			batch.line_color = get(properties, "line_color", DEFAULT_LINE_COLOR)
 			batch.face_color = get(properties, "face_color", DEFAULT_FACE_COLOR)
-			prependTransformation(batch, T4d)
+			prependTransformation!(T4d,batch)
 			push!(batches, batch)
 		end
 

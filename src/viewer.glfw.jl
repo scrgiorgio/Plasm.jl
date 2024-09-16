@@ -9,6 +9,58 @@ export POINTS, LINES, TRIANGLES
 
 __release_gpu_resources__ = []
 
+
+# /////////////////////////////////////////////////////////////////////////////
+mutable struct GLFWViewer
+	win::Any
+	W::Int32
+	H::Int32
+	scalex::Float64
+	scaley::Float64
+	fov::Float64
+	pos::Point3d
+	dir::Point3d
+	vup::Point3d
+	zNear::Float64
+	zFar::Float64
+	walk_speed::Float64
+	mouse_beginx::Float64
+	mouse_beginy::Float64
+	down_button::Int32
+	batches::Any
+	shaders::Dict{Any,Any}
+	use_ortho::Bool
+	exitNow::Bool
+	show_lines::Bool
+	background_color::Vector{Float64}
+	title::String
+	lighting_enabled::Bool
+
+	# constructor
+	function GLFWViewer(batches)
+		new(
+			0,
+			1024, 768,
+			1.0, 1.0,
+			DEFAULT_FOV,
+			Point3d(0, 0, 1),
+			Point3d(0, 0, -1),
+			Point3d(1, 0, 0),
+			0.01, 100.0, 0.1,
+			0, 0, 0,
+			batches,
+			Dict{Any,Any}(),
+			DEFAULT_USE_ORTHO,
+			false,  # exitNow
+			DEFAULT_SHOW_LINES,
+			DEFAULT_BACKGROUND_COLOR,
+			"Plasm.jl",
+			DEFAULT_LIGHTING_ENABLED
+		)
+	end
+
+end
+
 # /////////////////////////////////////////////////////////////////////
 function glGenBuffer()
 	id = GLuint[0]
@@ -420,7 +472,7 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////////
-function releaseGpuResources(viewer::Viewer)
+function releaseGpuResources(viewer::GLFWViewer)
 
 	for batch in viewer.batches
 		releaseGpuResources(batch)
@@ -432,8 +484,48 @@ function releaseGpuResources(viewer::Viewer)
 end
 
 
+
 # ///////////////////////////////////////////////////////////////////////
-function RunViewer(viewer::Viewer)
+function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
+
+	batches=[batch for batch in batches if length(batch.vertices.vector)>0]
+
+	# calculate bounding box
+	BOX::Box3d = invalidBox()
+	for batch in batches
+		box = GetBoundingBox(batch)
+		addPoint(BOX, box.p1)
+		addPoint(BOX, box.p2)
+	end
+
+	# reduce to the case -1,+1
+	box_size = BOX.p2 - BOX.p1
+	max_size = maximum([box_size[1], box_size[2], box_size[3]])
+	box_center = center(BOX)
+	use_ortho=(box_size[3]==0.0)
+
+	T = scaleMatrix(Point3d(2.0/max_size, 2.0/max_size, 2.0/max_size)) * translateMatrix(-box_center)
+	for batch in batches
+		prependTransformation!(T, batch)
+	end
+
+	show_axis = get(properties, "show_axis", true)
+	if show_axis
+		push!(batches, GLAxis(Point3d(0.0, 0.0, 0.0), Point3d(1.1, 1.1, 1.1)))
+	end
+
+	viewer = GLFWViewer(batches)
+	viewer.background_color =            get(properties, "background_color", viewer.background_color)
+	viewer.title            =            get(properties, "title", viewer.title)
+	viewer.use_ortho        =            get(properties, "use_ortho", use_ortho)
+	viewer.show_lines       =            get(properties, "show_lines", viewer.show_lines)
+	viewer.fov              =            get(properties, "fov", viewer.fov)
+	viewer.pos              =            2.0*Point3d(use_ortho ? 0 : 1.0, use_ortho ? 0 : 1.0, 1.0) 
+	viewer.dir              = normalized(normalized(Point3d(0,0,0) - viewer.pos))
+	viewer.vup              = normalized(use_ortho ? Point3d(0, 1, 0) : Point3d(0, 0, 1))
+	viewer.zNear            =            0.001
+	viewer.zFar             =            5.0
+	viewer.walk_speed       =            0.01 
 
 	redisplay(viewer)
 
@@ -480,7 +572,7 @@ function RunViewer(viewer::Viewer)
 		handleMouseWheelEvent(viewer, dy)
 	end)
 
-	handleResizeEvent(viewer::Viewer)
+	handleResizeEvent(viewer::GLFWViewer)
 	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
 		glRender(viewer)
 		GLFW.SwapBuffers(win)
@@ -491,14 +583,18 @@ function RunViewer(viewer::Viewer)
 	glDeleteNow()
 	GLFW.DestroyWindow(win)
 	GLFW.Terminate()
+
 end
+export GLView
+
+
 
 # ///////////////////////////////////////////////////////////////////////
-function getModelview(viewer::Viewer)
+function getModelview(viewer::GLFWViewer)
 	return lookAtMatrix(viewer.pos, viewer.pos + viewer.dir, viewer.vup)
 end
 
-function getProjection(viewer::Viewer)
+function getProjection(viewer::GLFWViewer)
 	ratio = viewer.W / float(viewer.H)
 	if viewer.use_ortho
 		# euristic that seem to work well
@@ -514,28 +610,9 @@ function getProjection(viewer::Viewer)
 
 end
 
-# ///////////////////////////////////////////////////////////////////////
-function projectPoint(viewer::Viewer, pos::Point3d)
-	viewport = [0, 0, viewer.W, viewer.H]
-	projection = getProjection(viewer)
-	modelview = getModelview(viewer)
-	map = FrustumMap(viewport, projection, modelview)
-	return projectPoint(map, pos)
-end
 
 # ///////////////////////////////////////////////////////////////////////
-function unprojectPoint(viewer::Viewer, x::Float64, y::Float64)
-	viewport = [0, 0, viewer.W, viewer.H]
-	projection = getProjection(viewer)
-	modelview = getModelview(viewer)
-	map = FrustumMap(viewport, projection, modelview)
-	P1 = unprojectPoint(map, x, viewer.H - y, -1.0)
-	P2 = unprojectPoint(map, x, viewer.H - y, +1.0)
-	return normalized(P2 - P1)
-end
-
-# ///////////////////////////////////////////////////////////////////////
-function getShader(viewer::Viewer, lighting_enabled, color_attribute_enabled)
+function getShader(viewer::GLFWViewer, lighting_enabled, color_attribute_enabled)
 
 	lighting_enabled = lighting_enabled && viewer.lighting_enabled
 
@@ -551,7 +628,7 @@ function getShader(viewer::Viewer, lighting_enabled, color_attribute_enabled)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function glRender(viewer::Viewer)
+function glRender(viewer::GLFWViewer)
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glDisable(GL_CULL_FACE)
@@ -634,7 +711,7 @@ function glRender(viewer::Viewer)
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////////
-function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
+function glRenderBatch(viewer::GLFWViewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
 
 	lighting_enabled = length(batch.normals.vector) > 0 && viewer.lighting_enabled
 	color_attribute_enabled = length(batch.colors.vector) > 0
@@ -644,7 +721,7 @@ function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELV
 	enableProgram(shader)
 
 	projection = PROJECTION
-	modelview = MODELVIEW * batch.T
+	modelview = MODELVIEW 
 	normal_matrix = dropW(transpose(inv(modelview)))
 
 	glUniformMatrix4fv(glGetUniformLocation(shader.program_id, "u_modelview_matrix"), 1, GL_TRUE, flatten(modelview))
@@ -688,7 +765,7 @@ function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELV
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function redisplay(viewer::Viewer)
+function redisplay(viewer::GLFWViewer)
 	# nothing to do
 end
 
@@ -701,7 +778,7 @@ function handleResizeEvent(viewer)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseButtonEvent(viewer::Viewer, button, action, mods)
+function handleMouseButtonEvent(viewer::GLFWViewer, button, action, mods)
 
 	button = Dict(GLFW.MOUSE_BUTTON_1 => 1, GLFW.MOUSE_BUTTON_2 => 3, GLFW.MOUSE_BUTTON_3 => 2)[button]
 
@@ -719,7 +796,7 @@ function handleMouseButtonEvent(viewer::Viewer, button, action, mods)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseMoveEvent(viewer::Viewer, x::Float64, y::Float64)
+function handleMouseMoveEvent(viewer::GLFWViewer, x::Float64, y::Float64)
 
 	x = x * viewer.scalex
 	y = y * viewer.scaley
@@ -770,7 +847,7 @@ function handleMouseMoveEvent(viewer::Viewer, x::Float64, y::Float64)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseWheelEvent(viewer::Viewer, delta)
+function handleMouseWheelEvent(viewer::GLFWViewer, delta)
 	if viewer.use_ortho
 		viewer.fov*=(delta<0) ? 1.1 : 1.0/1.1;
 	else
@@ -780,7 +857,7 @@ function handleMouseWheelEvent(viewer::Viewer, delta)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleKeyPressEvent(viewer::Viewer, key, scancode, action, mods)
+function handleKeyPressEvent(viewer::GLFWViewer, key, scancode, action, mods)
 
 	if action != GLFW.PRESS && action != GLFW.REPEAT
 		return
@@ -802,16 +879,13 @@ function handleKeyPressEvent(viewer::Viewer, key, scancode, action, mods)
 	end
 
 	if (key == GLFW.KEY_W)
-		dir = unprojectPoint(viewer, 0.5 * viewer.W, 0.5 * viewer.H)
-		#println("dir",dir,"walk_speed",viewer.walk_speed)
-		viewer.pos = viewer.pos + dir * viewer.walk_speed
+		viewer.pos = viewer.pos + viewer.dir * viewer.walk_speed
 		redisplay(viewer)
 		return
 	end
 
 	if (key == GLFW.KEY_S)
-		dir = unprojectPoint(viewer, 0.5 * viewer.W, 0.5 * viewer.H)
-		viewer.pos = viewer.pos - dir * viewer.walk_speed
+		viewer.pos = viewer.pos - viewer.dir * viewer.walk_speed
 		redisplay(viewer)
 		return
 	end

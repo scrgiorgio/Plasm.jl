@@ -6,8 +6,6 @@ include("./defaults.jl")
 
 include("./viewer.jl")
 include("./viewer.text.jl")
-
-# function RunViewer(viewer::Viewer)
 include("./viewer.glfw.jl")
 
 include("./hpc.jl")

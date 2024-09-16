@@ -47,7 +47,6 @@ export GLVertexArray
 mutable struct GLBatch
 
 	primitive::UInt32
-	T::Matrix4d
 	vertex_array::GLVertexArray
 
 	vertices::GLVertexBuffer
@@ -65,7 +64,6 @@ mutable struct GLBatch
   function GLBatch(prim::UInt32=GL_POINTS)
     ret = new(
       prim,
-      Matrix4d(),
       GLVertexArray(),
       GLVertexBuffer(),
       GLVertexBuffer(),
@@ -86,10 +84,20 @@ export GLBatch
 
 
 # ///////////////////////////////////////////////////////////////////////
-function prependTransformation(self::GLBatch, T::Matrix4d)
-	self.T = T * self.T
+function prependTransformation!(T::Matrix4d, batch::GLBatch)
+	# apply tranformation
+	vertices = batch.vertices.vector
+	for I in 1:3:length(vertices)
+		x,y,z,w = vertices[I:I+2]...,1.0
+		x,y,z,w=[
+			T[1,1]*x + T[1,2]*y + T[1,3]*z +  T[1,4]*w,
+			T[2,1]*x + T[2,2]*y + T[2,3]*z +  T[2,4]*w,
+			T[3,1]*x + T[3,2]*y + T[3,3]*z +  T[3,4]*w,
+			T[4,1]*x + T[4,2]*y + T[4,3]*z +  T[4,4]*w
+		]
+		vertices[I:I+2].=x/w,y/w,z/w
+	end
 end
-export prependTransformation
 
 # ///////////////////////////////////////////////////////////////////////
 function GetBoundingBox(batch::GLBatch)
@@ -171,106 +179,3 @@ function GLAxis(p0::Point3d, p1::Point3d)
 end
 
 export GLAxis
-
-
-# /////////////////////////////////////////////////////////////////////////////
-mutable struct Viewer
-	win::Any
-	W::Int32
-	H::Int32
-	scalex::Float64
-	scaley::Float64
-	fov::Float64
-	pos::Point3d
-	dir::Point3d
-	vup::Point3d
-	zNear::Float64
-	zFar::Float64
-	walk_speed::Float64
-	mouse_beginx::Float64
-	mouse_beginy::Float64
-	down_button::Int32
-	batches::Any
-	shaders::Dict{Any,Any}
-	use_ortho::Bool
-	exitNow::Bool
-	show_lines::Bool
-	background_color::Vector{Float64}
-	title::String
-	lighting_enabled::Bool
-
-	# constructor
-	function Viewer(batches)
-		new(
-			0,
-			1024, 768,
-			1.0, 1.0,
-			DEFAULT_FOV,
-			Point3d(0, 0, 1),
-			Point3d(0, 0, -1),
-			Point3d(1, 0, 0),
-			0.01, 100.0, 0.1,
-			0, 0, 0,
-			batches,
-			Dict{Any,Any}(),
-			DEFAULT_USE_ORTHO,
-			false,  # exitNow
-			DEFAULT_SHOW_LINES,
-			DEFAULT_BACKGROUND_COLOR,
-			"Plasm.jl",
-			DEFAULT_LIGHTING_ENABLED
-		)
-	end
-
-end
-
-# ///////////////////////////////////////////////////////////////////////
-function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
-
-	batches=[batch for batch in batches if length(batch.vertices.vector)>0]
-
-	# calculate bounding box
-	BOX::Box3d = invalidBox()
-	for batch in batches
-		box = GetBoundingBox(batch)
-		addPoint(BOX, box.p1)
-		addPoint(BOX, box.p2)
-	end
-
-	Size = BOX.p2 - BOX.p1
-	MaxSize = max(Size[1], Size[2], Size[3])
-	Center = center(BOX)
-
-	show_axis = get(properties, "show_axis", true)
-	if show_axis
-		push!(batches, GLAxis(Point3d(0, 0, 0), Point3d(2, 2, 2)))
-	end
-
-	#@show(BOX)
-	default_use_ortho=Size[3]==0.0
-	default_pos=Center + 3.0*Point3d(default_use_ortho ? 0 : MaxSize, default_use_ortho ? 0 : MaxSize, MaxSize) 
-	default_dir=normalized(Center - default_pos)
-	default_vup=default_use_ortho ? Point3d(0, 1, 0) : Point3d(0, 0, 1)
-
-	default_znear      = MaxSize * 0.001
-	default_zfar       = MaxSize * 10.0
-	default_walk_speed = MaxSize * 0.01 
-
-	viewer = Viewer(batches)
-	viewer.background_color =            get(properties, "background_color", viewer.background_color)
-	viewer.title            =            get(properties, "title", viewer.title)
-	viewer.use_ortho        =            get(properties, "use_ortho", default_use_ortho)
-	viewer.show_lines       =            get(properties, "show_lines", viewer.show_lines)
-	viewer.fov              =            get(properties, "fov", viewer.fov)
-	viewer.pos              =            get(properties, "pos", default_pos)
-	viewer.dir              = normalized(get(properties, "dir", default_dir))
-	viewer.vup              = normalized(get(properties, "vup", default_vup))
-	viewer.zNear            =            get(properties, "znear", default_znear)
-	viewer.zFar             =            get(properties, "zfar ", default_zfar)
-	viewer.walk_speed       =            get(properties, "walk_speed", default_walk_speed)
-	viewer.lighting_enabled =            get(properties, "lighting_enabled", viewer.lighting_enabled)
-
-	RunViewer(viewer)
-
-end
-export GLView

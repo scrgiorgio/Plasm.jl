@@ -14,10 +14,6 @@ function random_dir()
   return normalized([random(-1.0,1.0) for I in 1:3])
 end
 
-
-
-
-
 # //////////////////////////////////////////////////////////////////////////////
 function ray_face_intersection(ray_origin::Vector{Float64}, ray_dir::Vector{Float64}, lar::Lar, F::Int)
 

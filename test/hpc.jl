@@ -11,30 +11,6 @@ function TestViewer()
 
   GLView([GLText("hello")])
 
-  # example of customizing the viewer position
-  if false
-    VIEW(
-      CUBOID([1, 1, 1]),
-      properties=Properties(
-        # 3d pipeline position
-        "pos" => Point3d(0.5, 0.5, 3.0),
-        "dir" => Point3d(0.0, 0.0, -1.0),
-        "vup" => Point3d(1.0, 0.0, 0.0),
-        "znear" => 0.1,
-        "zfar" => 10.0,
-        # perspective fov
-        "fov" => DEFAULT_FOV,
-        #triangles, show/hide lines
-        "show_lines" => false,
-        #viewer background color
-        "background_color" => DEFAULT_BACKGROUND_COLOR,
-        # perspective or ortho projection
-        "use_ortho" => DEFAULT_USE_ORTHO
-      )
-    )
-  end
-
-
 
 end
 
@@ -495,27 +471,10 @@ function TestProperties2()
   # ////////////////////////////////////////////////////////
   # viewer (global) properties
   # ////////////////////////////////////////////////////////
-  viewer_properties = Properties(
+  VIEW(obj, properties=Properties(
     "title" => "My viewer example",
     "background_color" => DEFAULT_BACKGROUND_COLOR,
-    "show_axis" => DEFAULT_SHOW_AXIS,
-    "show_lines" => DEFAULT_SHOW_LINES,
-    "lighting_enabled" => DEFAULT_LIGHTING_ENABLED, 
-    "use_ortho" => DEFAULT_USE_ORTHO,
-
-    # example viewer at Z=2 looking downward at origin (X is vup) 
-    "pos" => Point3d(0, 0, +2),
-    "dir" => Point3d(0, 0, -1),
-    "vup" => Point3d(1, 0, 0),
-    "fov" => DEFAULT_FOV,
-
-    # opengl camera parameters
-    "znear" => 0.1,
-    "zfar" => 100.0,
-    "walk_speed" => 10.0,
-  )
-
-  VIEW(obj, properties=viewer_properties)
+  ))
 
 end
 

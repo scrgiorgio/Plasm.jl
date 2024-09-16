@@ -365,7 +365,6 @@ function VIEWBATCHES(batches::Vector{GLBatch})
 	GLView(batches, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
-		"lighting_enabled" => true,
 		"title" => "LAR"
 	))
 end
