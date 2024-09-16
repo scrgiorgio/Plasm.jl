@@ -10,8 +10,71 @@ export POINTS, LINES, TRIANGLES
 __release_gpu_resources__ = []
 
 
+# /////////////////////////////////////////////////////////////////////
+mutable struct GLVertexBuffer
+
+	id::Int32
+	vector::Vector{Float32}
+
+  # constructor
+  function GLVertexBuffer()
+    ret = new(-1, Vector{Float32}())
+    finalizer(releaseGpuResources, ret)
+    return ret
+  end
+
+  # constructor
+  function GLVertexBuffer(vector::Vector{Float32})
+    ret = new(-1, copy(vector))
+    finalizer(releaseGpuResources, ret)
+    return ret
+  end
+
+end
+
+export GLVertexBuffer
+
+
+# /////////////////////////////////////////////////////////////////////
+mutable struct GLVertexArray
+
+	id::Int32
+
+  # constructor
+  function GLVertexArray()
+    ret = new(-1)
+    finalizer(releaseGpuResources, ret)
+    return ret
+  end
+
+end
+export GLVertexArray
+
+
+# /////////////////////////////////////////////////////////////////////
+mutable struct GLBatch
+
+	primitive::UInt32
+	vertex_array::GLVertexArray
+
+	vertices::GLVertexBuffer
+	normals::GLVertexBuffer
+	colors::GLVertexBuffer
+
+	point_size::Int
+	line_width::Int
+	point_color::Point4d
+	line_color::Point4d
+	face_color::Point4d
+
+	enable_polygon_offset::Bool
+
+end
+export GLBatch
+
+
 # /////////////////////////////////////////////////////////////////////////////
-mutable struct GLFWViewer
+mutable struct Viewer
 	win::Any
 	W::Int32
 	H::Int32
@@ -27,7 +90,7 @@ mutable struct GLFWViewer
 	mouse_beginx::Float64
 	mouse_beginy::Float64
 	down_button::Int32
-	batches::Any
+	batches::Vector{GLBatch}
 	shaders::Dict{Any,Any}
 	use_ortho::Bool
 	exitNow::Bool
@@ -35,31 +98,82 @@ mutable struct GLFWViewer
 	background_color::Vector{Float64}
 	title::String
 	lighting_enabled::Bool
-
-	# constructor
-	function GLFWViewer(batches)
-		new(
-			0,
-			1024, 768,
-			1.0, 1.0,
-			DEFAULT_FOV,
-			Point3d(0, 0, 1),
-			Point3d(0, 0, -1),
-			Point3d(1, 0, 0),
-			0.01, 100.0, 0.1,
-			0, 0, 0,
-			batches,
-			Dict{Any,Any}(),
-			DEFAULT_USE_ORTHO,
-			false,  # exitNow
-			DEFAULT_SHOW_LINES,
-			DEFAULT_BACKGROUND_COLOR,
-			"Plasm.jl",
-			DEFAULT_LIGHTING_ENABLED
-		)
-	end
-
 end
+export Viewer
+
+# ///////////////////////////////////////////////////////////////////////
+function Viewer()
+	ret=Viewer(
+		0,
+		1024, 768,
+		1.0, 1.0,
+		DEFAULT_FOV,
+		Point3d(0, 0, 1),
+		Point3d(0, 0, -1),
+		Point3d(1, 0, 0),
+		0.01, 100.0, 0.1,
+		0, 0, 0,
+		Vector{GLBatch}(),
+		Dict{Any,Any}(),
+		DEFAULT_USE_ORTHO,
+		false,  # exitNow
+		DEFAULT_SHOW_LINES,
+		DEFAULT_BACKGROUND_COLOR,
+		"Plasm.jl",
+		DEFAULT_LIGHTING_ENABLED
+	)
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////////
+function GLBatch(viewer::Viewer, prim::UInt32=GL_POINTS)
+	ret = GLBatch(
+		prim,
+		GLVertexArray(),
+		GLVertexBuffer(),
+		GLVertexBuffer(),
+		GLVertexBuffer(),
+		1,
+		1,
+		Point4d(0.0, 0.0, 0.0, 1.0),
+		Point4d(1.0, 1.0, 1.0, 1.0),
+		Point4d(0.5, 0.5, 0.5, 1.0),
+		false
+	)
+	push!(viewer.batches,ret)
+	finalizer(releaseGpuResources, ret)
+	return ret
+end
+
+
+# ///////////////////////////////////////////////////////////////////////
+function prependTransformation!(T::Matrix4d, batch::GLBatch)
+	# apply tranformation
+	vertices = batch.vertices.vector
+	for I in 1:3:length(vertices)
+		x,y,z,w = vertices[I:I+2]...,1.0
+		x,y,z,w=[
+			T[1,1]*x + T[1,2]*y + T[1,3]*z +  T[1,4]*w,
+			T[2,1]*x + T[2,2]*y + T[2,3]*z +  T[2,4]*w,
+			T[3,1]*x + T[3,2]*y + T[3,3]*z +  T[3,4]*w,
+			T[4,1]*x + T[4,2]*y + T[4,3]*z +  T[4,4]*w
+		]
+		vertices[I:I+2].=x/w,y/w,z/w
+	end
+end
+
+# ///////////////////////////////////////////////////////////////////////
+function GetBoundingBox(batch::GLBatch)
+	box = invalidBox()
+	vertices = batch.vertices.vector
+	for I in 1:3:length(vertices)
+		point = Point3d(vertices[I+0], vertices[I+1], vertices[I+2])
+		addPoint(box, point)
+	end
+	return box
+end
+export GetBoundingBox
+
 
 # /////////////////////////////////////////////////////////////////////
 function glGenBuffer()
@@ -472,7 +586,7 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////////
-function releaseGpuResources(viewer::GLFWViewer)
+function releaseGpuResources(viewer::Viewer)
 
 	for batch in viewer.batches
 		releaseGpuResources(batch)
@@ -486,9 +600,9 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////////
-function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
+function GLView(viewer::Viewer; properties::Properties=Properties())
 
-	batches=[batch for batch in batches if length(batch.vertices.vector)>0]
+	batches=[batch for batch in viewer.batches if length(batch.vertices.vector)>0]
 
 	# calculate bounding box
 	BOX::Box3d = invalidBox()
@@ -511,21 +625,20 @@ function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
 
 	show_axis = get(properties, "show_axis", true)
 	if show_axis
-		push!(batches, GLAxis(Point3d(0.0, 0.0, 0.0), Point3d(1.1, 1.1, 1.1)))
+		GLAxis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.1, 1.1, 1.1))
 	end
 
-	viewer = GLFWViewer(batches)
 	viewer.background_color =            get(properties, "background_color", viewer.background_color)
 	viewer.title            =            get(properties, "title", viewer.title)
 	viewer.use_ortho        =            get(properties, "use_ortho", use_ortho)
 	viewer.show_lines       =            get(properties, "show_lines", viewer.show_lines)
 	viewer.fov              =            get(properties, "fov", viewer.fov)
-	viewer.pos              =            2.0*Point3d(use_ortho ? 0 : 1.0, use_ortho ? 0 : 1.0, 1.0) 
+	viewer.pos              =            3.0*Point3d(use_ortho ? 0 : 1.0, use_ortho ? 0 : 1.0, 1.0) 
 	viewer.dir              = normalized(normalized(Point3d(0,0,0) - viewer.pos))
 	viewer.vup              = normalized(use_ortho ? Point3d(0, 1, 0) : Point3d(0, 0, 1))
 	viewer.zNear            =            0.001
-	viewer.zFar             =            5.0
-	viewer.walk_speed       =            0.01 
+	viewer.zFar             =            10.0
+	viewer.walk_speed       =            0.001 
 
 	redisplay(viewer)
 
@@ -572,7 +685,7 @@ function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
 		handleMouseWheelEvent(viewer, dy)
 	end)
 
-	handleResizeEvent(viewer::GLFWViewer)
+	handleResizeEvent(viewer::Viewer)
 	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
 		glRender(viewer)
 		GLFW.SwapBuffers(win)
@@ -587,14 +700,12 @@ function GLView(batches::Vector{GLBatch}; properties::Properties=Properties())
 end
 export GLView
 
-
-
 # ///////////////////////////////////////////////////////////////////////
-function getModelview(viewer::GLFWViewer)
+function getModelview(viewer::Viewer)
 	return lookAtMatrix(viewer.pos, viewer.pos + viewer.dir, viewer.vup)
 end
 
-function getProjection(viewer::GLFWViewer)
+function getProjection(viewer::Viewer)
 	ratio = viewer.W / float(viewer.H)
 	if viewer.use_ortho
 		# euristic that seem to work well
@@ -610,9 +721,8 @@ function getProjection(viewer::GLFWViewer)
 
 end
 
-
 # ///////////////////////////////////////////////////////////////////////
-function getShader(viewer::GLFWViewer, lighting_enabled, color_attribute_enabled)
+function getShader(viewer::Viewer, lighting_enabled, color_attribute_enabled)
 
 	lighting_enabled = lighting_enabled && viewer.lighting_enabled
 
@@ -628,7 +738,7 @@ function getShader(viewer::GLFWViewer, lighting_enabled, color_attribute_enabled
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function glRender(viewer::GLFWViewer)
+function glRender(viewer::Viewer)
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glDisable(GL_CULL_FACE)
@@ -711,7 +821,7 @@ function glRender(viewer::GLFWViewer)
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////////
-function glRenderBatch(viewer::GLFWViewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
+function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
 
 	lighting_enabled = length(batch.normals.vector) > 0 && viewer.lighting_enabled
 	color_attribute_enabled = length(batch.colors.vector) > 0
@@ -765,7 +875,7 @@ function glRenderBatch(viewer::GLFWViewer, batch::GLBatch, color, PROJECTION, MO
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function redisplay(viewer::GLFWViewer)
+function redisplay(viewer::Viewer)
 	# nothing to do
 end
 
@@ -778,7 +888,7 @@ function handleResizeEvent(viewer)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseButtonEvent(viewer::GLFWViewer, button, action, mods)
+function handleMouseButtonEvent(viewer::Viewer, button, action, mods)
 
 	button = Dict(GLFW.MOUSE_BUTTON_1 => 1, GLFW.MOUSE_BUTTON_2 => 3, GLFW.MOUSE_BUTTON_3 => 2)[button]
 
@@ -796,7 +906,7 @@ function handleMouseButtonEvent(viewer::GLFWViewer, button, action, mods)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseMoveEvent(viewer::GLFWViewer, x::Float64, y::Float64)
+function handleMouseMoveEvent(viewer::Viewer, x::Float64, y::Float64)
 
 	x = x * viewer.scalex
 	y = y * viewer.scaley
@@ -847,7 +957,7 @@ function handleMouseMoveEvent(viewer::GLFWViewer, x::Float64, y::Float64)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseWheelEvent(viewer::GLFWViewer, delta)
+function handleMouseWheelEvent(viewer::Viewer, delta)
 	if viewer.use_ortho
 		viewer.fov*=(delta<0) ? 1.1 : 1.0/1.1;
 	else
@@ -857,7 +967,7 @@ function handleMouseWheelEvent(viewer::GLFWViewer, delta)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleKeyPressEvent(viewer::GLFWViewer, key, scancode, action, mods)
+function handleKeyPressEvent(viewer::Viewer, key, scancode, action, mods)
 
 	if action != GLFW.PRESS && action != GLFW.REPEAT
 		return

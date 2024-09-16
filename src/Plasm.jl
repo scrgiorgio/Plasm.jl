@@ -5,8 +5,6 @@ include("./geometry.jl")
 include("./defaults.jl")
 
 include("./viewer.jl")
-include("./viewer.text.jl")
-include("./viewer.glfw.jl")
 
 include("./hpc.jl")
 include("./fenvs.jl")

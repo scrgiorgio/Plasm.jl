@@ -5,8 +5,7 @@ export ComputeTriangleNormal, GoodTetOrientation,
 	toList, valid, fuzzyEqual, dim, size, center, addPoint, addPoints, addBox, isIdentity, transpose, invert, dim, embed, adjoin, transformPoint, translate, scale, rotate, box,
 	MkPol, Struct, Cube, Simplex, Join, Quote, Transform, Translate, Scale, Rotate, Power, UkPol, MapFn,
 	ToSimplicialForm, ToBoundaryForm, ToGeometry,
-	View,
-	GetBatchesForHpc, GetBatchesForGeometry, ComputeCentroid,
+	ComputeCentroid,
 	HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
 
 export InitPythonHullCode
@@ -422,13 +421,14 @@ function ToVector3(value)
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
-function GetBatchesForGeometry(obj::Geometry)
+function render_geometry(viewer::Viewer, T::Matrix4d, obj::Geometry, properties::Properties)
 
 	sf = ToSimplicialForm(obj)
 
-	points = GLBatch(POINTS)
-	lines = GLBatch(LINES)
-	triangles = GLBatch(TRIANGLES)
+	points    = GLBatch(viewer, POINTS)
+	lines     = GLBatch(viewer, LINES)
+	triangles = GLBatch(viewer, TRIANGLES)
+
 
 	for hull in sf.hulls
 		hull_dim = length(hull)
@@ -479,18 +479,16 @@ function GetBatchesForGeometry(obj::Geometry)
 		end
 	end
 
-	batches = Vector{GLBatch}()
-	if !isempty(points.vertices.vector)
-		push!(batches, points)
-	end
-	if !isempty(lines.vertices.vector)
-		push!(batches, lines)
-	end
-	if !isempty(triangles.vertices.vector)
-		push!(batches, triangles)
+
+	for batch in [points,lines,triangles]
+		batch.point_size = get(properties, "point_size", DEFAULT_POINT_SIZE)
+		batch.line_width = copy(get(properties, "line_width", DEFAULT_LINE_WIDTH))
+		batch.point_color = get(properties, "point_color", DEFAULT_POINT_COLOR)
+		batch.line_color = get(properties, "line_color", DEFAULT_LINE_COLOR)
+		batch.face_color = get(properties, "face_color", DEFAULT_FACE_COLOR)
+		prependTransformation!(T,batch)
 	end
 
-	return batches
 end
 
 
@@ -939,48 +937,34 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function GetBatchesForHpc(hpc::Hpc)
-
-	batches = Vector{GLBatch}()
+function render_hpc(viewer::Viewer, hpc::Hpc)
 
 	for (T, properties, obj) in toList(hpc)
-
 		T = embed(T, 4)
-		T4d = Matrix4d(
+		T = Matrix4d(
 			T[2, 2], T[2, 3], T[2, 4], T[2, 1],  # homo should be last
 			T[3, 2], T[3, 3], T[3, 4], T[3, 1],
 			T[4, 2], T[4, 3], T[4, 4], T[4, 1],
 			T[1, 2], T[1, 3], T[1, 4], T[1, 1]
 		)
-		for batch in GetBatchesForGeometry(obj)
-			batch.point_size = get(properties, "point_size", DEFAULT_POINT_SIZE)
-			batch.line_width = copy(get(properties, "line_width", DEFAULT_LINE_WIDTH))
-			batch.point_color = get(properties, "point_color", DEFAULT_POINT_COLOR)
-			batch.line_color = get(properties, "line_color", DEFAULT_LINE_COLOR)
-			batch.face_color = get(properties, "face_color", DEFAULT_FACE_COLOR)
-			prependTransformation!(T4d,batch)
-			push!(batches, batch)
-		end
+		render_geometry(viewer, T, obj, properties)
 
 	end
-	return batches
+
 end
 
 
 
 # //////////////////////////////////////////////////////////
-function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="")
-
-	batches = GetBatchesForHpc(hpc)
+function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", viewer=Viewer())
 
 	if title!=""
 		properties["title"]=title
 	end
 
-	return GLView(batches, properties=properties)
+	render_hpc(viewer, hpc)
+	return GLView(viewer, properties=properties)
 end
-
-
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////

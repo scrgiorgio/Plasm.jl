@@ -190,17 +190,17 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
     end
   
     if debug_mode
-      points = GLBatch(POINTS); points.point_size = 8
-      lines  = GLBatch(LINES) ; lines.line_width  = 2
+      viewer=Viewer()
+      points = GLBatch(viewer, POINTS); points.point_size = 8
+      lines  = GLBatch(viewer, LINES) ; lines.line_width  = 2
       append!(points.colors.vector,RED); append!(points.vertices.vector, internal_point)
       for distance in distances
         append!(points.colors.vector, GREEN ); append!(points.vertices.vector, internal_point+distance*ray_dir)
         append!(lines.colors.vector,  YELLOW); append!(lines.vertices.vector, internal_point)
         append!(lines.colors.vector,  YELLOW); append!(lines.vertices.vector, internal_point+distance*ray_dir)
       end
-  
-      text=GLText(join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)
-      VIEWCOMPLEX(atom, show=["V", "EV"], explode=[1.0,1.0,1.0], user_batches=[points,lines,text])
+      render_text(viewer, join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)
+      VIEWCOMPLEX(atom, show=["V", "EV"], explode=[1.0,1.0,1.0], viewer=viewer)
     end
   end
   

@@ -361,14 +361,14 @@ end
 export find_vcycles
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWBATCHES(batches::Vector{GLBatch})
-	GLView(batches, properties=Properties(
+function VIEWCOMPLEX(viewer::Viewer)
+	GLView(viewer, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
 		"title" => "LAR"
 	))
 end
-export VIEWBATCHES
+export VIEWCOMPLEX
 
 # /////////////////////////////////////////////////////
 function get_explosion_vt(points::Points, explode)
@@ -386,7 +386,7 @@ function do_explode(points::Points, vt)
 	return ret
 end
 # /////////////////////////////////////////////////////
-function render_edge(batches::Vector{GLBatch},	batch_lines::GLBatch, lar::Lar, E::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
+function render_edge(viewer::Viewer, batch_lines::GLBatch, lar::Lar, E::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
 
 	ev=lar.C[:EV][E]
 	edge_points=do_explode(lar.V[:, ev], vt)
@@ -395,18 +395,18 @@ function render_edge(batches::Vector{GLBatch},	batch_lines::GLBatch, lar::Lar, E
 	append!(batch_lines.vertices.vector, edge_points[:,2]);append!(batch_lines.colors.vector, color)				
 
 	if "V_text" in show
-		push!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=0.04))
-		push!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=0.04))
+		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=0.04)
+		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=0.04)
 	end
 
 	if "EV_text" in show
-		push!(batches, GLText(string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=0.04))
+		render_text(viewer, string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=0.04)
 	end
 end
 
 
 # /////////////////////////////////////////////////////
-function render_face(batches::Vector{GLBatch},	batch_triangles::GLBatch, batch_lines::GLBatch, lar::Lar, F::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
+function render_face(viewer::Viewer, batch_triangles::GLBatch, batch_lines::GLBatch, lar::Lar, F::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
 
 	fv=lar.C[:FV][F]
 	face_points=do_explode(lar.V[:, fv], vt)
@@ -438,7 +438,7 @@ function render_face(batches::Vector{GLBatch},	batch_triangles::GLBatch, batch_l
 	begin
 		for (v_index, pos) in zip(fv,eachcol(face_points))
 			if "V_text" in show
-				push!(batches, GLText(string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04))
+				render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04)
 			end
 		end		
 		
@@ -467,21 +467,20 @@ function render_face(batches::Vector{GLBatch},	batch_triangles::GLBatch, batch_l
 
 	if "FV_text" in show
 		centroid=compute_centroid(face_points)
-		push!(batches, GLText(string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=color, fontsize=0.04))
+		render_text(batches, string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=color, fontsize=0.04)
 	end
 
 end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function BATCHES(
+function render_lar(
+	viewer::Viewer, 
 	lar::Lar; 
 	show=["V", "EV", "FV"], 
 	explode=[1.0,1.0,1.0], 
 	user_color=nothing
-)::Vector{GLBatch}
-
-	batches=Vector{GLBatch}()
+)
 
   # want lar to be 3 dimensional 
 	begin
@@ -492,14 +491,13 @@ function BATCHES(
 		end
 	end
 
+
 	# I think the order is important for polygon offset
-	batch_triangles = GLBatch(TRIANGLES)
-	push!(batches, batch_triangles)
+	batch_triangles = GLBatch(viewer, TRIANGLES)
 	batch_triangles.line_width = 0 # otherwise I would see the triangulation
 	batch_triangles.enable_polygon_offset=true
 
-	batch_lines = GLBatch(LINES)
-	push!(batches, batch_lines)
+	batch_lines = GLBatch(viewer, LINES)
 	batch_lines.line_width  = 2
 
 	# ____________________________________________
@@ -514,7 +512,7 @@ function BATCHES(
 				vt=get_explosion_vt(lar.V[:, v_indices], explode)
 				color = isnothing(user_color) ? RandomColor() : user_color
 				for F in cf
-					render_face(batches, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
+					render_face(viewer, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
 				end
 			end
 		# expode by single face
@@ -522,7 +520,7 @@ function BATCHES(
 			for (F, fv) in enumerate(lar.C[:FV])
 				vt=get_explosion_vt(lar.V[:, fv], explode)
 				color = isnothing(user_color) ? RandomColor() : user_color
-				render_face(batches, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
+				render_face(viewer, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
 			end
 		end
 
@@ -535,7 +533,7 @@ function BATCHES(
 				vt=get_explosion_vt(lar.V[:, fv], explode)
 				color = isnothing(user_color) ? RandomColor() : user_color
 				for E in lar.C[:FE][F]
-					render_edge(batches, batch_lines, lar, E, vt=vt, color=color, show=show)
+					render_edge(viewer, batch_lines, lar, E, vt=vt, color=color, show=show)
 				end
 			end
 		# explode by single edge
@@ -543,27 +541,23 @@ function BATCHES(
 			for (E,ev) in enumerate(lar.C[:EV])
 				vt=get_explosion_vt(lar.V[:, ev], explode)
 				color = isnothing(user_color) ? RandomColor() :  user_color
-				render_edge(batches, batch_lines, lar, E, vt=vt, color=color, show=show)
+				render_edge(viewer, batch_lines, lar, E, vt=vt, color=color, show=show)
 			end
 		end
 	end
 
-	# @show([GetBoundingBox(it) for it in batches])
-	return batches
-
 end
-export BATCHES
+export render_lar
 
 # //////////////////////////////////////////////////////////////////////////////
 function VIEWCOMPLEX(lar::Lar; 
 	show=["V", "EV", "FV"], 
 	explode=[1.0,1.0,1.0], 
 	user_color=nothing,
-	user_batches=[])
+	viewer=Viewer())
 
-	batches=BATCHES(lar,show=show,explode=explode,user_color=user_color)
-	append!(batches,user_batches)
-	VIEWBATCHES(batches)
+	render_lar(viewer, lar, show=show, explode=explode, user_color=user_color)
+	VIEWCOMPLEX(viewer)
 end
 export VIEWCOMPLEX
 
@@ -572,15 +566,14 @@ function VIEWCOMPLEX(
 	lars::Vector{Lar}; 
 	show=["V", "EV", "FV"], 
 	explode=[1.0,1.0,1.0],
-	user_batches=[]
+	viewer=Viewer()
 	)
 
-	batches=Vector{GLBatch}()
 	for (I,lar) in enumerate(lars)
-		append!(batches,BATCHES(lar, show=show, explode=explode, user_color=RandomColor()))
+		render_lar(viewer, lar, show=show, explode=explode, user_color=RandomColor())
 	end
-	append!(batches,user_batches)
-	VIEWBATCHES(batches)
+
+	VIEWCOMPLEX(viewer)
 end
 
 # //////////////////////////////////////////////////////////////////////////////

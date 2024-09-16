@@ -4,12 +4,18 @@ using Test
 # ////////////////////////////////////////////////////////////////
 function TestViewer()
 
-  GLView([
-    GLCuboid(Box3d(Point3d(0, 0, 0), Point3d(1, 1, 1)))
-    GLAxis(Point3d(0, 0, 0), Point3d(+1.1, +1.1, +1.1))
-  ])
+  begin
+    viewer=Viewer()
+    GLCuboid(viewer, Box3d(Point3d(0, 0, 0), Point3d(1, 1, 1)))
+    GLAxis(viewer, Point3d(0, 0, 0), Point3d(+1.1, +1.1, +1.1))
+    GLView(viewer)
+  end
 
-  GLView([GLText("hello")])
+  begin
+    viewer=Viewer()
+    render_text(viewer, "hello")
+    GLView(viewer)
+  end
 
 
 end
