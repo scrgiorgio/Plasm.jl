@@ -48,15 +48,6 @@ Links:
 **Always remember to activate the current project** (in the current directory):
 
 ```bash
-julia
-using Pkg
-Pkg.status()
-Pkg.activate(".")
-# Pkg.add(name="your-dependency-name-here", version="x.y.z"))
-Pkg.instantiate()
-Pkg.status()
-
-exit()
 
 # from here use
 julia --project=. whatever...
@@ -73,22 +64,52 @@ cd Plasm.jl
 
 julia
 
-# Go to the package mode
-# see https://julialang.org/contribute/developing_package
-] 
+using Pkg
+Pkg.activate(".")
 
-# Activate the environment in the current directory
-activate .
+
 
 # add packages
-add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStructures SparseArrays NearestNeighbors Triangulate IntervalTrees CoordinateTransformations Rotations GeometryBasics Colors MeshCat FileIO MeshIO Meshing IJulia 
+Pkg.add([
+  "Combinatorics", 
+  "GLFW", 
+  "ModernGL", 
+  "PyCall", 
+  "StaticArrays", 
+  "Test", 
+  "LinearAlgebra", 
+  "DataStructures", 
+  "SparseArrays", 
+  "NearestNeighbors", 
+  "Triangulate", 
+  "IntervalTrees",
+  "CoordinateTransformations", 
+  "Rotations",
+  "GeometryBasics",
+  "Colors",
+  "FileIO",
+  "MeshCat",
+  "IJulia"
+])
 
-# exit package MODE
-# CTRL+C 
-
-using Pkg
+# update the manifest too
 Pkg.resolve()
+
+exit()
 ```
+
+## Viewer options
+
+- GLMakie.jl (using internally glfw for desktop)
+  - more complicate to use
+  - more development by Julia Communinity
+  - HUGE problem: takes forever to run. Not a viable option (!)
+    - see https://discourse.julialang.org/t/starting-glmakie-takes-very-long/64106/2
+
+- MeshCat.jl (using MeshCat/ThreeJL)
+  - no support for 3d text (we can always use alberto's code)
+  - no many releases
+  - seems the best choice
 
 ## (OPTIONAL) Julia notebooks
 
