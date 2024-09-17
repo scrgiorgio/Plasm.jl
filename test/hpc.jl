@@ -6,15 +6,15 @@ function TestViewer()
 
   begin
     viewer=Viewer()
-    GLCuboid(viewer, Box3d(Point3d(0, 0, 0), Point3d(1, 1, 1)))
-    GLAxis(viewer, Point3d(0, 0, 0), Point3d(+1.1, +1.1, +1.1))
-    GLView(viewer)
+    render_cuboid(viewer, Box3d(Point3d(0, 0, 0), Point3d(1, 1, 1)))
+    render_axis(viewer, Point3d(0, 0, 0), Point3d(+1.1, +1.1, +1.1))
+    run_viewer(viewer)
   end
 
   begin
     viewer=Viewer()
     render_text(viewer, "hello")
-    GLView(viewer)
+    run_viewer(viewer)
   end
 
 

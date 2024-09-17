@@ -1,20 +1,13 @@
-using Test, LinearAlgebra, PyCall, DataStructures, SparseArrays
-
-export ComputeTriangleNormal, GoodTetOrientation,
-	BoxNd, MatrixNd, Hpc, Geometry,
-	toList, valid, fuzzyEqual, dim, size, center, addPoint, addPoints, addBox, isIdentity, transpose, invert, dim, embed, adjoin, transformPoint, translate, scale, rotate, box,
-	MkPol, Struct, Cube, Simplex, Join, Quote, Transform, Translate, Scale, Rotate, Power, UkPol, MapFn,
-	ToSimplicialForm, ToBoundaryForm, ToGeometry,
-	ComputeCentroid,
-	HpcGroup, ToSingleGeometry, ToMultiGeometry, TOPOS, TYPE
-
-export InitPythonHullCode
+using Test
+using LinearAlgebra
+using PyCall
+using DataStructures
+using SparseArrays
 
 import Base.:(==)
 import Base.:*
 import Base.size
 import Base.transpose
-
 
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
@@ -30,6 +23,7 @@ function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vec
 	end
 	return [ret[i] / N for i in 1:3]
 end
+export ComputeTriangleNormal
 
 # /////////////////////////////////////////////////////////////
 function GoodTetOrientation(v0::Vector{Float64}, v1::Vector{Float64}, v2::Vector{Float64}, v3::Vector{Float64})
@@ -43,6 +37,7 @@ function GoodTetOrientation(v0::Vector{Float64}, v1::Vector{Float64}, v2::Vector
 	n = LinearAlgebra.cross(a, b)
 	return dot(n, c) > 0
 end
+export GoodTetOrientation
 
 # /////////////////////////////////////////////////////////////
 mutable struct BoxNd
@@ -63,6 +58,7 @@ mutable struct BoxNd
 	end
 
 end
+export BoxNd
 
 
 toList(self::BoxNd) = [copy(self.p1), copy(self.p2)]
@@ -75,6 +71,7 @@ function valid(self::BoxNd)
 	end
 	return true
 end
+export valid
 
 ==(box1::BoxNd, box2::BoxNd) = isa(box1, typeof(box2)) && box1.p1 == box2.p1 && box1.p2 == box2.p2
 
@@ -86,6 +83,7 @@ function fuzzyEqual(box1::BoxNd, box2::BoxNd, Epsilon=1e-4)
 	p2 = [abs(a - b) <= Epsilon for (a, b) in zip(box1.p2, box2.p2)]
 	return !(false in p1) && !(false in p2)
 end
+export fuzzyEqual
 
 function Base.show(io::IO, self::BoxNd)
 	print(io, "BoxNd(", repr(self.p1), ", ", repr(self.p2), ")")
@@ -93,14 +91,17 @@ end
 
 
 dim(self::BoxNd) = length(self.p1)
+export dim
 
 function size(self::BoxNd)
 	return [To - From for (From, To) in zip(self.p1, self.p2)]
 end
+export size
 
 function center(self::BoxNd)
 	return [0.5 * (From + To) for (From, To) in zip(self.p1, self.p2)]
 end
+export center
 
 function addPoint(self::BoxNd, point::Vector{Float64})
 	for i in 1:dim(self)
@@ -120,6 +121,7 @@ end
 function addBox(box1::BoxNd, box2::BoxNd)
 	return addPoint(box1, box2.p1).addPoint(box2.p2)
 end
+export addBox
 
 # /////////////////////////////////////////////////////////////
 mutable struct MatrixNd
@@ -149,6 +151,7 @@ mutable struct MatrixNd
 	end
 
 end
+export MatrixNd
 
 
 Base.getindex(self::MatrixNd, args...) = getindex(self.T, args...)
@@ -163,18 +166,23 @@ end
 function isIdentity(self::MatrixNd)
 	return self.T == I
 end
+export isIdentity
 
 toList(self::MatrixNd) = [self.T[R, :] for R in 1:size(self.T, 1)]
+export toList
 
 function transpose(self::MatrixNd)
 	return MatrixNd(Matrix{Float64}(transpose(self.T)))
 end
+export transpose
 
 function invert(self::MatrixNd)
 	return MatrixNd(inv(self.T))
 end
+export invert
 
 dim(self::MatrixNd) = size(self.T, 1)
+export dim
 
 function embed(self::MatrixNd, target_dim)
 	current_dim = dim(self)
@@ -185,6 +193,7 @@ function embed(self::MatrixNd, target_dim)
 	ret.T[1:current_dim, 1:current_dim] = self.T
 	return ret
 end
+export embed
 
 function adjoin(matrix1::MatrixNd, matrix2::MatrixNd)
 	M, N = dim(matrix1), dim(matrix2)
@@ -202,6 +211,7 @@ function adjoin(matrix1::MatrixNd, matrix2::MatrixNd)
 	end
 	return ret
 end
+export adjoin
 
 function *(matrix1::MatrixNd, matrix2::MatrixNd)
 	return MatrixNd(matrix1.T * matrix2.T)
@@ -211,6 +221,7 @@ function transformPoint(self::MatrixNd, point::Vector{Float64})
 	point = self.T * [1.0; point; zeros(dim(self) - length(point) - 1)]
 	return [point[i, 1] / point[1, 1] for i in 2:dim(self)]
 end
+export transformPoint
 
 function translate(vt)
 	T = MatrixNd(length(vt) + 1)
@@ -219,6 +230,7 @@ function translate(vt)
 	end
 	return T
 end
+export translate
 
 function scale(vs)
 	T = MatrixNd(length(vs) + 1)
@@ -227,6 +239,7 @@ function scale(vs)
 	end
 	return T
 end
+export scale
 
 function rotate(i, j, angle)
 	i += 1
@@ -238,7 +251,7 @@ function rotate(i, j, angle)
 	T[j, j] = +cos(angle)
 	return T
 end
-
+export rotate
 
 # /////////////////////////////////////////////////////////////
 mutable struct Geometry
@@ -260,12 +273,8 @@ mutable struct Geometry
 		)
 		return self
 	end
-
-
 end
-
-
-
+export Geometry
 
 function addPoint(self::Geometry, p::Vector{Float64})::Int
 	idx = get(self.db, p, 0)
@@ -278,6 +287,7 @@ function addPoint(self::Geometry, p::Vector{Float64})::Int
 		return idx
 	end
 end
+export addPoint
 
 
 function addPoints(self::Geometry, points::Vector{Vector{Float64}})::Vector{Int64}
@@ -288,6 +298,7 @@ function addPoints(self::Geometry, points::Vector{Vector{Float64}})::Vector{Int6
 	end
 	return ret
 end
+export addPoints
 
 function addHull(self::Geometry, points::Vector{Vector{Float64}})
 	push!(self.hulls, [addPoint(self, p) for p in points])
@@ -356,7 +367,7 @@ function ToSimplicialForm(self::Geometry)
 	FixOrientation!(ret)
 	return ret
 end
-
+export ToSimplicialForm
 
 
 
@@ -425,10 +436,7 @@ function render_geometry(viewer::Viewer, T::Matrix4d, obj::Geometry, properties:
 
 	sf = ToSimplicialForm(obj)
 
-	points    = GLBatch(viewer, POINTS)
-	lines     = GLBatch(viewer, LINES)
-	triangles = GLBatch(viewer, TRIANGLES)
-
+	points,lines,triangles = Vector{Float32}(),Vector{Float32}(),Vector{Float32}()
 
 	for hull in sf.hulls
 		hull_dim = length(hull)
@@ -436,60 +444,49 @@ function render_geometry(viewer::Viewer, T::Matrix4d, obj::Geometry, properties:
 		# points
 		if hull_dim == 1
 			p0 = ToVector3(sf.points[hull[1]])
-			push!(points.vertices.vector, p0...)
+			push!(points, p0...)
 
 			# lines
 		elseif hull_dim == 2
-			p0 = ToVector3(sf.points[hull[1]])
-			p1 = ToVector3(sf.points[hull[2]])
-			push!(lines.vertices.vector, p0...)
-			push!(lines.vertices.vector, p1...)
-			# push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
-			# push!(lines.colors.vector,[0.0 0.0 0.0 1.0]...)
-
+			p0 = ToVector3(sf.points[hull[1]]);push!(lines, p0...)
+			p1 = ToVector3(sf.points[hull[2]]);push!(lines, p1...)
+			
 			# triangles
 		elseif hull_dim == 3
-			p0 = ToVector3(sf.points[hull[1]])
-			p1 = ToVector3(sf.points[hull[2]])
-			p2 = ToVector3(sf.points[hull[3]])
-			n = ComputeTriangleNormal(p0, p1, p2)
-			push!(triangles.vertices.vector, p0...)
-			push!(triangles.normals.vector, n...)
-			push!(triangles.vertices.vector, p1...)
-			push!(triangles.normals.vector, n...)
-			push!(triangles.vertices.vector, p2...)
-			push!(triangles.normals.vector, n...)
+			push!(triangles, ToVector3(sf.points[hull[1]])...)
+			push!(triangles, ToVector3(sf.points[hull[2]])...)
+			push!(triangles, ToVector3(sf.points[hull[3]])...)
 
 			# tetrahedral
 		elseif hull_dim == 4
 			for T in [[1, 2, 4], [1, 4, 3], [1, 3, 2], [2, 3, 4]]
-				p0 = ToVector3(sf.points[hull[T[1]]])
-				p1 = ToVector3(sf.points[hull[T[2]]])
-				p2 = ToVector3(sf.points[hull[T[3]]])
-				n = ComputeTriangleNormal(p0, p1, p2)
-				push!(triangles.vertices.vector, p0...)
-				push!(triangles.normals.vector, n...)
-				push!(triangles.vertices.vector, p1...)
-				push!(triangles.normals.vector, n...)
-				push!(triangles.vertices.vector, p2...)
-				push!(triangles.normals.vector, n...)
+				push!(triangles, ToVector3(sf.points[hull[T[1]]])...)
+				push!(triangles, ToVector3(sf.points[hull[T[2]]])...)
+				push!(triangles, ToVector3(sf.points[hull[T[3]]])...)
 			end
 		else
 			throw("Cannot handle geometry with dim > 3")
 		end
 	end
 
+	points         = transform_points(T, points)
+	lines          = transform_points(T, lines)
+	triangles      = transform_points(T, triangles)
+	triangle_lines = triangles_to_lines(triangles)
 
-	for batch in [points,lines,triangles]
-		batch.point_size = get(properties, "point_size", DEFAULT_POINT_SIZE)
-		batch.line_width = copy(get(properties, "line_width", DEFAULT_LINE_WIDTH))
-		batch.point_color = get(properties, "point_color", DEFAULT_POINT_COLOR)
-		batch.line_color = get(properties, "line_color", DEFAULT_LINE_COLOR)
-		batch.face_color = get(properties, "face_color", DEFAULT_FACE_COLOR)
-		prependTransformation!(T,batch)
-	end
+	point_size  = get(properties, "point_size",  DEFAULT_POINT_SIZE)
+	point_color = get(properties, "point_color", DEFAULT_POINT_COLOR)
+	line_width  = get(properties, "line_width",  DEFAULT_LINE_WIDTH)
+	line_color  = get(properties, "line_color",  DEFAULT_LINE_COLOR)
+	face_color  = get(properties, "face_color",  DEFAULT_FACE_COLOR)
+
+	render_triangles(viewer, triangles, face_color=face_color)
+	render_lines(viewer,lines,line_width=line_width, line_color=line_color)
+	render_lines(viewer, triangle_lines, line_width=line_width, line_color=line_color)
+	render_points(viewer, points, point_size=point_size, point_color=point_color)
 
 end
+export render_geometry
 
 
 # /////////////////////////////////////////////////////////////
@@ -513,6 +510,7 @@ mutable struct Hpc
 		return self
 	end
 end
+export Hpc
 
 function Hpc(g::Geometry; properties=Properties())
 	return Hpc(MatrixNd(0), [g], properties)
@@ -545,6 +543,7 @@ function dim(self::Hpc)
 end
 
 HpcGroup = Vector{Tuple{MatrixNd,Properties,Union{Hpc,Geometry}}}
+export HpcGroup
 
 function toList(Tdim::Int64, T::MatrixNd, properties::Properties, node::Hpc)::HpcGroup
 	ret = []
@@ -594,6 +593,7 @@ function ToSingleGeometry(T1::MatrixNd, self::Hpc)::Geometry
 	end
 	return ret
 end
+export ToSingleGeometry
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 function ToMultiGeometry(T1::MatrixNd, self::Hpc)::Vector{Geometry}
@@ -612,6 +612,7 @@ function ToMultiGeometry(T1::MatrixNd, self::Hpc)::Vector{Geometry}
 	end
 	return ret
 end
+export ToSingleGeometry
 
 
 
@@ -637,6 +638,7 @@ function TOPOS(ret::Vector{Hpc}, target_dim::Int64, T::MatrixNd, properties::Pro
 	end
 
 end
+export TOPOS
 
 # ///////////////////////////////////////////////////////
 function TOPOS(node::Hpc; label::String="solid", multi_geometry::Bool=false)::Vector{Hpc}
@@ -650,6 +652,7 @@ end
 function TYPE(node::Hpc, label::String)::Hpc
 	return PROPERTIES(node, Properties("node_type" => label))
 end
+export TYPE
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 function box(self::Hpc)
@@ -659,7 +662,7 @@ function box(self::Hpc)
 	end
 	return box
 end
-
+export box
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
@@ -694,8 +697,6 @@ function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Vector{Vector{In
 	return ret
 
 end
-
-
 
 # ////////////////////////////////////////////////////////////////////////////////////////
 function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
@@ -755,6 +756,7 @@ function MkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vecto
 	obj = BuildMkPol(points, hulls)
 	return Hpc(MatrixNd(), [obj])
 end
+export MkPol
 
 function MkPol(points::Vector{Vector{Int64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
 	return MkPol(Vector{Vector{Float64}}(points), hulls)
@@ -781,6 +783,7 @@ end
 function Struct(pols::Vector{Hpc})
 	return Hpc(MatrixNd(), pols)
 end
+export Struct
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Cube(dim::Int, From::Float64=0.0, To::Float64=1.0)
@@ -798,6 +801,7 @@ function Cube(dim::Int, From::Float64=0.0, To::Float64=1.0)
 	end
 	return MkPol(points)
 end
+export Cube
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Simplex(dim::Int)
@@ -814,6 +818,7 @@ function Simplex(dim::Int)
 	end
 	return MkPol(points)
 end
+export Simplex
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Join(pols::Vector{Hpc})
@@ -823,6 +828,7 @@ function Join(pols::Vector{Hpc})
 	end
 	return MkPol(points)
 end
+export Join
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Quote(sequence::Vector{Float64})
@@ -839,24 +845,28 @@ function Quote(sequence::Vector{Float64})
 	end
 	return MkPol(points, hulls)
 end
-
+export Quote
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Transform(self::Hpc, T::MatrixNd)
 	return Hpc(T, [self])
 end
+export Transform
 
 function Translate(self::Hpc, vt::Vector{Float64})
 	return Hpc(translate(vt), [self])
 end
+export Translate
 
 function Scale(self::Hpc, vs::Vector{Float64})
 	return Hpc(scale(vs), [self])
 end
+export Scale
 
 function Rotate(self::Hpc, i::Int, j::Int, angle::Float64)
 	return Hpc(rotate(i, j, angle), [self])
 end
+export Rotate
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Power(a::Hpc, b::Hpc)
@@ -897,7 +907,7 @@ function Power(a::Hpc, b::Hpc)
 	end
 	return Hpc(MatrixNd(), childs)
 end
-
+export Power
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Power(v::Vector{Hpc})
@@ -934,7 +944,7 @@ function UkPol(self::Hpc)
 	return ret
 
 end
-
+export UkPol
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function render_hpc(viewer::Viewer, hpc::Hpc)
@@ -963,7 +973,7 @@ function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", v
 	end
 
 	render_hpc(viewer, hpc)
-	return GLView(viewer, properties=properties)
+	return run_viewer(viewer, properties=properties)
 end
 
 
@@ -991,6 +1001,7 @@ function MapFn(self::Hpc, fn)
 	ret = Hpc(MatrixNd(), childs)
 	return ret
 end
+export MapFn
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function ToBoundaryForm(self::Hpc)
@@ -1049,6 +1060,7 @@ function ToBoundaryForm(self::Hpc)
 	FACES = [face for face in FACES if num_occurrence[sort(face)] == 1]
 	return MkPol(POINTS, FACES)
 end
+export ToBoundaryForm
 
 
 
@@ -1215,6 +1227,7 @@ function InitPythonHullCode()
 	
 	"""
 end
+export InitPythonHullCode
 
 # ///////////////////////////////////////////////////////////////////
 function ComputeCentroid(points)
@@ -1228,6 +1241,7 @@ function ComputeCentroid(points)
 	end
 	return ret
 end
+export ComputeCentroid
 
 # ///////////////////////////////////////////////////////////////////
 function UniqueCells(value)
@@ -1278,9 +1292,7 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////
-DEFAULT_PRECISION = 14
-
-function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
+function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 
 	# returning always an unique cell
 	ret = Geometry()
@@ -1379,4 +1391,4 @@ function ToGeometry(self::Hpc; precision=DEFAULT_PRECISION)
 
 	return ret
 end
-
+export ToGeometry

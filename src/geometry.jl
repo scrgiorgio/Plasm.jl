@@ -95,7 +95,7 @@ export Box3d
 
 Base.:(==)(a::Box3d, b::Box3d) = a.p1 == b.p1 && a.p2 == b.p2
 
-function invalidBox()
+function invalidBox()::Box3d
 	m, M = typemin(Float64), typemax(Float64)
 	return Box3d(Point3d(M, M, M), Point3d(m, m, m))
 end
@@ -109,7 +109,7 @@ function addPoint(box::Box3d, point::Point3d)
 	return box
 end
 
-function getPoints(box::Box3d)
+function getPoints(box::Box3d)::Vector{Point3d}
 	return [
 		Point3d(box.p1[1], box.p1[2], box.p1[3]),
 		Point3d(box.p2[1], box.p1[2], box.p1[3]),
@@ -123,7 +123,7 @@ function getPoints(box::Box3d)
 end
 export getPoints
 
-function center(box::Box3d)
+function center(box::Box3d)::Point3d
 	return Point3d(
 		0.5 * box.p1[1] + 0.5 * box.p2[1],
 		0.5 * box.p1[2] + 0.5 * box.p2[2],

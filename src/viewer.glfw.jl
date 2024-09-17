@@ -1,14 +1,7 @@
 using ModernGL
 using GLFW
 
-POINTS    = GL_POINTS
-LINES     = GL_LINES
-TRIANGLES = GL_TRIANGLES
-
-export POINTS, LINES, TRIANGLES
-
 __release_gpu_resources__ = []
-
 
 # /////////////////////////////////////////////////////////////////////
 mutable struct GLVertexBuffer
@@ -34,7 +27,6 @@ end
 
 export GLVertexBuffer
 
-
 # /////////////////////////////////////////////////////////////////////
 mutable struct GLVertexArray
 
@@ -50,28 +42,43 @@ mutable struct GLVertexArray
 end
 export GLVertexArray
 
-
 # /////////////////////////////////////////////////////////////////////
 mutable struct GLBatch
-
 	primitive::UInt32
+	T::Matrix4d
 	vertex_array::GLVertexArray
-
 	vertices::GLVertexBuffer
 	normals::GLVertexBuffer
 	colors::GLVertexBuffer
-
 	point_size::Int
 	line_width::Int
 	point_color::Point4d
 	line_color::Point4d
 	face_color::Point4d
-
 	enable_polygon_offset::Bool
-
 end
 export GLBatch
 
+
+# ///////////////////////////////////////////////////////////////////////
+function GLBatch(prim::UInt32=GL_POINTS)
+	ret = GLBatch(
+		prim,
+		Matrix4d(), 
+		GLVertexArray(),
+		GLVertexBuffer(),
+		GLVertexBuffer(),
+		GLVertexBuffer(),
+		1,
+		1,
+		Point4d(0.0, 0.0, 0.0, 1.0),
+		Point4d(1.0, 1.0, 1.0, 1.0),
+		Point4d(0.5, 0.5, 0.5, 1.0),
+		false
+	)
+	finalizer(releaseGpuResources, ret)
+	return ret
+end
 
 # /////////////////////////////////////////////////////////////////////////////
 mutable struct Viewer
@@ -125,54 +132,6 @@ function Viewer()
 	return ret
 end
 
-# ///////////////////////////////////////////////////////////////////////
-function GLBatch(viewer::Viewer, prim::UInt32=GL_POINTS)
-	ret = GLBatch(
-		prim,
-		GLVertexArray(),
-		GLVertexBuffer(),
-		GLVertexBuffer(),
-		GLVertexBuffer(),
-		1,
-		1,
-		Point4d(0.0, 0.0, 0.0, 1.0),
-		Point4d(1.0, 1.0, 1.0, 1.0),
-		Point4d(0.5, 0.5, 0.5, 1.0),
-		false
-	)
-	push!(viewer.batches,ret)
-	finalizer(releaseGpuResources, ret)
-	return ret
-end
-
-
-# ///////////////////////////////////////////////////////////////////////
-function prependTransformation!(T::Matrix4d, batch::GLBatch)
-	# apply tranformation
-	vertices = batch.vertices.vector
-	for I in 1:3:length(vertices)
-		x,y,z,w = vertices[I:I+2]...,1.0
-		x,y,z,w=[
-			T[1,1]*x + T[1,2]*y + T[1,3]*z +  T[1,4]*w,
-			T[2,1]*x + T[2,2]*y + T[2,3]*z +  T[2,4]*w,
-			T[3,1]*x + T[3,2]*y + T[3,3]*z +  T[3,4]*w,
-			T[4,1]*x + T[4,2]*y + T[4,3]*z +  T[4,4]*w
-		]
-		vertices[I:I+2].=x/w,y/w,z/w
-	end
-end
-
-# ///////////////////////////////////////////////////////////////////////
-function GetBoundingBox(batch::GLBatch)
-	box = invalidBox()
-	vertices = batch.vertices.vector
-	for I in 1:3:length(vertices)
-		point = Point3d(vertices[I+0], vertices[I+1], vertices[I+2])
-		addPoint(box, point)
-	end
-	return box
-end
-export GetBoundingBox
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -277,7 +236,6 @@ function disableAttribute(location::Int32, buffer::GLVertexBuffer)
 	glDisableVertexAttribArray(location)
 end
 
-
 # /////////////////////////////////////////////////////////////////////
 function releaseGpuResources(array::GLVertexArray)
 	global __release_gpu_resources__
@@ -292,12 +250,9 @@ end
 
 # /////////////////////////////////////////////////////////////////////
 function enableVertexArray(array::GLVertexArray)
-
-	# not needed or osx
 	if Sys.isapple()
 		return
 	end
-
 	if array.id < 0
 		array.id = glGenVertexArray()
 	end
@@ -306,12 +261,9 @@ end
 
 # /////////////////////////////////////////////////////////////////////
 function disableVertexArray(array::GLVertexArray)
-
-	# not needed or osx
 	if Sys.isapple()
 		return
 	end
-
 	glBindVertexArray(0)
 end
 
@@ -374,7 +326,6 @@ function releaseGpuResources(shader::GLShader)
 	end
 
 end
-
 
 # /////////////////////////////////////////////////////////////////////
 function createShader(type, source)
@@ -564,141 +515,24 @@ function GLPhongShader(lighting_enabled, color_attribute_enabled)
 
 	v = phong_vert_source
 	f = phong_frag_source
-
 	v = replace(v, "arg(LIGHTING_ENABLED)" => lighting_enabled ? "1" : "0")
 	f = replace(f, "arg(LIGHTING_ENABLED)" => lighting_enabled ? "1" : "0")
-
 	v = replace(v, "arg(COLOR_ATTRIBUTE_ENABLED)" => color_attribute_enabled ? "1" : "0")
 	f = replace(f, "arg(COLOR_ATTRIBUTE_ENABLED)" => color_attribute_enabled ? "1" : "0")
-
-	# this is needed for #version 330
-	# v=replace(v, "attribute"=>"in")
-	# f=replace(f, "attribute"=>"in")
-
-	# v=replace(v, "varying"=>"out")
-	# f=replace(f, "varying"=>"out")
-
-	# v=string("#version 120\n",v)
-	# f=string("#version 120\n",f)
-
 	return GLShader(v, f)
 end
 
 
 # ///////////////////////////////////////////////////////////////////////
 function releaseGpuResources(viewer::Viewer)
-
 	for batch in viewer.batches
 		releaseGpuResources(batch)
 	end
-
 	for (key, shader) in viewer.shaders
 		releaseGpuResources(shader)
 	end
 end
 
-
-
-# ///////////////////////////////////////////////////////////////////////
-function GLView(viewer::Viewer; properties::Properties=Properties())
-
-	batches=[batch for batch in viewer.batches if length(batch.vertices.vector)>0]
-
-	# calculate bounding box
-	BOX::Box3d = invalidBox()
-	for batch in batches
-		box = GetBoundingBox(batch)
-		addPoint(BOX, box.p1)
-		addPoint(BOX, box.p2)
-	end
-
-	# reduce to the case -1,+1
-	box_size = BOX.p2 - BOX.p1
-	max_size = maximum([box_size[1], box_size[2], box_size[3]])
-	box_center = center(BOX)
-	use_ortho=(box_size[3]==0.0)
-
-	T = scaleMatrix(Point3d(2.0/max_size, 2.0/max_size, 2.0/max_size)) * translateMatrix(-box_center)
-	for batch in batches
-		prependTransformation!(T, batch)
-	end
-
-	show_axis = get(properties, "show_axis", true)
-	if show_axis
-		GLAxis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.1, 1.1, 1.1))
-	end
-
-	viewer.background_color =            get(properties, "background_color", viewer.background_color)
-	viewer.title            =            get(properties, "title", viewer.title)
-	viewer.use_ortho        =            get(properties, "use_ortho", use_ortho)
-	viewer.show_lines       =            get(properties, "show_lines", viewer.show_lines)
-	viewer.fov              =            get(properties, "fov", viewer.fov)
-	viewer.pos              =            3.0*Point3d(use_ortho ? 0 : 1.0, use_ortho ? 0 : 1.0, 1.0) 
-	viewer.dir              = normalized(normalized(Point3d(0,0,0) - viewer.pos))
-	viewer.vup              = normalized(use_ortho ? Point3d(0, 1, 0) : Point3d(0, 0, 1))
-	viewer.zNear            =            0.001
-	viewer.zFar             =            10.0
-	viewer.walk_speed       =            0.001 
-
-	redisplay(viewer)
-
-	ret_code = GLFW.Init()
-	# println("GLFW init returned ",ret_code)
-
-	# seems not to be needed for julia 1.x
-	#GLFW.WindowHint(GLFW.CONTEXT_VERSION_MAJOR, 3)
-	#GLFW.WindowHint(GLFW.CONTEXT_VERSION_MINOR, 2)
-	#GLFW.WindowHint(GLFW.OPENGL_FORWARD_COMPAT, GL_TRUE)
-	#GLFW.WindowHint(GLFW.OPENGL_PROFILE, GLFW.OPENGL_CORE_PROFILE)
-
-	win = GLFW.CreateWindow(viewer.W, viewer.H, viewer.title)
-	viewer.win = win
-	viewer.exitNow = false
-	GLFW.MakeContextCurrent(win)
-
-	#println("Running viewer",viewer.title)
-	#println("GL_SHADING_LANGUAGE_VERSION ",unsafe_string(glGetString(GL_SHADING_LANGUAGE_VERSION)))
-	#println("GL_VERSION                  ",unsafe_string(glGetString(GL_VERSION)))
-	#println("GL_VENDOR                   ",unsafe_string(glGetString(GL_VENDOR)))
-	#println("GL_RENDERER                 ",unsafe_string(glGetString(GL_RENDERER)))
-
-	# problem of retina
-	window_size = GLFW.GetWindowSize(viewer.win)
-	framebuffer_size = GLFW.GetFramebufferSize(viewer.win)
-	
-	viewer.scalex = framebuffer_size[1] / Float64(window_size[1])
-	viewer.scaley = framebuffer_size[2] / Float64(window_size[2])
-
-	GLFW.SetWindowSizeCallback(win, function (win::GLFW.Window, width::Integer, height::Integer)
-		handleResizeEvent(viewer)
-	end)
-	GLFW.SetKeyCallback(win, function (win::GLFW.Window, key, scancode, action, mods)
-		handleKeyPressEvent(viewer, key, scancode, action, mods)
-	end)
-	GLFW.SetCursorPosCallback(win, function (win::GLFW.Window, x, y)
-		handleMouseMoveEvent(viewer, x, y)
-	end)
-	GLFW.SetMouseButtonCallback(win, function (win::GLFW.Window, button, action, mods)
-		handleMouseButtonEvent(viewer, button, action, mods)
-	end)
-	GLFW.SetScrollCallback(win, function (win::GLFW.Window, dx, dy)
-		handleMouseWheelEvent(viewer, dy)
-	end)
-
-	handleResizeEvent(viewer::Viewer)
-	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
-		glRender(viewer)
-		GLFW.SwapBuffers(win)
-		GLFW.PollEvents()
-	end
-
-	releaseGpuResources(viewer)
-	glDeleteNow()
-	GLFW.DestroyWindow(win)
-	GLFW.Terminate()
-
-end
-export GLView
 
 # ///////////////////////////////////////////////////////////////////////
 function getModelview(viewer::Viewer)
@@ -757,62 +591,28 @@ function glRender(viewer::Viewer)
 	for batch in viewer.batches
 
 		# show points
-		if batch.primitive == GL_POINTS
+		if batch.primitive == GL_POINTS && (batch.point_color[4] > 0.0)
+			glPointSize(batch.point_size)
+			render_batch(viewer, batch, batch.point_color, PROJECTION, MODELVIEW, lightpos)
+			glPointSize(1)
 
-			if batch.point_color[4] > 0.0
-				glPointSize(batch.point_size)
-				glRenderBatch(viewer, batch, batch.point_color, PROJECTION, MODELVIEW, lightpos)
-				glPointSize(1)
-			end
+		# show lines
+		elseif (batch.primitive == GL_LINES || batch.primitive == GL_LINE_STRIP || batch.primitive == GL_LINE_LOOP) && (batch.line_color[4] > 0.0)
+			glLineWidth(batch.line_width)
+			render_batch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)
+			glLineWidth(1)
 
-			# show lines
-		elseif batch.primitive == GL_LINES || batch.primitive == GL_LINE_STRIP || batch.primitive == GL_LINE_LOOP
-
-			if batch.line_color[4] > 0.0
-				glLineWidth(batch.line_width)
-				glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)
-				glLineWidth(1)
-			end
-
-			# show triangles
-		else
-
-			if viewer.show_lines && batch.line_width > 0
-
-				# https://www.glprogramming.com/red/chapter06.html
-
-				if batch.face_color[4] > 0.0
-					glEnable(GL_POLYGON_OFFSET_FILL)
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-					glPolygonOffset(1.0, 1.0)
-					glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
-					glDisable(GL_POLYGON_OFFSET_FILL)
-				end
-
-				if batch.line_color[4] > 0.0
-					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-					glLineWidth(batch.line_width)
-					glRenderBatch(viewer, batch, batch.line_color, PROJECTION, MODELVIEW, lightpos)
-					glLineWidth(1)
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-				end
-
+		# show triangles
+		elseif (batch.primitive == GL_TRIANGLES) && (batch.face_color[4] > 0.0)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+			if !isnothing(batch.enable_polygon_offset)
+				glEnable(GL_POLYGON_OFFSET_FILL)
+				glPolygonOffset(1.0, 1.0)
+				render_batch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
+				glDisable(GL_POLYGON_OFFSET_FILL)
 			else
-				if batch.face_color[4] > 0.0
-					
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-
-					if !isnothing(batch.enable_polygon_offset)
-						glEnable(GL_POLYGON_OFFSET_FILL)
-						glPolygonOffset(1.0, 1.0)
-						glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
-					else
-						glRenderBatch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
-					end
-
-				end
+				render_batch(viewer, batch, batch.face_color, PROJECTION, MODELVIEW, lightpos)
 			end
-
 		end
 	end
 
@@ -821,7 +621,7 @@ function glRender(viewer::Viewer)
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////////
-function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
+function render_batch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
 
 	lighting_enabled = length(batch.normals.vector) > 0 && viewer.lighting_enabled
 	color_attribute_enabled = length(batch.colors.vector) > 0
@@ -831,7 +631,7 @@ function glRenderBatch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELV
 	enableProgram(shader)
 
 	projection = PROJECTION
-	modelview = MODELVIEW 
+	modelview = MODELVIEW * batch.T
 	normal_matrix = dropW(transpose(inv(modelview)))
 
 	glUniformMatrix4fv(glGetUniformLocation(shader.program_id, "u_modelview_matrix"), 1, GL_TRUE, flatten(modelview))
@@ -1042,3 +842,154 @@ function handleKeyPressEvent(viewer::Viewer, key, scancode, action, mods)
 
 end
 
+# ///////////////////////////////////////////////////////////////////////
+function compute_bbox(batch::GLBatch)::Box3d
+	ret = invalidBox()
+	for (x,y,z) in split(batch.vertices.vector,3)
+		addPoint(ret, Point3d(x,y,z))
+	end
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////////
+function compute_bbox(batches::Vector{GLBatch})::Box3d
+	ret = invalidBox()
+	for batch in batches
+		for (x,y,z) in split(batch.vertices.vector,3)
+			addPoint(ret, Point3d(x,y,z))
+		end
+	end
+	return ret
+end
+
+# ///////////////////////////////////////////////////////////////////////
+function render_points(viewer::Viewer, points::Vector{Float32}; colors=nothing, point_size=DEFAULT_POINT_SIZE, point_color=DEFAULT_POINT_COLOR)
+	if length(points)==0 return end
+	batch = GLBatch(GL_POINTS)
+	push!(viewer.batches,batch)
+	batch.point_size=point_size
+	point_color=point_color
+	batch.vertices = GLVertexBuffer(points)
+	if !isnothing(colors)
+		batch.colors = GLVertexBuffer(colors)
+	end
+end
+
+# ///////////////////////////////////////////////////////////////////////
+function render_lines(viewer::Viewer, points::Vector{Float32}; colors=nothing, line_width=DEFAULT_LINE_WIDTH, line_color=DEFAULT_LINE_COLOR)
+	if length(points)==0 return end
+	batch = GLBatch(GL_LINES)
+	push!(viewer.batches, batch)
+	batch.line_width=line_width 
+	batch.line_color=line_color
+	batch.vertices = GLVertexBuffer(points)
+	if !isnothing(colors)
+		batch.colors = GLVertexBuffer(colors)
+	end
+end
+
+# ///////////////////////////////////////////////////////////////////////
+function render_triangles(viewer::Viewer, points::Vector{Float32}; normals=nothing, colors=nothing, face_color=DEFAULT_FACE_COLOR, enable_polygon_offset=false)
+	if length(points)==0 return end
+	batch = GLBatch(GL_TRIANGLES)
+	push!(viewer.batches,batch)
+	batch.enable_polygon_offset=enable_polygon_offset
+	batch.face_color=face_color
+	batch.vertices=GLVertexBuffer(points)
+	batch.normals=GLVertexBuffer(!isnothing(normals) ? normals : compute_triangles_normals(points))
+	if !isnothing(colors)
+		batch.colors = GLVertexBuffer(colors)
+		
+	end
+end
+
+# ///////////////////////////////////////////////////////////////////////
+function run_viewer(viewer::Viewer; properties::Properties=Properties())
+
+	# reduce to the case -1,+1
+	begin
+		bbox=compute_bbox(viewer.batches)
+		box_size = bbox.p2 - bbox.p1
+		max_size = maximum([box_size[1], box_size[2], box_size[3]])
+		box_center = center(bbox)
+		use_ortho=(box_size[3]==0.0)
+
+		T =  scaleMatrix(Point3d(2.0/max_size, 2.0/max_size, 2.0/max_size)) * translateMatrix(-box_center)
+
+		@assert(length(Set(viewer.batches))==length(viewer.batches))
+		for B in eachindex(viewer.batches)
+			if true
+				viewer.batches[B].T= T * viewer.batches[B].T # prepend transformation
+			else
+				viewer.batches[B].vertices.vector=transform_points(T, batch.vertices.vector)
+				# note: scaling/translation will not change the normals so I will be fine
+				# batch.normals.vector=transform_normals(T,batch.normals.vector)
+			end
+		end
+		
+	end
+
+	show_axis = get(properties, "show_axis", true)
+	if show_axis
+		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
+	end
+
+	viewer.background_color =            get(properties, "background_color", viewer.background_color)
+	viewer.title            =            get(properties, "title", viewer.title)
+	viewer.use_ortho        =            get(properties, "use_ortho", use_ortho)
+	viewer.show_lines       =            get(properties, "show_lines", viewer.show_lines)
+	viewer.fov              =            get(properties, "fov", viewer.fov)
+
+	viewer.pos              =            use_ortho ? Point3d(0, 0, 1) : Point3d(5, 5, 5) 
+	viewer.dir              = normalized(normalized(Point3d(0,0,0) - viewer.pos))
+	viewer.vup              = normalized(use_ortho ? Point3d(0, 1, 0) : Point3d(0, 0, 1))
+	viewer.zNear            =            0.01
+	viewer.zFar             =            10.0
+	viewer.walk_speed       =            0.01 
+
+	redisplay(viewer)
+
+	ret_code = GLFW.Init()
+	# println("GLFW init returned ",ret_code)
+
+	win = GLFW.CreateWindow(viewer.W, viewer.H, viewer.title)
+	viewer.win = win
+	viewer.exitNow = false
+	GLFW.MakeContextCurrent(win)
+
+	# problem of retina
+	window_size = GLFW.GetWindowSize(viewer.win)
+	framebuffer_size = GLFW.GetFramebufferSize(viewer.win)
+	viewer.scalex = framebuffer_size[1] / Float64(window_size[1])
+	viewer.scaley = framebuffer_size[2] / Float64(window_size[2])
+
+	GLFW.SetWindowSizeCallback(win, function (win::GLFW.Window, width::Integer, height::Integer)
+		handleResizeEvent(viewer)
+	end)
+	GLFW.SetKeyCallback(win, function (win::GLFW.Window, key, scancode, action, mods)
+		handleKeyPressEvent(viewer, key, scancode, action, mods)
+	end)
+	GLFW.SetCursorPosCallback(win, function (win::GLFW.Window, x, y)
+		handleMouseMoveEvent(viewer, x, y)
+	end)
+	GLFW.SetMouseButtonCallback(win, function (win::GLFW.Window, button, action, mods)
+		handleMouseButtonEvent(viewer, button, action, mods)
+	end)
+	GLFW.SetScrollCallback(win, function (win::GLFW.Window, dx, dy)
+		handleMouseWheelEvent(viewer, dy)
+	end)
+
+	handleResizeEvent(viewer::Viewer)
+	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
+		glRender(viewer)
+		GLFW.SwapBuffers(win)
+		GLFW.PollEvents()
+	end
+
+	releaseGpuResources(viewer)
+	glDeleteNow()
+	GLFW.DestroyWindow(win)
+	GLFW.Terminate()
+
+end
+export run_viewer

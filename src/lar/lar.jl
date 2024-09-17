@@ -225,7 +225,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
-function LAR(obj::Hpc; precision=DEFAULT_PRECISION)::Lar
+function LAR(obj::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)::Lar
 	geo = ToGeometry(obj, precision=precision)
 	ret = Lar()
 	ret.V = hcat(geo.points...)
@@ -361,14 +361,14 @@ end
 export find_vcycles
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(viewer::Viewer)
-	GLView(viewer, properties=Properties(
+function run_lar_viewer(viewer::Viewer)
+	run_viewer(viewer, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
 		"title" => "LAR"
 	))
 end
-export VIEWCOMPLEX
+export run_lar_viewer
 
 # /////////////////////////////////////////////////////
 function get_explosion_vt(points::Points, explode)
@@ -385,28 +385,31 @@ function do_explode(points::Points, vt)
 	end
 	return ret
 end
+
 # /////////////////////////////////////////////////////
-function render_edge(viewer::Viewer, batch_lines::GLBatch, lar::Lar, E::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
+function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0,0.0,0.0], show=[])
 
 	ev=lar.C[:EV][E]
 	edge_points=do_explode(lar.V[:, ev], vt)
-	
-	append!(batch_lines.vertices.vector, edge_points[:,1]);append!(batch_lines.colors.vector, color)
-	append!(batch_lines.vertices.vector, edge_points[:,2]);append!(batch_lines.colors.vector, color)				
+
+	lines,colors=Vector{Float32}(),Vector{Float32}()
+	append!(lines, edge_points[:,1]);append!(colors, line_color)
+	append!(lines, edge_points[:,2]);append!(colors, line_color)
+	render_lines(viewer, lines, colors=colors, line_width=2)
 
 	if "V_text" in show
-		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=0.04)
-		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=0.04)
+		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 	end
 
 	if "EV_text" in show
-		render_text(viewer, string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=0.04)
+		render_text(viewer, string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 	end
 end
 
 
 # /////////////////////////////////////////////////////
-function render_face(viewer::Viewer, batch_triangles::GLBatch, batch_lines::GLBatch, lar::Lar, F::Int; color=BLACK, vt=[0.0,0.0,0.0], show=[])
+function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0,0.0,0.0], show=[])
 
 	fv=lar.C[:FV][F]
 	face_points=do_explode(lar.V[:, fv], vt)
@@ -422,12 +425,12 @@ function render_face(viewer::Viewer, batch_triangles::GLBatch, batch_lines::GLBa
 		end
 		vcycles = find_vcycles(cell_EV)
 		points2d = project_points3d(face_points; double_check=true)(face_points)
-		triangles = TRIANGULATE(points2d, vcycles)
+		triangulation = TRIANGULATE(points2d, vcycles)
 
 	# is it a simple triangle?
 	elseif length(fv)==3
 		vcycles=[1,2],[2,3],[3,1]
-		triangles=[[1,2,3]]
+		triangulation=[[1,2,3]]
 
 	else
 		# I need to know FE (which cannot be computed automatically from FV EV considering non-convex faces)
@@ -446,41 +449,42 @@ function render_face(viewer::Viewer, batch_triangles::GLBatch, batch_lines::GLBa
 
 	# render lines
 	begin
-		for (a,b) in vcycles
-			append!(batch_lines.vertices.vector, face_points[:,a]);append!(batch_lines.colors.vector, DARK_GRAY)
-			append!(batch_lines.vertices.vector, face_points[:,b]);append!(batch_lines.colors.vector, DARK_GRAY)
-		end			
+		lines, colors=Vector{Float32}(),Vector{Float32}()
+		begin
+			for (a,b) in vcycles
+				append!(lines, face_points[:,a]);append!(colors, DARK_GRAY)
+				append!(lines, face_points[:,b]);append!(colors, DARK_GRAY)
+			end			
+		end
+		render_lines(viewer, lines, colors=colors)
 	end
 
 	# render triangles
 	begin
-		for (u, v, w) in triangles
-			p0 = face_points[:,u]
-			p1 = face_points[:,v]
-			p2 = face_points[:,w]
-			n = ComputeTriangleNormal(p0, p1, p2)
-			append!(batch_triangles.vertices.vector, p0);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
-			append!(batch_triangles.vertices.vector, p1);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
-			append!(batch_triangles.vertices.vector, p2);append!(batch_triangles.normals.vector, n);append!(batch_triangles.colors.vector, color)
+		triangles, colors=Vector{Float32}(),Vector{Float32}()
+		begin
+			for (u, v, w) in triangulation
+				p0 = face_points[:,u];append!(triangles, p0);append!(colors, face_color)
+				p1 = face_points[:,v];append!(triangles, p1);append!(colors, face_color)
+				p2 = face_points[:,w];append!(triangles, p2);append!(colors, face_color)
+			end
 		end
+		render_triangles(viewer, triangles, colors=colors, enable_polygon_offset=true)
 	end
 
-	if "FV_text" in show
-		centroid=compute_centroid(face_points)
-		render_text(batches, string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=color, fontsize=0.04)
+	# render text
+	begin
+		if "FV_text" in show
+			centroid=compute_centroid(face_points)
+			render_text(batches, string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=face_color, fontsize=0.04)
+		end
 	end
 
 end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function render_lar(
-	viewer::Viewer, 
-	lar::Lar; 
-	show=["V", "EV", "FV"], 
-	explode=[1.0,1.0,1.0], 
-	user_color=nothing
-)
+function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0])
 
   # want lar to be 3 dimensional 
 	begin
@@ -490,15 +494,6 @@ function render_lar(
 			lar.V=vcat(lar.V,zeros)
 		end
 	end
-
-
-	# I think the order is important for polygon offset
-	batch_triangles = GLBatch(viewer, TRIANGLES)
-	batch_triangles.line_width = 0 # otherwise I would see the triangulation
-	batch_triangles.enable_polygon_offset=true
-
-	batch_lines = GLBatch(viewer, LINES)
-	batch_lines.line_width  = 2
 
 	# ____________________________________________
   if "FV" in show && haskey(lar.C,:FV)
@@ -510,17 +505,17 @@ function render_lar(
 				for F in cf append!(v_indices,lar.C[:FV][F]) end
 				v_indices=remove_duplicates(v_indices)
 				vt=get_explosion_vt(lar.V[:, v_indices], explode)
-				color = isnothing(user_color) ? RandomColor() : user_color
+				face_color = RandomColor()
 				for F in cf
-					render_face(viewer, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
+					render_face(viewer, lar, F, vt=vt, face_color=face_color, show=show)
 				end
 			end
 		# expode by single face
 		else
 			for (F, fv) in enumerate(lar.C[:FV])
 				vt=get_explosion_vt(lar.V[:, fv], explode)
-				color = isnothing(user_color) ? RandomColor() : user_color
-				render_face(viewer, batch_triangles, batch_lines, lar, F, vt=vt, color=color, show=show)
+				face_color = RandomColor()
+				render_face(viewer, lar, F, vt=vt, face_color=face_color, show=show)
 			end
 		end
 
@@ -531,17 +526,17 @@ function render_lar(
 		if "atom" in show && haskey(lar.C, :FV) && haskey(lar.C, :FE)
 			for (F,fv) in enumerate(lar.C[:FV])
 				vt=get_explosion_vt(lar.V[:, fv], explode)
-				color = isnothing(user_color) ? RandomColor() : user_color
+				line_color = RandomColor()
 				for E in lar.C[:FE][F]
-					render_edge(viewer, batch_lines, lar, E, vt=vt, color=color, show=show)
+					render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show)
 				end
 			end
 		# explode by single edge
 		else
 			for (E,ev) in enumerate(lar.C[:EV])
 				vt=get_explosion_vt(lar.V[:, ev], explode)
-				color = isnothing(user_color) ? RandomColor() :  user_color
-				render_edge(viewer, batch_lines, lar, E, vt=vt, color=color, show=show)
+				line_color = RandomColor()
+				render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show)
 			end
 		end
 	end
@@ -550,31 +545,18 @@ end
 export render_lar
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(lar::Lar; 
-	show=["V", "EV", "FV"], 
-	explode=[1.0,1.0,1.0], 
-	user_color=nothing,
-	viewer=Viewer())
-
-	render_lar(viewer, lar, show=show, explode=explode, user_color=user_color)
-	VIEWCOMPLEX(viewer)
+function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0])
+	render_lar(viewer, lar, show=show, explode=explode)
+	run_lar_viewer(viewer)
 end
+
+function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0])
+	VIEWCOMPLEX(Viewer(), lar,show=show, explode=explode)
+end
+
 export VIEWCOMPLEX
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(
-	lars::Vector{Lar}; 
-	show=["V", "EV", "FV"], 
-	explode=[1.0,1.0,1.0],
-	viewer=Viewer()
-	)
-
-	for (I,lar) in enumerate(lars)
-		render_lar(viewer, lar, show=show, explode=explode, user_color=RandomColor())
-	end
-
-	VIEWCOMPLEX(viewer)
-end
 
 # //////////////////////////////////////////////////////////////////////////////
 function RandomLine(size_min::Float64,size_max::Float64)

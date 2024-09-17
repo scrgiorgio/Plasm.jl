@@ -191,16 +191,32 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
   
     if debug_mode
       viewer=Viewer()
-      points = GLBatch(viewer, POINTS); points.point_size = 8
-      lines  = GLBatch(viewer, LINES) ; lines.line_width  = 2
-      append!(points.colors.vector,RED); append!(points.vertices.vector, internal_point)
-      for distance in distances
-        append!(points.colors.vector, GREEN ); append!(points.vertices.vector, internal_point+distance*ray_dir)
-        append!(lines.colors.vector,  YELLOW); append!(lines.vertices.vector, internal_point)
-        append!(lines.colors.vector,  YELLOW); append!(lines.vertices.vector, internal_point+distance*ray_dir)
+
+      # points
+      begin
+        points, colors = Vector{Float32}(),Vector{Float32}()
+        append!(colors,RED)
+        append!(points, internal_point)
+        for distance in distances
+          append!(colors, GREEN )
+          append!(points, internal_point+distance*ray_dir)
+        end
+        render_points(viewer, points, colors=colors, point_size=8)
       end
+
+      # lines
+      begin
+        lines , colors = Vector{Float32}(),Vector{Float32}()
+        for distance in distances
+          append!(colors,  YELLOW); append!(lines,  internal_point)
+          append!(colors,  YELLOW); append!(lines,  internal_point+distance*ray_dir)
+        end
+        render_lines(viewer, lines,  colors=colors, line_width=2)
+      end
+
       render_text(viewer, join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)
-      VIEWCOMPLEX(atom, show=["V", "EV"], explode=[1.0,1.0,1.0], viewer=viewer)
+
+      VIEWCOMPLEX(viewer, atom, show=["V", "EV"], explode=[1.0,1.0,1.0])
     end
   end
   

@@ -9,7 +9,7 @@ lar = LAR(hpc)
 arrangement = ARRANGE3D(lar)
 
 # show faces, exploding each face by its centroid
-VIEWCOMPLEX(arrangement, show=["FV"],        explode=[1.4,1.4,1.4])
+VIEWCOMPLEX(arrangement, show=["FV"], explode=[1.4,1.4,1.4])
 
 # show faces, but keep the atom together
 VIEWCOMPLEX(arrangement, show=["FV","atom"], explode=[1.4,1.4,1.4])
