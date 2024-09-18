@@ -167,6 +167,7 @@ function remove_outer_atom!(arrangement::Lar)
   atoms=[SELECT(arrangement, sel) for sel in arrangement.C[:CF]]
   ___, outer_index = get_outer_atom(atoms)
   deleteat!(arrangement.C[:CF], outer_index)
+  return arrangement
 end
 export remove_outer_atom!
 
