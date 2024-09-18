@@ -67,8 +67,8 @@ include("./viewer.glfw.jl")
 include("./viewer.meshcat.jl")
 
 # ////////////////////////////////////////////////////////////////////////
-function Viewer(type::String=DEFAULT_VIEWER)::Viewer
-	return type=="meshcat" ? MeshCatViewer() : GLFWViewer()
+function Viewer(;type::String=DEFAULT_VIEWER, notebook=false)::Viewer
+	return type=="meshcat" || notebook ? MeshCatViewer(notebook) : GLFWViewer()
 end
 
 # ////////////////////////////////////////////////////////////////////////

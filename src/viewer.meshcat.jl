@@ -10,13 +10,17 @@ mutable struct MeshCatViewer <: Viewer
 	bbox::Box3d
 
 	# constructor
-	function MeshCatViewer()
+	function MeshCatViewer(notebook=false)
+		println("MeshCatViewer",notebook)
 		vis=Visualizer()
 		self=new(vis,Vector{String}(),invalidBox())
-		open(vis)
-		wait(vis)
-		setvisible!(vis["/Grid"], false)
-		setvisible!(vis["/Axes"], false)
+
+		if !notebook
+			# render(vis) better to do in another cell
+			open(vis)
+			wait(vis)
+		end
+
 		return self
 	end
 
@@ -110,6 +114,7 @@ export render_triangles
 
 # ///////////////////////////////////////////////////////////////////////
 function run_viewer(viewer::MeshCatViewer; properties::Properties=Properties())
+	
 	vis=viewer.vis
 
 	# reduce to the case -1,+1
@@ -126,6 +131,9 @@ function run_viewer(viewer::MeshCatViewer; properties::Properties=Properties())
 	if show_axis
 		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
 	end
+
+	setvisible!(vis["/Grid"], false)
+	setvisible!(vis["/Axes"], false)
 
 	setprop!(vis["/Lights/AmbientLight/<object>"], "intensity", 0.88)
 

@@ -120,7 +120,7 @@ For Jupyter Notebooks alternatives see [ :](https://marketsplash.com/julia-ides/
 
 ```bash
 using IJulia
-notebook()
+notebook(dir=pwd())
 # jupyterlab() (OPTIONAL) if you want to install lab
 
 # force to use julia internal jupyter
