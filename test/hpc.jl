@@ -17,6 +17,23 @@ function TestViewer()
     run_viewer(viewer)
   end
 
+  begin
+
+    viewer=Viewer()
+    
+    render_points(viewer, Vector{Float32}([0.0,0.0,0.0, 1.0,1.0,0.0 ]); point_size=10, point_color=YELLOW)
+    render_points(viewer, Vector{Float32}([0.0,0.0,0.2, 1.0,1.0,0.2 ]),colors=Vector{Float32}([1.0,0.0,0.0,1.0,  0.0,1.0,0.0,1.0]); point_size=10)
+    
+    render_lines(viewer, Vector{Float32}([0.0,0.0,0.4, 1.0,1.0,0.4 ]); line_width=10, line_color=YELLOW)
+    render_lines(viewer, Vector{Float32}([0.0,0.0,0.6, 1.0,1.0,0.6 ]); colors=Vector{Float32}([1.0,0.0,0.0,1.0,  0.0,1.0,0.0,1.0]),line_width=10)
+    
+    render_triangles(viewer, Vector{Float32}([0.0,0.0,0.8, 1.0,0.0,0.8, 1.0,1.0,0.8 ]); face_color=YELLOW)
+    render_triangles(viewer, Vector{Float32}([0.0,0.0,1.0, 1.0,0.0,1.0, 1.0,1.0,1.0 ]); colors=Vector{Float32}([1.0,0.0,0.0,1.0,  0.0,1.0,0.0,1.0,  0.0,0.0,1.0,1.0]))
+    
+    run_viewer(viewer)
+
+  end
+
 
 end
 

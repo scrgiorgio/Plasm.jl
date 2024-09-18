@@ -61,6 +61,7 @@ end
 export compute_triangles_normals
 
 include("./viewer.glfw.jl")
+# include("./viewer.meshcat.jl")
 
 
 # ////////////////////////////////////////////////////////////////////////

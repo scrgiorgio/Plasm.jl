@@ -37,7 +37,6 @@ julia --project=. test/mechanical_piece.jl
 
 # boolean
 julia --project=. test/boolean.jl
-
 ```
 
 ## Developing Plasm.jl

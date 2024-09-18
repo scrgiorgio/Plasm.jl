@@ -944,7 +944,7 @@ function run_viewer(viewer::Viewer; properties::Properties=Properties())
 	viewer.dir              = normalized(normalized(Point3d(0,0,0) - viewer.pos))
 	viewer.vup              = normalized(use_ortho ? Point3d(0, 1, 0) : Point3d(0, 0, 1))
 	viewer.zNear            =            0.01
-	viewer.zFar             =            10.0
+	viewer.zFar             =            20.0
 	viewer.walk_speed       =            0.01 
 
 	redisplay(viewer)

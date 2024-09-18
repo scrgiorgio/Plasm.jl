@@ -496,7 +496,7 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 	end
 
 	# ____________________________________________
-  if "FV" in show && haskey(lar.C,:FV)
+  if "FV" in show && haskey(lar.C,:FV) && length(lar.C[:FV])>0
 
 		# explode by cell
 		if "atom" in show && haskey(lar.C, :CF)
@@ -520,7 +520,7 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		end
 
 	# show lines
-  elseif "EV" in show && haskey(lar.C,:EV)
+  elseif "EV" in show && haskey(lar.C,:EV) && length(lar.C[:EV])>0
 
 		# explode by polygon
 		if "atom" in show && haskey(lar.C, :FV) && haskey(lar.C, :FE)

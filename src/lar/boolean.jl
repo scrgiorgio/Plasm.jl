@@ -161,6 +161,15 @@ function get_outer_atom(atoms)
 end
 export get_outer_atom
 
+
+# ////////////////////////////////////////////////////////////////
+function remove_outer_atom!(arrangement::Lar)
+  atoms=[SELECT(arrangement, sel) for sel in arrangement.C[:CF]]
+  ___, outer_index = get_outer_atom(atoms)
+  deleteat!(arrangement.C[:CF], outer_index)
+end
+export remove_outer_atom!
+
 # ////////////////////////////////////////////////////////////////
 function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
 
