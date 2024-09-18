@@ -6,6 +6,9 @@ export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 const DEFAULT_LAR_FONT_SIZE=0.04
 export DEFAULT_LAR_FONT_SIZE
 
+const DEFAULT_VIEWER="glfw"
+export DEFAULT_VIEWER
+
 # scrgiorgio: do not use different errors/tolerance in lar code, try to use same number
 const LAR_DEFAULT_ERR=1e-8
 export LAR_DEFAULT_ERR

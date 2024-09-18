@@ -81,7 +81,7 @@ function GLBatch(prim::UInt32=GL_POINTS)
 end
 
 # /////////////////////////////////////////////////////////////////////////////
-mutable struct Viewer
+mutable struct GLFWViewer  <: Viewer
 	win::Any
 	W::Int32
 	H::Int32
@@ -106,11 +106,11 @@ mutable struct Viewer
 	title::String
 	lighting_enabled::Bool
 end
-export Viewer
+export GLFWViewer
 
 # ///////////////////////////////////////////////////////////////////////
-function Viewer()
-	ret=Viewer(
+function GLFWViewer()
+	ret=GLFWViewer(
 		0,
 		1024, 768,
 		1.0, 1.0,
@@ -524,7 +524,7 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////////
-function releaseGpuResources(viewer::Viewer)
+function releaseGpuResources(viewer::GLFWViewer)
 	for batch in viewer.batches
 		releaseGpuResources(batch)
 	end
@@ -535,11 +535,11 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////////
-function getModelview(viewer::Viewer)
+function getModelview(viewer::GLFWViewer)
 	return lookAtMatrix(viewer.pos, viewer.pos + viewer.dir, viewer.vup)
 end
 
-function getProjection(viewer::Viewer)
+function getProjection(viewer::GLFWViewer)
 	ratio = viewer.W / float(viewer.H)
 	if viewer.use_ortho
 		# euristic that seem to work well
@@ -556,7 +556,7 @@ function getProjection(viewer::Viewer)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function getShader(viewer::Viewer, lighting_enabled, color_attribute_enabled)
+function getShader(viewer::GLFWViewer, lighting_enabled, color_attribute_enabled)
 
 	lighting_enabled = lighting_enabled && viewer.lighting_enabled
 
@@ -572,7 +572,7 @@ function getShader(viewer::Viewer, lighting_enabled, color_attribute_enabled)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function glRender(viewer::Viewer)
+function glRender(viewer::GLFWViewer)
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glDisable(GL_CULL_FACE)
@@ -621,7 +621,7 @@ function glRender(viewer::Viewer)
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////////
-function render_batch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
+function render_batch(viewer::GLFWViewer, batch::GLBatch, color, PROJECTION, MODELVIEW, lightpos)
 
 	lighting_enabled = length(batch.normals.vector) > 0 && viewer.lighting_enabled
 	color_attribute_enabled = length(batch.colors.vector) > 0
@@ -675,7 +675,7 @@ function render_batch(viewer::Viewer, batch::GLBatch, color, PROJECTION, MODELVI
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function redisplay(viewer::Viewer)
+function redisplay(viewer::GLFWViewer)
 	# nothing to do
 end
 
@@ -688,7 +688,7 @@ function handleResizeEvent(viewer)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseButtonEvent(viewer::Viewer, button, action, mods)
+function handleMouseButtonEvent(viewer::GLFWViewer, button, action, mods)
 
 	button = Dict(GLFW.MOUSE_BUTTON_1 => 1, GLFW.MOUSE_BUTTON_2 => 3, GLFW.MOUSE_BUTTON_3 => 2)[button]
 
@@ -706,7 +706,7 @@ function handleMouseButtonEvent(viewer::Viewer, button, action, mods)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseMoveEvent(viewer::Viewer, x::Float64, y::Float64)
+function handleMouseMoveEvent(viewer::GLFWViewer, x::Float64, y::Float64)
 
 	x = x * viewer.scalex
 	y = y * viewer.scaley
@@ -757,7 +757,7 @@ function handleMouseMoveEvent(viewer::Viewer, x::Float64, y::Float64)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleMouseWheelEvent(viewer::Viewer, delta)
+function handleMouseWheelEvent(viewer::GLFWViewer, delta)
 	if viewer.use_ortho
 		viewer.fov*=(delta<0) ? 1.1 : 1.0/1.1;
 	else
@@ -767,7 +767,7 @@ function handleMouseWheelEvent(viewer::Viewer, delta)
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function handleKeyPressEvent(viewer::Viewer, key, scancode, action, mods)
+function handleKeyPressEvent(viewer::GLFWViewer, key, scancode, action, mods)
 
 	if action != GLFW.PRESS && action != GLFW.REPEAT
 		return
@@ -863,7 +863,7 @@ function compute_bbox(batches::Vector{GLBatch})::Box3d
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function render_points(viewer::Viewer, points::Vector{Float32}; colors=nothing, point_size=DEFAULT_POINT_SIZE, point_color=DEFAULT_POINT_COLOR)
+function render_points(viewer::GLFWViewer, points::Vector{Float32}; colors=nothing, point_size=DEFAULT_POINT_SIZE, point_color=DEFAULT_POINT_COLOR)
 	if length(points)==0 return end
 	batch = GLBatch(GL_POINTS)
 	push!(viewer.batches,batch)
@@ -876,7 +876,7 @@ function render_points(viewer::Viewer, points::Vector{Float32}; colors=nothing, 
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function render_lines(viewer::Viewer, points::Vector{Float32}; colors=nothing, line_width=DEFAULT_LINE_WIDTH, line_color=DEFAULT_LINE_COLOR)
+function render_lines(viewer::GLFWViewer, points::Vector{Float32}; colors=nothing, line_width=DEFAULT_LINE_WIDTH, line_color=DEFAULT_LINE_COLOR)
 	if length(points)==0 return end
 	batch = GLBatch(GL_LINES)
 	push!(viewer.batches, batch)
@@ -889,7 +889,7 @@ function render_lines(viewer::Viewer, points::Vector{Float32}; colors=nothing, l
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function render_triangles(viewer::Viewer, points::Vector{Float32}; normals=nothing, colors=nothing, face_color=DEFAULT_FACE_COLOR, enable_polygon_offset=false)
+function render_triangles(viewer::GLFWViewer, points::Vector{Float32}; normals=nothing, colors=nothing, face_color=DEFAULT_FACE_COLOR, enable_polygon_offset=false)
 	if length(points)==0 return end
 	batch = GLBatch(GL_TRIANGLES)
 	push!(viewer.batches,batch)
@@ -904,7 +904,7 @@ function render_triangles(viewer::Viewer, points::Vector{Float32}; normals=nothi
 end
 
 # ///////////////////////////////////////////////////////////////////////
-function run_viewer(viewer::Viewer; properties::Properties=Properties())
+function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 
 	# reduce to the case -1,+1
 	begin
@@ -979,7 +979,7 @@ function run_viewer(viewer::Viewer; properties::Properties=Properties())
 		handleMouseWheelEvent(viewer, dy)
 	end)
 
-	handleResizeEvent(viewer::Viewer)
+	handleResizeEvent(viewer::GLFWViewer)
 	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
 		glRender(viewer)
 		GLFW.SwapBuffers(win)

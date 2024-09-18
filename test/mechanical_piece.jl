@@ -3,6 +3,7 @@ using Random
 
 Random.seed!(0)
 
+# /////////////////////////////////////////
 function Run(primitive)
 
   # VIEW(primitive)
@@ -17,6 +18,9 @@ function Run(primitive)
   # VIEWCOMPLEX(lar)
   
   arrangement = ARRANGE3D(lar)
+
+  remove_outer_atom!(arrangement)
+
   VIEWCOMPLEX(arrangement,explode=[1.2,1.2,1.8])
 end
 

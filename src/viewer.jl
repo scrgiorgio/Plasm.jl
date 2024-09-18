@@ -60,9 +60,16 @@ function compute_triangles_normals(points::Vector{Float32})::Vector{Float32}
 end
 export compute_triangles_normals
 
-include("./viewer.glfw.jl")
-# include("./viewer.meshcat.jl")
+abstract type Viewer end
+export Viewer
 
+include("./viewer.glfw.jl")
+include("./viewer.meshcat.jl")
+
+# ////////////////////////////////////////////////////////////////////////
+function Viewer(type::String=DEFAULT_VIEWER)::Viewer
+	return type=="meshcat" ? MeshCatViewer() : GLFWViewer()
+end
 
 # ////////////////////////////////////////////////////////////////////////
 function render_cuboid(viewer::Viewer, box::Box3d)

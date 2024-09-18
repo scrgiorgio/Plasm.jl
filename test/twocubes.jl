@@ -14,7 +14,6 @@ lar = LAR(hpc)
 
 arrangement = ARRANGE3D(lar)
 
-# scrgiorgio: I don't think this is needed
 remove_outer_atom!(arrangement)
 
 # show faces, exploding each face by its centroid

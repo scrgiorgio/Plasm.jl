@@ -4,13 +4,13 @@ using GeometryBasics: Point, TriangleFace, Mesh, meta
 using Colors
 
 # ///////////////////////////////////////////////////////////////////////
-mutable struct Viewer
+mutable struct MeshCatViewer <: Viewer
 	vis::Visualizer
 	objects::Vector{String}
 	bbox::Box3d
 
 	# constructor
-	function Viewer()
+	function MeshCatViewer()
 		vis=Visualizer()
 		self=new(vis,Vector{String}(),invalidBox())
 		open(vis)
@@ -21,11 +21,11 @@ mutable struct Viewer
 	end
 
 end
-export Viewer
+export MeshCatViewer
 
 
 # ///////////////////////////////////////////////////////////////////////
-function render_points(viewer::Viewer, points::Vector{Float32}; colors=nothing, point_size=DEFAULT_POINT_SIZE, point_color=DEFAULT_POINT_COLOR)
+function render_points(viewer::MeshCatViewer, points::Vector{Float32}; colors=nothing, point_size=DEFAULT_POINT_SIZE, point_color=DEFAULT_POINT_COLOR)
 	if length(points)==0 return end
 	vis=viewer.vis
 
@@ -53,7 +53,7 @@ end
 export render_points
 
 # ///////////////////////////////////////////////////////////////////////
-function render_lines(viewer::Viewer, points::Vector{Float32}; colors=nothing, line_width=DEFAULT_LINE_WIDTH, line_color=DEFAULT_LINE_COLOR)
+function render_lines(viewer::MeshCatViewer, points::Vector{Float32}; colors=nothing, line_width=DEFAULT_LINE_WIDTH, line_color=DEFAULT_LINE_COLOR)
 	if length(points)==0 return end
 	vis=viewer.vis
 
@@ -78,7 +78,7 @@ end
 export render_lines
 
 # ///////////////////////////////////////////////////////////////////////
-function render_triangles(viewer::Viewer, points::Vector{Float32}; normals=nothing, colors=nothing, face_color=DEFAULT_FACE_COLOR, enable_polygon_offset=false)
+function render_triangles(viewer::MeshCatViewer, points::Vector{Float32}; normals=nothing, colors=nothing, face_color=DEFAULT_FACE_COLOR, enable_polygon_offset=false)
 	if length(points)==0 return end
 	vis=viewer.vis
 
@@ -87,7 +87,7 @@ function render_triangles(viewer::Viewer, points::Vector{Float32}; normals=nothi
 	end
 
 	id=string(rand(Int))
-	if isnothing(colors) && isnothing(normals)
+	if isnothing(normals)
 		normals=compute_triangles_normals(points)
 	end
 
@@ -100,7 +100,7 @@ function render_triangles(viewer::Viewer, points::Vector{Float32}; normals=nothi
 		setobject!(vis[id], meta(geometry; normals=normals), MeshLambertMaterial(color=RGBA(face_color...),vertexColors=false))
 	else
 		colors=[RGBA(r,g,b,a) for (r,g,b,a) in split(colors,4)]
-		setobject!(vis[id], meta(geometry, vertexColors=colors), MeshLambertMaterial(color=RGBA(1.0,1.0,0.0,1.0),vertexColors=true))
+		setobject!(vis[id], meta(geometry, normals=normals, vertexColors=colors), MeshLambertMaterial(color=RGBA(1.0,1.0,1.0,1.0),vertexColors=true))
 	end
 
 	push!(viewer.objects,id)
@@ -109,7 +109,7 @@ end
 export render_triangles
 
 # ///////////////////////////////////////////////////////////////////////
-function run_viewer(viewer::Viewer; properties::Properties=Properties())
+function run_viewer(viewer::MeshCatViewer; properties::Properties=Properties())
 	vis=viewer.vis
 
 	# reduce to the case -1,+1
@@ -126,6 +126,8 @@ function run_viewer(viewer::Viewer; properties::Properties=Properties())
 	if show_axis
 		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
 	end
+
+	setprop!(vis["/Lights/AmbientLight/<object>"], "intensity", 0.88)
 
 	background_color = get(properties, "background_color", DEFAULT_BACKGROUND_COLOR)
   setprop!(vis["/Background"], "top_color",    RGBA(background_color...))
