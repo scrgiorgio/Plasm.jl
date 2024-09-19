@@ -712,7 +712,10 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=
 		hulls = [collect(1:length(points))]
 	end
 
+	# pdim must be the same for all points
+	@assert(length(Set([length(p) for p in points]))==1)
 	pdim = length(points[1])
+
 	# special case in zero-dimension
 	if pdim == 0
 		ret.points = Vector{Vector{Float64}}()
@@ -728,12 +731,19 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=
 		end
 
 		if pdim == 1
-			@assert length(hull) >= 2
-			box = BoxNd(1)
-			for idx in hull
-				box = addPoint(box, points[idx])
+
+			if length(hull)==1
+				# add the single point (which is a single hull)
+				addHull(ret,Vector{Vector{Float64}}([points[hull[1]]]))
+			else
+				# add the bounding box
+				@assert length(hull) >= 2
+				box = BoxNd(1)
+				for idx in hull
+					box = addPoint(box, points[idx])
+				end
+				addHull(ret, Vector{Vector{Float64}}([box.p1, box.p2]))
 			end
-			addHull(ret, Vector{Vector{Float64}}([box.p1, box.p2]))
 		else
 			hull_points = [points[idx] for idx in hull]
 			__spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
@@ -964,9 +974,8 @@ function render_hpc(viewer::Viewer, hpc::Hpc)
 end
 
 
-
 # //////////////////////////////////////////////////////////
-function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", viewer=Viewer())
+function VIEW(viewer::Viewer, hpc::Hpc; properties::Properties=Properties(), title::String="")
 
 	if title!=""
 		properties["title"]=title
@@ -974,6 +983,12 @@ function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", v
 
 	render_hpc(viewer, hpc)
 	return run_viewer(viewer, properties=properties)
+end
+
+
+# //////////////////////////////////////////////////////////
+function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="")
+	VIEW(Viewer(),hpc, properties=properties,title=title)
 end
 
 
