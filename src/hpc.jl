@@ -1296,10 +1296,8 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 
 	# returning always an unique cell
 	ret = Geometry()
-	pdim = 0
-	for (T, properties, obj) in toList(self)
-
-		@assert obj isa Geometry
+	pdim = nothing
+	for (T, properties, obj::Geometry) in toList(self)
 
 		# automatic filter useless obj
 		if isempty(obj.points) || isempty(obj.hulls)
@@ -1334,19 +1332,26 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 			mapped = addPoints(ret, points)
 
 			# point dim
-			@assert(pdim == 0 || pdim == length(points[1]))
+			@assert(isnothing(pdim) || pdim == length(points[1]))
 			pdim = length(points[1])
-			@assert(pdim == 2 || pdim == 3)
+			@assert(pdim==1 || pdim == 2 || pdim == 3)
 
-			if qhull_facets == nothing
-				npoints = length(mapped)
-				if npoints == 1
-					# ignore points
-				elseif npoints == 2
-					push!(ret.edges, mapped) # probably and edge
+			if isnothing(qhull_facets)
+
+				# a single point
+				if length(mapped) == 1
+					push!(ret.hulls, [mapped[1]])
+
+				# and edge
+				elseif length(mapped) == 2
+					push!(ret.edges, [mapped[1],mapped[2]]) 
+
+				# embedded 2D face (NOTE edges will be computed by intersection of faces)
 				else
-					push!(ret.faces, mapped) # probably an embedded 2D face (NOTE edges will be computed by intersection of faces)
+					push!(ret.faces, [it for it in mapped]) 
+
 				end
+
 				continue
 			end
 

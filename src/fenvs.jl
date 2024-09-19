@@ -1012,15 +1012,30 @@ end
 export SKELETON
 function SKELETON(ord::Int)
 	 function SKELETON0(pol::Hpc)
-			larpol = LAR(pol)
-			if ord == 1
-				 return MKPOLS(larpol.V, larpol.C[:EV])
+
+			lar = LAR(pol)
+
+			# 0 skeleton
+			if ord==0
+				return MKPOLS(lar.V, [[id] for id in lar_used_vertices(lar)])
+
+			# 1d skeleton
+			elseif ord == 1
+				@assert(haskey(lar.C,:EV))
+				return MKPOLS(lar.V, lar.C[:EV])
+
+			# 2d skeleton
 			elseif ord == 2
-				 return MKPOLS(larpol.V, larpol.C[:FV])
+				@assert(haskey(lar.C,:FV))
+				return MKPOLS(lar.V, lar.C[:FV])
+
+			# 3d skeleton (take the cells)
 			elseif ord == 3
-				 return MKPOLS(larpol.V, larpol.C[:CV])
+				@assert(haskey(lar.C,:CV))
+				return MKPOLS(lar.V, lar.C[:CV])
+
 			else
-				 error("not yet implemented")
+				 error("unsupported ord for SKELLETON")
 			end
 	 end
 	 return SKELETON0
