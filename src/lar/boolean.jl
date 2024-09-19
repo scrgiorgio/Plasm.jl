@@ -154,17 +154,30 @@ function Xor(v::AbstractArray)          return (length([it for it in v if it]) %
 export Union, Intersection,Difference,Xor
 
 # ////////////////////////////////////////////////////////////////
-function get_outer_atom(atoms)
+function get_outer_atom(atoms)::Tuple{Lar, Int}
   diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
-  outer, outer_index = findmax(diags)
-  return outer, outer_index
+  max_diag, outer_index = findmax(diags)
+  return atoms[outer_index], outer_index
 end
 export get_outer_atom
 
+# ////////////////////////////////////////////////////////////////
+function get_atoms(arrangement::Lar)::Vector{Lar}
+  return [SELECT(arrangement, sel) for sel in arrangement.C[:CF]]
+end
+export get_atoms
 
 # ////////////////////////////////////////////////////////////////
-function remove_outer_atom!(arrangement::Lar)
-  atoms=[SELECT(arrangement, sel) for sel in arrangement.C[:CF]]
+""" example: atoms,outer_atom=split_atoms(get_atoms(arrangement))"""
+function split_atoms(atoms::Vector{Lar})::Tuple{Vector{Lar}, Lar}
+  outer_atom, outer_atom_index=get_outer_atom(atoms)
+  return ([atom for atom in atoms if atom!=outer_atom], outer_atom)
+end
+export split_atoms
+
+# ////////////////////////////////////////////////////////////////
+function remove_outer_atom!(arrangement::Lar)::Vector{Lar}
+  atoms=get_atoms(arrangement)
   ___, outer_index = get_outer_atom(atoms)
   deleteat!(arrangement.C[:CF], outer_index)
   return arrangement
@@ -172,7 +185,7 @@ end
 export remove_outer_atom!
 
 # ////////////////////////////////////////////////////////////////
-function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
+function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
 
   atom_faces=arrangement.C[:CF]
 
@@ -183,7 +196,7 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
     # VIEWCOMPLEX(atom, explode=[1.4,1.4,1.4])
   end
   
-  outer_atom, outer_index = get_outer_atom(atoms)
+  ___, outer_index = get_outer_atom(atoms)
   deleteat!(atoms,      outer_index)
   deleteat!(atom_faces, outer_index)
   
