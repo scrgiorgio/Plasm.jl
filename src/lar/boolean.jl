@@ -255,3 +255,36 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
 
 end
 export bool3d
+
+
+
+# ////////////////////////////////////////////////////////////////
+function bool3d_matrix(arrangement::Lar; input_args=[])
+
+  atom_faces=arrangement.C[:CF]
+
+  atoms=[]
+  for sel in atom_faces
+    atom=SELECT(arrangement, sel)
+    push!(atoms,atom)
+    # VIEWCOMPLEX(atom, explode=[1.4,1.4,1.4])
+  end
+  
+  ___, outer_index = get_outer_atom(atoms)
+  deleteat!(atoms,      outer_index)
+  deleteat!(atom_faces, outer_index)
+  
+  internal_points=[find_internal_point(atom) for atom in atoms] 
+  
+  bool_matrix=zeros(Bool,length(atoms),length(input_args))
+  
+  for (A,(atom, (internal_point, ray_dir, distances))) in enumerate(zip(atoms, internal_points))
+    # find for each input arg if the internal point is inside or outside
+    for (I,input_arg) in enumerate(input_args)
+      bool_matrix[A,I]=is_internal_point(input_arg, internal_point, ray_dir)
+    end
+  end
+
+  return bool_matrix
+end
+export bool3d_matrix
