@@ -176,13 +176,14 @@ end
 export split_atoms
 
 # ////////////////////////////////////////////////////////////////
-function remove_outer_atom!(arrangement::Lar)::Vector{Lar}
-  atoms=get_atoms(arrangement)
+function without_outer_atom(src::Lar)::Lar
+  atoms=get_atoms(src)
   ___, outer_index = get_outer_atom(atoms)
-  deleteat!(arrangement.C[:CF], outer_index)
-  return arrangement
+  ret=lar_copy(src)
+  deleteat!(ret.C[:CF], outer_index)
+  return ret
 end
-export remove_outer_atom!
+export without_outer_atom
 
 # ////////////////////////////////////////////////////////////////
 function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar

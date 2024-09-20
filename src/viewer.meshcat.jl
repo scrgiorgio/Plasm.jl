@@ -1,4 +1,4 @@
-using MeshCat
+using MeshCat: Visualizer
 using CoordinateTransformations
 using GeometryBasics: Point, TriangleFace, Mesh, meta
 using Colors

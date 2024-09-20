@@ -1,11 +1,5 @@
 export VIEWCOMPLEX
 
-const Cell = Vector{Int}
-export Cell
-
-const Cells = Vector{Cell}
-export Cells
-
 # //////////////////////////////////////////////////////////////////////////////
 # Linear Algebraic Representation . Data type for Cellular and Chain Complex.
 """
@@ -29,14 +23,21 @@ mutable struct Lar
 	mapping::Dict{Symbol, Dict{Int,Int}}
 
 	# constructor
-	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,AbstractArray}()) = begin
-		new(V, C, Dict{Int,Int}())
+	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,AbstractArray}(), mapping=Dict{Int,Int}()) = begin
+		new(V, C, mapping)
 	end
 
 end
 export Lar
 
-
+# ////////////////////////////////////////////
+function lar_copy(src::Lar)::Lar
+	# note: sharing vertices (!)
+	return Lar(
+		src.V,
+		deepcopy(src.C),
+		deepcopy(src.mapping))
+end
 
 # ////////////////////////////////////////////
 function Base.show(io::IO, lar::Lar) 
@@ -76,13 +77,6 @@ function lar_bounding_box(lar::Lar; only_used_vertices=false)
 end
 export lar_bounding_box
 
-# //////////////////////////////////////////////////////////////////////////////
-""" remove duplicate int indices """
-function remove_duplicates(cell::AbstractVector)::AbstractVector
-	# note I want the resuned value to be sorted too (needed for edge for example)
-	return collect(sort(collect(Set(cell))))
-end
-export remove_duplicates
 
 
 # //////////////////////////////////////////////////////////////////////////////

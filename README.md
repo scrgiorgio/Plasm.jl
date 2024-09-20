@@ -18,12 +18,13 @@ git pull
 ## Run tests
 
 ```bash
-julia --project=. test/hpc.jl
-
-# lar part
 julia --project=. test/bbox.jl
 julia --project=. test/points.jl
 julia --project=. test/plane.jl
+
+julia --project=. test/hpc.jl
+
+# generic lar
 julia --project=. test/lar.jl
 
 # 2d arrangement

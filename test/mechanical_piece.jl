@@ -19,7 +19,7 @@ function Run(primitive)
   
   arrangement = ARRANGE3D(lar)
 
-  remove_outer_atom!(arrangement)
+  arrangement=without_outer_atom(arrangement)
 
   VIEWCOMPLEX(arrangement,explode=[1.2,1.2,1.8])
 end

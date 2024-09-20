@@ -9,6 +9,26 @@ import Base.:*
 import Base.size
 import Base.transpose
 
+
+const Cell = Vector{Int}
+export Cell
+
+const Cells = Vector{Cell}
+export Cells
+
+# ///////////////////////////////////////////////////////////////////
+function remove_duplicates(cell::AbstractVector)::AbstractVector
+	return collect(sort(collect(Set(cell))))
+end
+export remove_duplicates
+
+# ///////////////////////////////////////////////////////////////////
+function simplify_cells(cells::Cells)::Cells
+	return remove_duplicates([remove_duplicates(cell) for cell in cells])
+end
+export simplify_cells
+
+
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
 	p0 = vcat(p0, zeros(3 - length(p0)))
@@ -258,18 +278,18 @@ mutable struct Geometry
 
 	db::Dict{Vector{Float64},Int}
 	points::Vector{Vector{Float64}}
-	edges::Vector{Vector{Int}}
-	faces::Vector{Vector{Int}}
-	hulls::Vector{Vector{Int}}
+	edges::Cells
+	faces::Cells
+	hulls::Cells
 
 	# constructor
 	function Geometry()
 		self = new(
 			Dict{Vector{Float64},Int}(),
 			Vector{Vector{Float64}}(),
-			Vector{Vector{Int}}(),
-			Vector{Vector{Int}}(),
-			Vector{Vector{Int}}(),
+			Cells(),
+			Cells(),
+			Cells(),
 		)
 		return self
 	end
@@ -347,22 +367,37 @@ function ToSimplicialForm(self::Geometry)
 
 	ret = Geometry()
 	for hull in self.hulls
-		if length(hull) <= pdim + 1
-			addHull(ret, [self.points[idx] for idx in hull])
-		else
+		__spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
+		ConvexHull = __spatial.ConvexHull
+		Delaunay   = __spatial.Delaunay
+		try
+			d = Delaunay([self.points[idx] for idx in hull])
+			for simplex in [d.simplices[R, :] for R in 1:size(d.simplices, 1)]
+				simplex_points = [Vector{Float64}(d.points[idx+1, :]) for idx in simplex]
+				addHull(ret, simplex_points)
+			end
+			continue
+		catch
+		end
 
-			__spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
-			ConvexHull = __spatial.ConvexHull
-			Delaunay = __spatial.Delaunay
-			try
-				d = Delaunay([self.points[idx] for idx in hull])
-				for simplex in [d.simplices[R, :] for R in 1:size(d.simplices, 1)]
-					simplex_points = [Vector{Float64}(d.points[idx+1, :]) for idx in simplex]
-					addHull(ret, simplex_points)
-				end
-			catch
+		# vertex, edge or triangle... just add it... let's hope for the best
+		if length(hull)<=3
+			addHull(ret, [self.points[idx] for idx in hull])
+
+		# probably a flat face in 3d.. project into a plane
+		elseif pdim==3
+			points3d::Points=stack([self.points[idx] for idx in hull]) # this is by-col representation
+			vmap=Dict(zip(1:length(hull),hull))
+			plane=plane_create(points3d)
+			points2d = project_points3d(points3d; double_check=true)(points3d) # scrgiorgio: remove double check 
+			triin = Triangulate.TriangulateIO()
+			triin.pointlist = points2d 
+			(triout, __vorout) = Triangulate.triangulate("Q", triin) # Q is for quiet
+			for (u, v, w) in eachcol(triout.trianglelist)
+				addHull(ret, [self.points[idx] for idx in [vmap[u],vmap[v],vmap[w]]])
 			end
 		end
+
 	end
 	FixOrientation!(ret)
 	return ret
@@ -379,7 +414,7 @@ function FixOrientation!(self::Geometry)
 	end
 
 	if pdim == 2
-		fixed = Vector{Vector{Int}}()
+		fixed = Cells()
 		for simplex in self.hulls
 			if length(simplex) == 3
 				p0 = self.points[simplex[1]]
@@ -396,7 +431,7 @@ function FixOrientation!(self::Geometry)
 	end
 
 	if pdim == 3
-		fixed = Vector{Vector{Int}}()
+		fixed = Cells()
 		for simplex in self.hulls
 			if length(simplex) == 4
 				p0 = self.points[simplex[1]]
@@ -435,7 +470,7 @@ end
 function render_geometry(viewer::Viewer, T::Matrix4d, obj::Geometry, properties::Properties)
 
 	sf = ToSimplicialForm(obj)
-
+	
 	points,lines,triangles = Vector{Float32}(),Vector{Float32}(),Vector{Float32}()
 
 	for hull in sf.hulls
@@ -665,7 +700,7 @@ end
 export box
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 
 	# edge case: all empty
 	if isempty(points)
@@ -699,7 +734,7 @@ function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Vector{Vector{In
 end
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 
 	ret = Geometry()
 
@@ -762,23 +797,23 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function MkPol(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+function MkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 	obj = BuildMkPol(points, hulls)
 	return Hpc(MatrixNd(), [obj])
 end
 export MkPol
 
-function MkPol(points::Vector{Vector{Int64}}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+function MkPol(points::Vector{Vector{Int64}}, hulls::Cells=Cells())
 	return MkPol(Vector{Vector{Float64}}(points), hulls)
 end
 
 
-function MkPol(points::Vector{Vector}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+function MkPol(points::Vector{Vector}, hulls::Cells=Cells())
 	return MkPol(Vector{Vector{Float64}}(points), hulls)
 end
 
 
-function MkPol(points::Matrix{Float64}, hulls::Vector{Vector{Int}}=Vector{Vector{Int}}())
+function MkPol(points::Matrix{Float64}, hulls::Cells=Cells())
 	W = [V[:, k] for k = 1:size(V)[2]]
 	return MkPol(W, hulls)
 end
@@ -844,7 +879,7 @@ export Join
 function Quote(sequence::Vector{Float64})
 	pos = 0.0
 	points = [[pos]]
-	hulls = Vector{Vector{Int}}()
+	hulls = Cells()
 	for value in sequence
 		next = pos + abs(value)
 		push!(points, [next])
@@ -893,11 +928,11 @@ function Power(a::Hpc, b::Hpc)
 			end
 
 			# combine hulls
-			hulls = Vector{Vector{Int}}()
+			hulls = Cells()
 			nx, ny = length(obj1.points), length(obj2.points)
 			for hy in obj2.hulls
 				for hx in obj1.hulls
-					hull = Vector{Int}()
+					hull = Cell()
 					for A in hx
 						for B in hy
 							push!(hull, 1 + ((B - 1) * nx + (A - 1)))
@@ -930,7 +965,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////////////////
 function UkPol(self::Hpc)
 	points = Vector{Vector{Float64}}()
-	hulls = Vector{Vector{Int}}()
+	hulls = Cells()
 	for (T, properties, obj) in toList(self)
 		O = length(points)
 
@@ -1022,7 +1057,7 @@ export MapFn
 function ToBoundaryForm(self::Hpc)
 	DB = Dict{Vector{Float64},Int64}()
 	POINTS = Vector{Vector{Float64}}()
-	FACES = Vector{Vector{Int}}()
+	FACES = Cells()
 
 	for (T, properties, obj) in toList(self)
 		sf = ToSimplicialForm(obj)
@@ -1258,19 +1293,6 @@ function ComputeCentroid(points)
 end
 export ComputeCentroid
 
-# ///////////////////////////////////////////////////////////////////
-function UniqueCells(value)
-	ret = Vector{Vector{Int}}()
-	already_exists = Set()
-	for it in value
-		v = sort!(it)
-		if !(v in already_exists)
-			push!(already_exists, v)
-			push!(ret, it)
-		end
-	end
-	return ret
-end
 
 # ///////////////////////////////////////////////////////////////////
 function ConvertFacets(value)
@@ -1312,6 +1334,7 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 	# returning always an unique cell
 	ret = Geometry()
 	pdim = nothing
+
 	for (T, properties, obj::Geometry) in toList(self)
 
 		# automatic filter useless obj
@@ -1344,70 +1367,78 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 			end
 
 			# add the points
-			mapped = addPoints(ret, points)
+			vmap = addPoints(ret, points)
 
 			# point dim
 			@assert(isnothing(pdim) || pdim == length(points[1]))
 			pdim = length(points[1])
 			@assert(pdim==1 || pdim == 2 || pdim == 3)
 
-			if isnothing(qhull_facets)
+			# qhull ok
+			if !isnothing(qhull_facets)
+
+				qhull_facets = ConvertFacets(qhull_facets)
+
+				# in 2D a facet is the face (not! the edge)
+				# in 3d a facet is the face
+				for qhull_facet in qhull_facets
+					face = [vmap[P] for P in qhull_facet]
+					push!(ret.faces, face)
+
+					# automatically adding edges too (since it's a good vertex loop coming from qhull)
+					for I in 1:length(face)
+						a, b = face[I], face[I == length(face) ? 1 : I + 1]
+						push!(ret.edges, Cell([a, b]))
+					end
+				end
+
+				# add the hull since it's full
+				push!(ret.hulls, [vmap[P] for P in 1:length(points)])
+
+			# error finding the convex hull
+			else
 
 				# a single point
-				if length(mapped) == 1
-					push!(ret.hulls, [mapped[1]])
+				if length(vmap) == 1
+					push!(ret.hulls, [vmap[1]])
 
 				# and edge
-				elseif length(mapped) == 2
-					push!(ret.edges, [mapped[1],mapped[2]]) 
+				elseif length(vmap) == 2
+					a,b=vmap[1],vmap[2]
+					push!(ret.edges, [a,b]) 
 
-				# embedded 2D face (NOTE edges will be computed by intersection of faces)
+				# a triangle (NOTE: if they are aligned this is wrong!)
+				elseif length(vmap) == 3
+					a,b,c=vmap[1],vmap[2], vmap[3]
+					push!(ret.faces, [a,b,c]) 
+					push!(ret.edges, Cell([a,b]))
+					push!(ret.edges, Cell([b,c]))
+					push!(ret.edges, Cell([c,a]))
+
+				# embedded face, project using convex hull (which return edges too)
 				else
-					push!(ret.faces, [it for it in mapped]) 
+					points3d::Points=stack(points)
+					plane=plane_create(points3d)
+					points2d = project_points3d(points3d; double_check=true)(points3d) # scrgiorgio: remove double check 
+					triin = Triangulate.TriangulateIO()
+					triin.pointlist = points2d 
+					(triout, __vorout) = Triangulate.triangulate("cQ", triin) # c is for convex hull, Q for quiet
 
+					face=[]
+					for (a,b) in eachcol(triout.segmentlist)
+						push!(ret.edges, [vmap[a],vmap[b]])
+						append!(face,[vmap[a],vmap[b]])
+					end
+					push!(ret.faces, sort(collect(Set(face)))) 
 				end
 
-				continue
-			end
-
-			qhull_facets = ConvertFacets(qhull_facets)
-
-			# in 2D a facet is the face (not! the edge)
-			# in 3d a facet is the face
-			for qhull_facet in qhull_facets
-				face = [mapped[P] for P in qhull_facet]
-				push!(ret.faces, face)
-
-				# automatically adding edges too (since it's a good vertex loop coming from qhull)
-				for I in 1:length(face)
-					a, b = face[I], face[I == length(face) ? 1 : I + 1]
-					push!(ret.edges, Vector{Int}([a, b]))
-				end
-			end
-
-			# add the hull since it's full
-			push!(ret.hulls, [mapped[P] for P in 1:length(points)])
-		end
-	end
-
-	# need to produce missing edges (coming from embedded 2d faces)
-	# this way only edges which are the interection of two faces are produced, missing single isolated faces in 3d (is it a big deal?)
-	# alternative would be: find fitting plane, order points by angle. This way I would produce all edges
-	begin
-		for f1 in ret.faces
-			for f2 in ret.faces
-				s1, s2 = Set(f1), Set(f2)
-				edge = collect(intersect(s1, s2)) # note: if f1 is an edge this will return two edges, ok with that? 
-				if length(edge) == 2
-					push!(ret.edges, edge)
-				end
 			end
 		end
 	end
 
-	ret.edges = UniqueCells(ret.edges)
-	ret.faces = UniqueCells(ret.faces)
-	ret.hulls = UniqueCells(ret.hulls)
+	ret.edges = simplify_cells(ret.edges)
+	ret.faces = simplify_cells(ret.faces)
+	ret.hulls = simplify_cells(ret.hulls)
 
 	return ret
 end

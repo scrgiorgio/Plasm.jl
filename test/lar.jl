@@ -127,8 +127,8 @@ using Combinatorics
       1.0 0.0 0.0 0.0
       0.0 0.0 0.0 1.0]
     @test larobj.C[:CV] == [[1, 2, 3, 4]]
-    @test larobj.C[:FV] == [[1, 2, 3], [2, 3, 4], [1, 3, 4], [1, 2, 4]]
-    @test larobj.C[:EV] == [[2, 3], [1, 3], [1, 2], [3, 4], [2, 4], [1, 4]]
+    @test simplify_cells(larobj.C[:FV]) == simplify_cells([[1, 2, 3], [2, 3, 4], [1, 3, 4], [1, 2, 4]])
+    @test simplify_cells(larobj.C[:EV]) == simplify_cells([[2, 3], [1, 3], [1, 2], [3, 4], [2, 4], [1, 4]])
   end
 
   @testset "LAR" begin
@@ -137,8 +137,8 @@ using Combinatorics
     @test typeof(LAR(obj)) == Lar
     @test (LAR(obj)).V == [1.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0; 1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0; 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0]
     @test (LAR(obj)).C[:CV] == [[1, 2, 3, 4, 5, 6, 7, 8]]
-    @test (LAR(obj)).C[:FV] == [[1, 2, 3, 4], [3, 4, 5, 6], [1, 3, 5, 7],[2, 4, 6, 8], [1, 2, 7, 8], [5, 6, 7, 8]]
-    @test (LAR(obj)).C[:EV] == [[3, 4], [2, 4], [1, 2], [1, 3], [5, 6], [4, 6], [3, 5], [5, 7], [1, 7], [6, 8], [2, 8], [7, 8]]
+    @test (simplify_cells(LAR(obj).C[:FV])) == simplify_cells([[1, 2, 3, 4], [3, 4, 5, 6], [1, 3, 5, 7],[2, 4, 6, 8], [1, 2, 7, 8], [5, 6, 7, 8]]) 
+    @test (simplify_cells(LAR(obj).C[:EV])) == simplify_cells([[3, 4], [2, 4], [1, 2], [1, 3], [5, 6], [4, 6], [3, 5], [5, 7], [1, 7], [6, 8], [2, 8], [7, 8]]) 
   end
 
   @testset "HPC" begin
@@ -274,7 +274,7 @@ using Combinatorics
         Vector{Int8}}
         @test typeof(findnz(copEV)) == Tuple{Vector{Int64}, Vector{Int64}, 
         Vector{Int8}}
-        @test cop2lar(copFV) == [[1, 2, 3, 4], [3, 4, 5, 6], [1, 3, 5, 7], [2, 4, 6, 8], [1, 2, 7, 8], [5, 6, 7, 8], [1, 3, 9, 10], [3, 5, 10, 11], [9, 10, 11, 12], [1, 7, 9, 12], [5, 7, 11, 12], [1, 2, 13, 14], [1, 7, 13, 15], [2, 8, 14, 16], [13, 14, 15, 16], [7, 8, 15, 16], [1, 9, 13, 17], [9, 12, 17, 18], [13, 15, 17, 18], [7, 12, 15, 18]]
+        @test simplify_cells(cop2lar(copFV)) == simplify_cells([[1, 2, 3, 4], [3, 4, 5, 6], [1, 3, 5, 7], [2, 4, 6, 8], [1, 2, 7, 8], [5, 6, 7, 8], [1, 3, 9, 10], [3, 5, 10, 11], [9, 10, 11, 12], [1, 7, 9, 12], [5, 7, 11, 12], [1, 2, 13, 14], [1, 7, 13, 15], [2, 8, 14, 16], [13, 14, 15, 16], [7, 8, 15, 16], [1, 9, 13, 17], [9, 12, 17, 18], [13, 15, 17, 18], [7, 12, 15, 18]])
         @test length(cop2lar(copFV)) == 20
         @test length(cop2lar(copEV)) == 33
         copFE = SparseArrays.spmatmul(copFV,permutedims(copEV)) .÷ Int8(2)
@@ -282,6 +282,21 @@ using Combinatorics
         FE = cop2lar(copFE)
         @test length(FE) == length(FV) == 20
      end
+
+     # 
+     @testset "skeleton" begin
+
+      x = GRID([1.0,-1.0,1.0])
+      y = GRID([1.0,-1.0,1.0])
+      z = GRID([1.0,-1.0,1.0])
+
+      hpc = x * y  * SKELETON(0)(z)
+      VIEW(hpc)
+
+      lar=LAR(hpc) 
+      VIEWCOMPLEX(lar)
+     end
+
      
 
      

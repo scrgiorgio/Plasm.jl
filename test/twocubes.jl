@@ -14,10 +14,13 @@ lar = LAR(hpc)
 
 arrangement = ARRANGE3D(lar)
 
-# optional: if you want to split
-# atoms,outer_atom=split_atoms(get_atoms(arrangement))
+# do not want to see outer atom
+arrangement=without_outer_atom(arrangement)
 
-# show faces, exploding each face by its centroid
+# optional: if you want to split and show each atom by itself
+# inner_atoms, outer_atom=split_atoms(get_atoms(arrangement))
+
+# show faces, exploding each face by sits centroid
 VIEWCOMPLEX(arrangement, show=["FV"], explode=[1.2,1.2,2.0])
 
 # show faces, but keep the atom together

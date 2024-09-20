@@ -886,7 +886,7 @@ end
 function GRID(sequence)
 	cursor = 0
 	points = [[0.0]]
-	hulls = Vector{Vector{Int}}()
+	hulls = Cells()
 	N = 1
 	for value in sequence
 		cursor += abs(value)
@@ -967,11 +967,11 @@ function ISPOLDIM(dims)
 end
 
 # /////////////////////////////////////////////////////////////////
-function MKPOL(points::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}}, __pols=Nothing)
+function MKPOL(points::Vector{Vector{Float64}}, hulls::Cells, __pols=Nothing)
 	return MkPol(points, hulls)
 end
 
-function MKPOL(V::Matrix{Float64}, hulls::Vector{Vector{Int}}, __pols=Nothing)
+function MKPOL(V::Matrix{Float64}, hulls::Cells, __pols=Nothing)
 	W = [V[:, k] for k = 1:size(V)[2]]
 	return MkPol(W, hulls)
 end
@@ -990,12 +990,12 @@ function CONVEXHULL(points)
 end
 
 # /////////////////////////////////////////////////////////////////
-function MKPOLS(V::Vector{Vector{Float64}}, hulls::Vector{Vector{Int}})::Hpc
+function MKPOLS(V::Vector{Vector{Float64}}, hulls::Cells)::Hpc
 	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls))))
 	return out
 end
 
-function MKPOLS(V::Matrix{Float64}, hulls::Vector{Vector{Int}})
+function MKPOLS(V::Matrix{Float64}, hulls::Cells)
 	W = [V[:, k] for k = 1:size(V, 2)]
 	return MKPOLS(W, hulls)
 end
@@ -2955,7 +2955,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function SPHERE(radius=1.0::Number)
-	function SPHERE0(subds=[16, 32]::Vector{Int})
+	function SPHERE0(subds=[16, 32]::CellCell)
 		N, M = subds
 		domain = T(1, 2)(-pi / 2, -pi)(Power(INTERVALS(pi)(N), INTERVALS(2 * pi)(M)))
 		fx = p -> radius * (-cos(p[1])) * sin(p[2])
@@ -2969,7 +2969,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function TORUS(radii=[1.0, 2]::Vector)
 	r1, r2 = radii
-	function TORUS0(subds=[16, 32]::Vector{Int})
+	function TORUS0(subds=[16, 32]::Cell)
 		N, M = subds
 		a = 0.5 * (r2 - r1)
 		c = 0.5 * (r1 + r2)
