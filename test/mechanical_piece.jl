@@ -19,8 +19,19 @@ function Run(primitive)
   
   arrangement = ARRANGE3D(lar)
 
-  arrangement=without_outer_atom(arrangement)
+  arrangement = SIMPLIFY(arrangement)
 
+  # if you want to see the atoms...
+  show_atoms=false
+  if show_atoms
+    for (A, sel) in enumerate(arrangement.C[:CF])
+      atom = SELECT(arrangement, sel)
+      @show(atom)
+      VIEWCOMPLEX(atom, explode=[1.4, 1.4, 1.4], show=["V", "EV", "FV", "V_text", "EV_text", "FV_text"], face_color=TRANSPARENT)
+    end
+  end
+
+  arrangement=without_outer_atom(arrangement)
   VIEWCOMPLEX(arrangement,explode=[1.2,1.2,1.8])
 end
 

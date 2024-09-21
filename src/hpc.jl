@@ -1436,6 +1436,7 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 		end
 	end
 
+	# note: since all indexes are refering vertices,it's fine to do independently
 	ret.edges = simplify_cells(ret.edges)
 	ret.faces = simplify_cells(ret.faces)
 	ret.hulls = simplify_cells(ret.hulls)

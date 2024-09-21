@@ -573,6 +573,10 @@ end
 
 # ///////////////////////////////////////////////////////////////////////
 function glRender(viewer::GLFWViewer)
+
+	glEnable(GL_BLEND)
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
 	glEnable(GL_DEPTH_TEST)
 	glDepthFunc(GL_LEQUAL)
 	glDisable(GL_CULL_FACE)
@@ -906,9 +910,17 @@ end
 # ///////////////////////////////////////////////////////////////////////
 function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 
+	batches=viewer.batches
+
+	show_axis = get(properties, "show_axis", true)
+	if show_axis
+		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
+	end
+
+
 	# reduce to the case -1,+1
 	begin
-		bbox=compute_bbox(viewer.batches)
+		bbox=compute_bbox(batches)
 		box_size = bbox.p2 - bbox.p1
 		max_size = maximum([box_size[1], box_size[2], box_size[3]])
 		box_center = center(bbox)
@@ -916,12 +928,13 @@ function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 
 		T =  scaleMatrix(Point3d(2.0/max_size, 2.0/max_size, 2.0/max_size)) * translateMatrix(-box_center)
 
-		@assert(length(Set(viewer.batches))==length(viewer.batches))
-		for B in eachindex(viewer.batches)
+		@assert(length(Set(batches))==length(batches))
+		for B in eachindex(batches)
+
 			if true
-				viewer.batches[B].T= T * viewer.batches[B].T # prepend transformation
+				batches[B].T= T * batches[B].T # prepend transformation
 			else
-				viewer.batches[B].vertices.vector=transform_points(T, batch.vertices.vector)
+				batches[B].vertices.vector=transform_points(T, batch.vertices.vector)
 				# note: scaling/translation will not change the normals so I will be fine
 				# batch.normals.vector=transform_normals(T,batch.normals.vector)
 			end
@@ -929,10 +942,6 @@ function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 		
 	end
 
-	show_axis = get(properties, "show_axis", true)
-	if show_axis
-		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
-	end
 
 	viewer.background_color =            get(properties, "background_color", viewer.background_color)
 	viewer.title            =            get(properties, "title", viewer.title)

@@ -40,14 +40,27 @@ function lar_copy(src::Lar)::Lar
 end
 
 # ////////////////////////////////////////////
+function lar_vertex_name(lar::Lar, id::Int)::String
+	return string(haskey(lar.mapping,:V) ? lar.mapping[:V][id] : id)
+end
+
+function lar_edge_name(lar::Lar, id::Int)::String
+	return string(haskey(lar.mapping,:E) ? lar.mapping[:E][id] : id)
+end 
+
+function lar_face_name(lar::Lar, id::Int)::String
+	return string(haskey(lar.mapping,:F) ? lar.mapping[:F][id] : id)
+end 
+
+# ////////////////////////////////////////////
 function Base.show(io::IO, lar::Lar) 
 	println(io, "Lar(")
-	println(io,"  [ # total ", size(lar.V,2))
+	println(io, "  [ # total ", size(lar.V,2))
 	for (P,point) in enumerate(eachcol(lar.V))
 		println(io,"    ",join([string(it) for it in point]," "), P<=(size(lar.V,2)-1) ? ";" : "","# ",P)
 	end
-	println(io,"  ],")
-	println(io,"  Dict(")
+	println(io,"  ] ,")
+	println(io,"   Dict(")
 	for (K,key) in enumerate(keys(lar.C))
 		cells=lar.C[key]
 		println(io, "  ", repr(key)," =>", "[ ", "# total ",length(cells))
@@ -56,8 +69,15 @@ function Base.show(io::IO, lar::Lar)
 		end
 		println(io, "  ", "]", K<=(length(keys(lar.C))-1) ? "," : "")
 	end
-	println(io, "  ))")
+	println(io, "  ),")
+	println(io,"   Mapping(")
+	println(io, lar.mapping)
+	println(io, "  )")
+	println(io, ")")
 end
+
+
+
 
 # //////////////////////////////////////////////////////////////////////////////
 function lar_used_vertices(lar::Lar)
@@ -76,6 +96,88 @@ function lar_bounding_box(lar::Lar; only_used_vertices=false)
   return collect([vec(it) for it in bbox_create(V)])
 end
 export lar_bounding_box
+
+
+
+# ////////////////////////////////////////////////////////
+function lar_simplify_internal(dst::Lar, src::Lar, key)
+
+  if !haskey(src.C, key)
+    return
+  end
+
+  @assert(!haskey(dst.C, key))
+  dst.C[key] = Cells()
+
+  if key == :EV
+    @assert(!haskey(src.mapping, :E)) # otherwise I would need mapping of mapping
+    dst.mapping[:E] = Dict{Int,Int}()
+    Dmap = dst.mapping[:E]
+    Smap = nothing
+
+  elseif key == :FV
+    @assert(!haskey(src.mapping, :F)) # otherwise I would need mapping of mapping
+    dst.mapping[:F] = Dict{Int,Int}()
+    Dmap = dst.mapping[:F]
+    Smap = nothing
+
+  elseif key == :FE
+    @assert(haskey(dst.mapping,:E))
+    Dmap = nothing
+    Smap = dst.mapping[:E]
+
+  elseif key == :CF
+    @assert(haskey(dst.mapping,:F))
+    Dmap = nothing
+    Smap = dst.mapping[:F]
+
+  elseif key == :CV
+    Dmap = nothing
+    Smap = nothing
+
+  else
+    @assert(false)
+
+  end
+
+  already_added = Dict()
+  for (old_id, cell) in enumerate(src.C[key])
+    cell = [isnothing(Smap) ? it : Smap[it] for it in cell]
+    simplified = remove_duplicates(cell)
+
+    if !haskey(already_added, simplified)
+      push!(dst.C[key], simplified)
+      already_added[simplified] = length(dst.C[key])
+    end
+
+    if !isnothing(Dmap)
+      Dmap[old_id] = already_added[simplified]
+    end
+  end
+
+end
+
+# ////////////////////////////////////////////////////////
+function SIMPLIFY(src::Lar)
+
+  dst = Lar(src.V, Dict{Symbol,AbstractArray}())
+
+  # to I need to support other cases?
+  @assert(all([key in [:CV, :EV, :FV, :FE, :CF] for key in keys(src.C)]))
+
+  # important the order (so that E mapping comes before :FE and F mapping comes before :CF)
+  lar_simplify_internal(dst, src, :EV)
+  lar_simplify_internal(dst, src, :FV)
+  lar_simplify_internal(dst, src, :CV)
+  lar_simplify_internal(dst, src, :FE)
+  lar_simplify_internal(dst, src, :CF)
+
+	# do not need to keep the mapping here
+	dst.mapping=Dict{Symbol, Dict{Int,Int}}()
+
+  return dst
+end
+export SIMPLIFY
 
 
 
@@ -392,12 +494,12 @@ function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0
 	render_lines(viewer, lines, colors=colors, line_width=2)
 
 	if "V_text" in show
-		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[1]] : ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
-		render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][ev[2]] : ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+		render_text(viewer, lar_vertex_name(lar, ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+		render_text(viewer, lar_vertex_name(lar, ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 	end
 
 	if "EV_text" in show
-		render_text(viewer, string(haskey(lar.mapping, :E) ? lar.mapping[:E][E] : I), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+		render_text(viewer, lar_edge_name(lar, E), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 	end
 end
 
@@ -435,10 +537,9 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	begin
 		for (v_index, pos) in zip(fv,eachcol(face_points))
 			if "V_text" in show
-				render_text(viewer, string(haskey(lar.mapping,:V) ? lar.mapping[:V][v_index] : v_index), center=pos, color=DARK_GRAY, fontsize=0.04)
+				render_text(viewer, lar_vertex_name(lar, v_index), center=pos, color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 			end
 		end		
-		
 	end
 
 	# render lines
@@ -454,7 +555,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	end
 
 	# render triangles
-	begin
+	if face_color[4]>0.0
 		triangles, colors=Vector{Float32}(),Vector{Float32}()
 		begin
 			for (u, v, w) in triangulation
@@ -469,8 +570,8 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	# render text
 	begin
 		if "FV_text" in show
-			centroid=compute_centroid(face_points)
-			render_text(batches, string(haskey(lar.mapping, :F) ? lar.mapping[:F][F] : F), center=compute_centroid(centroid), color=face_color, fontsize=0.04)
+			
+			render_text(viewer, lar_face_name(lar, F), center=compute_centroid(face_points), color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 		end
 	end
 
@@ -478,11 +579,11 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0])
+function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing)
 
   # want lar to be 3 dimensional 
 	begin
-		lar = Lar(lar.V, lar.C)
+		lar = lar_copy(lar)
 		if size(lar.V, 1) == 2
 			zeros = Matrix{Int64}([0.0 for I in 1:size(lar.V, 2)][:,:]')
 			lar.V=vcat(lar.V,zeros)
@@ -499,17 +600,16 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 				for F in cf append!(v_indices,lar.C[:FV][F]) end
 				v_indices=remove_duplicates(v_indices)
 				vt=get_explosion_vt(lar.V[:, v_indices], explode)
-				face_color = RandomColor()
+				atom_face_color = isnothing(face_color) ? RandomColor() : face_color
 				for F in cf
-					render_face(viewer, lar, F, vt=vt, face_color=face_color, show=show)
+					render_face(viewer, lar, F, vt=vt, face_color=atom_face_color, show=show)
 				end
 			end
 		# expode by single face
 		else
 			for (F, fv) in enumerate(lar.C[:FV])
 				vt=get_explosion_vt(lar.V[:, fv], explode)
-				face_color = RandomColor()
-				render_face(viewer, lar, F, vt=vt, face_color=face_color, show=show)
+				render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show)
 			end
 		end
 
@@ -539,18 +639,17 @@ end
 export render_lar
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0])
-	render_lar(viewer, lar, show=show, explode=explode)
+function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing)
+	render_lar(viewer, lar, show=show, explode=explode, face_color=face_color)
 	run_lar_viewer(viewer)
 end
 
-function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0])
-	VIEWCOMPLEX(Viewer(), lar,show=show, explode=explode)
+function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing)
+	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color)
 end
 
 export VIEWCOMPLEX
 
-# //////////////////////////////////////////////////////////////////////////////
 
 # //////////////////////////////////////////////////////////////////////////////
 function RandomLine(size_min::Float64,size_max::Float64)
@@ -594,8 +693,6 @@ export RandomCube
 # /////////////////////////////////////////////////////
 # From here the sparse part
 # /////////////////////////////////////////////////////
-
-
 const Chain        = SparseVector{Int8,Int}
 const ChainOp      = SparseMatrixCSC{Int8,Int}
 const ChainComplex = Vector{ChainOp}
