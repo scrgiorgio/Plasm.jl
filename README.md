@@ -37,7 +37,7 @@ julia --project=. test/randomcubes.jl
 julia --project=. test/mechanical_piece.jl
 
 # boolean
-julia --project=. test/boolean.jl
+julia --project=. test/boolean1.jl
 julia --project=. test/boolean2.jl
 ```
 

@@ -176,31 +176,18 @@ end
 export split_atoms
 
 # ////////////////////////////////////////////////////////////////
-function without_outer_atom(src::Lar)::Lar
+function INNERS(src::Lar)::Lar
   atoms=get_atoms(src)
   ___, outer_index = get_outer_atom(atoms)
   ret=lar_copy(src)
   deleteat!(ret.C[:CF], outer_index)
   return ret
 end
-export without_outer_atom
+export INNERS
 
 # ////////////////////////////////////////////////////////////////
-function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
+function bool3d(atoms::Vector{Lar}; input_args=[], bool_op=Union, debug_mode=true)::Lar
 
-  atom_faces=arrangement.C[:CF]
-
-  atoms=[]
-  for sel in atom_faces
-    atom=SELECT(arrangement, sel)
-    push!(atoms,atom)
-    # VIEWCOMPLEX(atom, explode=[1.4,1.4,1.4])
-  end
-  
-  ___, outer_index = get_outer_atom(atoms)
-  deleteat!(atoms,      outer_index)
-  deleteat!(atom_faces, outer_index)
-  
   internal_points=[find_internal_point(atom) for atom in atoms] 
   
   bool_matrix=zeros(Bool,length(atoms),length(input_args))
@@ -247,7 +234,7 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
   sel=Cell()
   for (A,row) in enumerate(eachrow(bool_matrix))
     if bool_op(row)
-      append!(sel,atom_faces[A])
+      append!(sel,arrangement.C[:CF])
     end
   end
 

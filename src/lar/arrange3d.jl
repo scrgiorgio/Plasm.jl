@@ -425,12 +425,14 @@ function ARRANGE3D(lar::Lar)::Lar
   FV = [union(CAT([EV[E] for E in fe])) for fe in FE]
   CF = cop2lar(convert(ChainOp,rcopCF))
 
-  return Lar(BYCOL(rV),Dict(
+  ret = Lar(BYCOL(rV),Dict(
 		:EV => EV, 
 		:FE => FE, 
 		:FV => FV, 
 		:CF => CF
 	))
+
+	return INNERS(SIMPLIFY(ret))
 end
 export ARRANGE3D
 

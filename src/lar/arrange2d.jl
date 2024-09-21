@@ -782,7 +782,7 @@ function ARRANGE2D(lar::Lar)
 	V, copEV, copFE = planar_arrangement(lar.V, copEV)
 	ret=Lar(V, Dict( :EV => cop2lar(copEV), :FE => cop2lar(copFE)))
 	compute_FV(ret)
-	return ret
+	return SIMPLIFY(ret)
 
 end
 export ARRANGE2D
