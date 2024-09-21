@@ -3,20 +3,19 @@ using Random
 
 Random.seed!(0)
 
-
 primitive=T(3)(-2)(CYLINDER([0.5,4])(8))
 
-hpc = STRUCT( 
+assembly = STRUCT( 
   STRUCT(T(1,2,3)(-1,-1,-1),CUBE(2)), 
   primitive, R(2,3)(π/2), 
   primitive, R(1,3)(π/2), 
   primitive 
 )
-lar = LAR(hpc)
+
+lar = LAR(assembly)
+input_args=[LAR(it) for it in TOPOS(assembly)]
 
 arrangement=ARRANGE3D(lar)
-
-atoms=ATOMS(arrangement,debug_mode=false)
 
 # any boolean expression will work
 function my_bool_op(v)
@@ -24,5 +23,5 @@ function my_bool_op(v)
   return Difference([c,Union([x1,x2,x3])])
 end
 
-boop_lar = bool3d(atoms, bool_op=my_bool_op, input_args=input_args, debug_mode=true)
+boop_lar = bool3d(arrangement, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
 VIEWCOMPLEX(boop_lar, explode=[1.4,1.4,1.4])

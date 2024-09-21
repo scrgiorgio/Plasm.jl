@@ -186,7 +186,9 @@ end
 export INNERS
 
 # ////////////////////////////////////////////////////////////////
-function bool3d(atoms::Vector{Lar}; input_args=[], bool_op=Union, debug_mode=true)::Lar
+function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
+
+  atoms=ATOMS(arrangement, debug_mode=debug_mode)
 
   internal_points=[find_internal_point(atom) for atom in atoms] 
   
@@ -200,6 +202,7 @@ function bool3d(atoms::Vector{Lar}; input_args=[], bool_op=Union, debug_mode=tru
       bool_matrix[A,I]=is_internal_point(input_arg, internal_point, ray_dir)
     end
   
+    # show internal / external points for classification
     if debug_mode
       viewer=Viewer()
 
@@ -234,7 +237,7 @@ function bool3d(atoms::Vector{Lar}; input_args=[], bool_op=Union, debug_mode=tru
   sel=Cell()
   for (A,row) in enumerate(eachrow(bool_matrix))
     if bool_op(row)
-      append!(sel,arrangement.C[:CF])
+      append!(sel, arrangement.C[:CF][A])
     end
   end
 

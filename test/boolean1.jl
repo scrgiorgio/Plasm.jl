@@ -11,13 +11,10 @@ assembly = STRUCT(
 )
 
 lar=LAR(assembly)
-# VIEWCOMPLEX(lar)
+input_args=[LAR(it) for it in TOPOS(assembly)]
 
 arrangement=ARRANGE3D(lar)
 
-atoms = ATOMS(arrangement, debug_mode=false)
-
-input_args=[LAR(it) for it in TOPOS(assembly)]
-bool = bool3d(atoms, bool_op=Difference, input_args=input_args, debug_mode=true)
+bool = bool3d(arrangement, bool_op=Difference, input_args=input_args, debug_mode=false)
 VIEWCOMPLEX(bool, explode=[1.4,1.4,1.4])
 
