@@ -34,12 +34,15 @@ julia --project=. test/randombubbles.jl
 # 3d arrangement
 julia --project=. test/twocubes.jl
 julia --project=. test/randomcubes.jl
-julia --project=. test/piece1.jl
-julia --project=. test/piece2.jl
+julia --project=. test/piece_cylinder.jl
+julia --project=. test/piece_tube.jl
 
 # boolean
 julia --project=. test/boolean1.jl
 julia --project=. test/boolean2.jl
+
+#misc 
+julia --project=. test/structural_frames.jl
 ```
 
 ## Developing Plasm.jl
