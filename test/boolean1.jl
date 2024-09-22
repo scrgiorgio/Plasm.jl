@@ -15,6 +15,6 @@ input_args=[LAR(it) for it in TOPOS(assembly)]
 
 arrangement=ARRANGE3D(lar)
 
-bool = bool3d(arrangement, bool_op=Difference, input_args=input_args, debug_mode=false)
-VIEWCOMPLEX(bool, explode=[1.4,1.4,1.4])
+lar = BOOL3D(arrangement, bool_op=Difference, input_args=input_args, debug_mode=false)
+VIEWCOMPLEX(lar, explode=[1.4,1.4,1.4])
 

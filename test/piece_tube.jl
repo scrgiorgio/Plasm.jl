@@ -13,5 +13,6 @@ hpc = STRUCT(
 )
 lar = LAR(hpc)
 arrangement = ARRANGE3D(lar)
+arrangement, ___=SPLIT(arrangement) # remove outer
 VIEWCOMPLEX(arrangement,explode=[1.2,1.2,1.8])
 

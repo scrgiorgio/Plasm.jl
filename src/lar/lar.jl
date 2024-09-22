@@ -179,20 +179,7 @@ function SIMPLIFY(src::Lar)
 end
 export SIMPLIFY
 
-# //////////////////////////////////////////////////////////////////////////////
-function ATOMS(arrangement::Lar; debug_mode=false)
-	ret=Vector{Lar}()
-	for (A, sel) in enumerate(arrangement.C[:CF])
-		atom = SELECT(arrangement, sel)
-		push!(ret,atom)
-		if debug_mode
-			@show(atom)
-			VIEWCOMPLEX(atom, explode=[1.4, 1.4, 1.4], show=["V", "EV", "FV", "V_text", "EV_text", "FV_text"], face_color=TRANSPARENT)
-		end
-	end
-	return ret
-end
-export ATOMS
+
 
 
 # //////////////////////////////////////////////////////////////////////////////

@@ -12,16 +12,16 @@ assembly = STRUCT(
   primitive 
 )
 
-lar = LAR(assembly)
-input_args=[LAR(it) for it in TOPOS(assembly)]
-
-arrangement=ARRANGE3D(lar)
-
 # any boolean expression will work
 function my_bool_op(v)
   c,x1,x2,x3=v
   return Difference([c,Union([x1,x2,x3])])
 end
 
-boop_lar = bool3d(arrangement, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
-VIEWCOMPLEX(boop_lar, explode=[1.4,1.4,1.4])
+lar = LAR(assembly)
+input_args=[LAR(it) for it in TOPOS(assembly)]
+
+arrangement=ARRANGE3D(lar)
+
+lar = BOOL3D(arrangement, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
+VIEWCOMPLEX(lar, explode=[1.4,1.4,1.4])

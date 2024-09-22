@@ -153,40 +153,40 @@ function Xor(v::AbstractArray)          return (length([it for it in v if it]) %
 
 export Union, Intersection,Difference,Xor
 
+# //////////////////////////////////////////////////////////////////////////////
+function ATOMS(arrangement::Lar; debug_mode=false)
+	ret=Vector{Lar}()
+	for (A, sel) in enumerate(arrangement.C[:CF])
+		atom = SELECT(arrangement, sel)
+		push!(ret,atom)
+		if debug_mode
+			@show(atom)
+			VIEWCOMPLEX(atom, explode=[1.4, 1.4, 1.4], show=["V", "EV", "FV", "V_text", "EV_text", "FV_text"], face_color=TRANSPARENT)
+		end
+	end
+	return ret
+end
+export ATOMS
+
 # ////////////////////////////////////////////////////////////////
-function get_outer_atom(atoms)::Tuple{Lar, Int}
+function SPLIT(src::Lar; debug_mode=false)::Tuple{Lar,Lar}
+  atoms=ATOMS(src, debug_mode=debug_mode)
+
   diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
-  max_diag, outer_index = findmax(diags)
-  return atoms[outer_index], outer_index
+  max_diag = maximum(diags)
+
+  inners=lar_copy(src); inners.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
+  outer =lar_copy(src);  outer.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
+
+  return inners, outer
 end
-export get_outer_atom
+export SPLIT
 
 # ////////////////////////////////////////////////////////////////
-function get_atoms(arrangement::Lar)::Vector{Lar}
-  return [SELECT(arrangement, sel) for sel in arrangement.C[:CF]]
-end
-export get_atoms
-
-# ////////////////////////////////////////////////////////////////
-""" example: atoms,outer_atom=split_atoms(get_atoms(arrangement))"""
-function split_atoms(atoms::Vector{Lar})::Tuple{Vector{Lar}, Lar}
-  outer_atom, outer_atom_index=get_outer_atom(atoms)
-  return ([atom for atom in atoms if atom!=outer_atom], outer_atom)
-end
-export split_atoms
-
-# ////////////////////////////////////////////////////////////////
-function INNERS(src::Lar)::Lar
-  atoms=get_atoms(src)
-  ___, outer_index = get_outer_atom(atoms)
-  ret=lar_copy(src)
-  deleteat!(ret.C[:CF], outer_index)
-  return ret
-end
-export INNERS
-
-# ////////////////////////////////////////////////////////////////
-function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
+function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
+  
+  # remove outer
+  arrangement,___=SPLIT(arrangement, debug_mode=debug_mode)
 
   atoms=ATOMS(arrangement, debug_mode=debug_mode)
 
@@ -244,37 +244,6 @@ function bool3d(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
   return SELECT(arrangement, remove_duplicates(sel))
 
 end
-export bool3d
+export BOOL3D
 
 
-
-# ////////////////////////////////////////////////////////////////
-function bool3d_matrix(arrangement::Lar; input_args=[])
-
-  atom_faces=arrangement.C[:CF]
-
-  atoms=[]
-  for sel in atom_faces
-    atom=SELECT(arrangement, sel)
-    push!(atoms,atom)
-    # VIEWCOMPLEX(atom, explode=[1.4,1.4,1.4])
-  end
-  
-  ___, outer_index = get_outer_atom(atoms)
-  deleteat!(atoms,      outer_index)
-  deleteat!(atom_faces, outer_index)
-  
-  internal_points=[find_internal_point(atom) for atom in atoms] 
-  
-  bool_matrix=zeros(Bool,length(atoms),length(input_args))
-  
-  for (A,(atom, (internal_point, ray_dir, distances))) in enumerate(zip(atoms, internal_points))
-    # find for each input arg if the internal point is inside or outside
-    for (I,input_arg) in enumerate(input_args)
-      bool_matrix[A,I]=is_internal_point(input_arg, internal_point, ray_dir)
-    end
-  end
-
-  return bool_matrix
-end
-export bool3d_matrix

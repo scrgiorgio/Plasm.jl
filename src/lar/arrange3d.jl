@@ -432,7 +432,7 @@ function ARRANGE3D(lar::Lar)::Lar
 		:CF => CF
 	))
 
-	return INNERS(SIMPLIFY(ret))
+	return SIMPLIFY(ret)
 end
 export ARRANGE3D
 

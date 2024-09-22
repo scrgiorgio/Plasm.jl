@@ -12,7 +12,9 @@ hpc = STRUCT(
   cube)
 lar = LAR(hpc)
 
-arrangement = ARRANGE3D(lar)
+arrangement=ARRANGE3D(lar)
+
+arrangement,___ = SPLIT(arrangement) # remove outer
 
 # show faces, exploding each face by sits centroid
 VIEWCOMPLEX(arrangement, show=["FV"], explode=[1.2,1.2,2.0])
