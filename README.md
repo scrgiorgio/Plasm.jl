@@ -28,7 +28,7 @@ julia --project=. test/hpc.jl
 julia --project=. test/lar.jl
 
 # 2d arrangement
-julia --project=. test/randomlines.jl
+julia --project=. test/randomsquares.jl
 julia --project=. test/randombubbles.jl
 
 # 3d arrangement

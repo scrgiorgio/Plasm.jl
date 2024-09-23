@@ -257,7 +257,7 @@ function TRIANGULATE(V::Points, EV::Cells)::Cells
 	triin.pointlist = V 
 	triin.segmentlist = hcat(EV...)
 
-	(triout, __vorout) = Triangulate.triangulate("pQ", triin) 
+	(triout, __vorout) = Triangulate.triangulate("pQ", triin) # Triangulates a Planar Straight Line Graph, Q for quiet
 
 	ret=Cells()
 	for (u, v, w) in eachcol(triout.trianglelist)
@@ -653,7 +653,7 @@ export VIEWCOMPLEX
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function RandomLine(size_min::Float64,size_max::Float64)
+function RandomSquare(size_min::Float64,size_max::Float64)
 	size = size_min+rand()*(size_max-size_min)
 	return STRUCT(
 		T(1,2)(rand(2)...), 
@@ -662,7 +662,7 @@ function RandomLine(size_min::Float64,size_max::Float64)
 		Plasm.SQUARE(1)
 	)
 end
-export RandomLine
+export RandomSquare
 
 # //////////////////////////////////////////////////////////////////////////////
 function RandomBubble()
