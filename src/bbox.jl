@@ -1,6 +1,22 @@
 using IntervalTrees
 
 
+
+# ///////////////////////////////////////////////////////////////////
+function bbox_create_from_points(points::Points)
+  return (
+    [minimum(points[R,:]) for R in 1:size(points,1)],
+    [maximum(points[R,:]) for R in 1:size(points,1)]
+  )
+end
+
+# ///////////////////////////////////////////////////////////////////
+function bbox_intersect(box_a, box_b)
+  (A,B),(C,D)=box_a,box_b
+  return all([a <= d && b >= c for (a,b,c,d) in zip(A,B,C,D)])
+end
+
+
 """
 bbox_create(vertices::Points)
 

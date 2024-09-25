@@ -2,7 +2,7 @@
 
 julia_version = "1.9.3"
 manifest_format = "2.0"
-project_hash = "003f5e2835c33bbf72b92592f7a6f429c0a5ebeb"
+project_hash = "ee1f4c39b0dc16b2ff8aefe90ffead626615cde3"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -721,6 +721,18 @@ version = "1.10.0"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.TetGen]]
+deps = ["DocStringExtensions", "GeometryBasics", "LinearAlgebra", "Printf", "StaticArrays", "TetGen_jll"]
+git-tree-sha1 = "c996d334a5a3bd29c180df777b2977153741c869"
+uuid = "c5d3f3f7-f850-59f6-8a2e-ffc6dc1317ea"
+version = "1.5.1"
+
+[[deps.TetGen_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "9ceedd691bce040e24126a56354f20d71554a495"
+uuid = "b47fdcd6-d2c1-58e9-bbba-c1cee8d8c179"
+version = "1.5.3+0"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "e84b3a11b9bece70d14cce63406bbc79ed3464d2"

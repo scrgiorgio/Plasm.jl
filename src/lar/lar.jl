@@ -17,13 +17,13 @@ mutable struct Lar
 	V::Points
 
 	# object topology (C for cells)
-	C::Dict{Symbol,AbstractArray}
+	C::Dict{Symbol,Cells}
 
 	# for mapping new cell ids to old cell idx
 	mapping::Dict{Symbol, Dict{Int,Int}}
 
 	# constructor
-	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,AbstractArray}(), mapping=Dict{Int,Int}()) = begin
+	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,Cells}(); mapping=Dict{Int,Int}()) = begin
 		new(V, C, mapping)
 	end
 
@@ -36,7 +36,8 @@ function lar_copy(src::Lar)::Lar
 	return Lar(
 		src.V,
 		deepcopy(src.C),
-		deepcopy(src.mapping))
+		mapping=deepcopy(src.mapping)
+	)
 end
 
 # ////////////////////////////////////////////
@@ -75,8 +76,6 @@ function Base.show(io::IO, lar::Lar)
 	println(io, "  )")
 	println(io, ")")
 end
-
-
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -160,7 +159,7 @@ end
 # ////////////////////////////////////////////////////////
 function SIMPLIFY(src::Lar)
 
-  dst = Lar(src.V, Dict{Symbol,AbstractArray}())
+  dst = Lar(src.V, Dict{Symbol,Cells}())
 
   # to I need to support other cases?
   @assert(all([key in [:CV, :EV, :FV, :FE, :CF] for key in keys(src.C)]))
@@ -257,7 +256,9 @@ function TRIANGULATE(V::Points, EV::Cells)::Cells
 	triin.pointlist = V 
 	triin.segmentlist = hcat(EV...)
 
-	(triout, __vorout) = Triangulate.triangulate("pQ", triin) # Triangulates a Planar Straight Line Graph, Q for quiet
+	# p: Triangulates a Planar Straight Line Graph
+	# Q for quiet
+	(triout, __vorout) = Triangulate.triangulate("pQ", triin) 
 
 	ret=Cells()
 	for (u, v, w) in eachcol(triout.trianglelist)
@@ -314,11 +315,14 @@ function compute_FV(lar::Lar)
 	lar.C[:FV]=Cells()
 	for (F,fe) in enumerate(lar.C[:FE])
 		v=Cell()
-		for E in fe append!(v,lar.C[:EV][E]) end
+		for E in fe 
+			append!(v,lar.C[:EV][E]) 
+		end
 		v=remove_duplicates(v)
 		push!(lar.C[:FV],v)
 	end
 end
+export compute_FV
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
@@ -416,26 +420,29 @@ e.g two cicles
 
 ret=[[a,b],[b,c],[c,d], [h,k],[k,h],...]
 """
-function find_vcycles(EV::Cells)::Cells
+function find_vcycles(EV::Cells)::Vector{Cells}
 
 	todo=copy(EV)
 	
-	ret=Cells()
-	push!(ret,todo[1])
+	ret=Vector{Cells}()
+	push!(ret,Cells())
+	
+	push!(ret[end],todo[1])
 	todo=todo[2:end]
 
 	while length(todo)>0
 
 		# try to attach to the last cycle
 		found=false
+		last=ret[end][end][2]
 		for (I,(a,b)) in enumerate(todo)
-			if a == ret[end][2]
-				push!(ret, [a,b])
+			if a == last
+				push!(ret[end],[a,b])
 				deleteat!(todo, I)
 				found=true
 				break
-			elseif b == ret[end][2]
-				push!(ret, [b,a])
+			elseif b == last
+				push!(ret[end],[b,a])
 				deleteat!(todo, I)
 				found=true
 				break
@@ -444,14 +451,14 @@ function find_vcycles(EV::Cells)::Cells
 
 		# create a new cycle
 		if !found
-			push!(ret,todo[1])
+			push!(ret,Cells())
+			push!(ret[end],todo[1])
 			todo=todo[2:end]
 		end
 
 	end
 
-	@assert(length(ret)==length(EV))
-
+	@assert(length(vcat(ret...))==length(EV))
 	return ret
 
 end
@@ -520,7 +527,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 			a,b=lar.C[:EV][E]
 			push!(cell_EV,[vmap[a],vmap[b]])
 		end
-		vcycles = find_vcycles(cell_EV)
+		vcycles = vcat(find_vcycles(cell_EV)...)
 		points2d = project_points3d(face_points; double_check=true)(face_points)
 		triangulation = TRIANGULATE(points2d, vcycles)
 

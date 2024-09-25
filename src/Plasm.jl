@@ -9,6 +9,7 @@ using NearestNeighbors
 using Random
 using Statistics
 
+
 TO_GEOMETRY_DEFAULT_PRECISION_DIGITS = 14
 export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 
@@ -35,6 +36,7 @@ include("./lar/lar.jl")
 include("./lar/classify.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
+include("./lar/experimental.jl")
 include("./lar/boolean.jl")
 
 function __init__()

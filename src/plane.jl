@@ -12,7 +12,7 @@ export normalized
 
 # ////////////////////////////////////////////////////////////////////////
 """ create plane """
-function plane_create(normal::Vector{Float64},point::Vector{Float64})::Vector{Float64}
+function plane_create(normal::Vector{Float64}, point::Vector{Float64})::Vector{Float64}
   A,B,C=normalized(normal)
   D=-dot(normal,point)
   return [A,B,C,D]
@@ -106,24 +106,33 @@ function project_points3d(V::Points; double_check=false)
   
   Tinv=transpose(Tdir)
 
-  function internal_projector(V::Points)
+  function internal_projector(V::Points; inverse=false, keep_z=false)
 
-    points3d=[p for p in eachcol(V)]
-    points2d=[(Tinv * (p-C)) for p in points3d]
+    if inverse
+      ret=[[x,y,0.0] for (x,y) in eachcol(V)]
+      ret=[((Tdir * p) + C) for p in ret]
+      return hcat(ret...) # this returns by-col points2d
+    else
 
-    # try if applying the direct will return the same points
-    if double_check
-      checking=[(Tdir * p)+C for p in points2d]
-      for (a,b) in zip(points3d,checking)
-        @assert(vertex_fuzzy_equals(a,b))
+      points3d=[p for p in eachcol(V)]
+      ret=[(Tinv * (p-C)) for p in points3d]
+
+      # try if applying the direct will return the same points
+      if double_check
+        checking=[(Tdir * p)+C for p in ret]
+        for (a,b) in zip(points3d, checking)
+          @assert(vertex_fuzzy_equals(a,b))
+        end
       end
+
+      # remove Z coordinate
+      if !keep_z
+        ret=[p[1:2] for p in ret]
+      end
+
+      # this returns by-col
+      return hcat(ret...)
     end
-
-    # remove Z coordinate
-    points2d=[p[1:2] for p in points2d]
-
-    # this returns by-col points2d
-    return hcat(points2d...)
 
   end
 
