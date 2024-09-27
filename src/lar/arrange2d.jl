@@ -1,20 +1,87 @@
+using IntervalTrees
 
+# ///////////////////////////////////////////////////////////////////
+"""
+lar_bbox_create(vertices::Points)
 
+The axis aligned *bounding box* of the provided Matrix of n-dim `vertices`.
+The box is returned as the pair of `Points` of two opposite corners.
+
+NOTE: assuming LAR by-col representation, if it's by-row using dims=1
+"""
+function lar_bbox_create(vertices::Points;dims::Int=2)
+	minimum = mapslices(x -> min(x...), vertices, dims=dims)
+	maximum = mapslices(x -> max(x...), vertices, dims=dims)
+	return minimum, maximum
+end
+export lar_bbox_create
+
+function lar_bbox_contains(container, contained)
+	b1_min, b1_max = container
+	b2_min, b2_max = contained
+	all(map((i, j, k, l) -> i <= j <= k <= l, b1_min, b2_min, b2_max, b1_max))
+end
+export lar_bbox_contains
+
+""" E' utilizzata da function spaceindex(V_row::Points, CV)::Cells 
+NOTE:  CV è generico: si può usare per C, F, E ... calcola covers (lista delle celle i cui box possono coprire quelli  in bboxes)
+"""
+function lar_bbox_covering(bboxes, index, tree)
+	covers = [[] for k = 1:length(bboxes)] #ata da apce ??
+	for (i, boundingbox) in enumerate(bboxes)
+		extent = bboxes[i][index, :]
+		iterator = IntervalTrees.intersect(tree, tuple(extent...))
+		for x in iterator
+			append!(covers[i], x.value)
+		end
+	end
+	return covers
+end
+export lar_bbox_covering
+
+""" Make dictionary of 1D boxes for IntervalTrees construction """
+function lar_bbox_coord_intervals(coord, bboxes)
+	boxdict = OrderedDict{Array{Float64,1},Array{Int64,1}}()
+	for (h, box) in enumerate(bboxes)
+		key = box[coord, :]
+		if haskey(boxdict, key) == false
+			boxdict[key] = [h]
+		else
+			push!(boxdict[key], h)
+		end
+	end
+	return boxdict
+end
+export lar_bbox_coord_intervals
+
+# //////////////////////////////////////////////////////////////////////////////
+function lar_bbox_containment_graph(bboxes)
+	n = length(bboxes)
+	ret = spzeros(Int8, n, n)
+	for i in 1:n
+		for j in 1:n
+			if i != j && lar_bbox_contains(bboxes[j], bboxes[i])
+				ret[i, j] = 1
+			end
+		end
+	end
+	return ret
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 function spaceindex(V_row::Points, CV)::Cells
 	V = BYCOL(V_row)
 	pdim = size(V, 1)
 	cellpoints = [V[:, CV[k]] for k = 1:LEN(CV)]
-	bboxes = [hcat(bbox_create(cell)...) for cell in cellpoints]
-	boxdicts = [bbox_coord_intervals(k, bboxes) for k = 1:pdim]
+	bboxes = [hcat(lar_bbox_create(cell)...) for cell in cellpoints]
+	boxdicts = [lar_bbox_coord_intervals(k, bboxes) for k = 1:pdim]
 	trees = [IntervalTrees.IntervalMap{Float64,Array}() for k = 1:pdim]
 	covers = []
 	for k = 1:pdim
 		for (key, boxset) in boxdicts[k]
 			trees[k][tuple(key...)] = boxset
 		end
-		push!(covers, bbox_covering(bboxes, k, trees[k]))
+		push!(covers, lar_bbox_covering(bboxes, k, trees[k]))
 	end
 	covers = [reduce(intersect, [covers[h][k] for h = 1:pdim]) for k = 1:length(CV)]
 end
@@ -508,7 +575,7 @@ function cell_merging(n, containment_graph, V_row, EVs, boundaries, shells, shel
 		boxes = Array{Tuple{Any,Any}}(undef, indexes.n)
 		for i in 1:indexes.n
 			v_inds = indexes[:, i].nzind
-			boxes[i] = bbox_create(V_row[v_inds, :],dims=1)
+			boxes[i] = lar_bbox_create(V_row[v_inds, :],dims=1)
 		end
 		boxes
 	end
@@ -522,7 +589,7 @@ function cell_merging(n, containment_graph, V_row, EVs, boundaries, shells, shel
 				if containment_graph[child, father] > 0
 					child_bbox = shell_bboxes[child]
 					for b in 1:length(father_bboxes)
-						if bbox_contains(father_bboxes[b], child_bbox)
+						if lar_bbox_contains(father_bboxes[b], child_bbox)
 							push!(sums, (father, b, child))
 							break
 						end
@@ -666,10 +733,10 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 			shell_bboxes = []
 			for i in 1:n
 				vs_indexes = (abs.(EVs[i]') * abs.(shells[i])).nzind
-				push!(shell_bboxes, bbox_create(V_row[vs_indexes, :],dims=1))
+				push!(shell_bboxes, lar_bbox_create(V_row[vs_indexes, :],dims=1))
 			end
 			# computation and reduction of containment graph
-			containment_graph = bbox_containment_graph(shell_bboxes)
+			containment_graph = lar_bbox_containment_graph(shell_bboxes)
 			containment_graph = prune_containment_graph(n, V_row, EVs, shells, containment_graph)
 			transitive_reduction!(containment_graph)
 			return n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes

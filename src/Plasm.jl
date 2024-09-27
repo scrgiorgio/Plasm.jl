@@ -13,7 +13,7 @@ using Statistics
 TO_GEOMETRY_DEFAULT_PRECISION_DIGITS = 14
 export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 
-DEFAULT_LAR_FONT_SIZE=0.04
+DEFAULT_LAR_FONT_SIZE=0.03
 export DEFAULT_LAR_FONT_SIZE
 
 DEFAULT_VIEWER="glfw"
@@ -23,11 +23,13 @@ export DEFAULT_VIEWER
 LAR_DEFAULT_ERR=1e-8
 export LAR_DEFAULT_ERR
 
+LAR_FRAGMENT_ERR=1e-5
+export LAR_FRAGMENT_ERR
+
 include("./config.jl")
 include("./geometry.jl")
 include("./points.jl")
 include("./plane.jl")
-include("./bbox.jl")
 include("./defaults.jl")
 include("./viewer.jl")
 include("./hpc.jl")

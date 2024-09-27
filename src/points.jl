@@ -4,6 +4,32 @@
 const Points = Matrix{Float64}
 export Points
 
+function ToPoints(v::Vector{Vector{Float64}})::Matrix{Float64}
+	return hcat(v...) 
+end
+
+
+# ///////////////////////////////////////////////////////////////////
+function bbox_create(points::Points)
+  return (
+    [minimum(points[R,:]) for R in 1:size(points,1)],
+    [maximum(points[R,:]) for R in 1:size(points,1)]
+  )
+end
+export bbox_create
+
+# ///////////////////////////////////////////////////////////////////
+function bbox_create(v::Vector{Vector{Float64}})
+  return bbox_create(ToPoints(v))
+end
+
+# ///////////////////////////////////////////////////////////////////
+function bbox_intersect(box_a, box_b)
+  (A,B),(C,D)=box_a,box_b
+  return all([a <= d && b >= c for (a,b,c,d) in zip(A,B,C,D)])
+end
+
+
 """ returns point dim (assuming by-col rep)"""
 function PDIM(V::Points)
 	return size(V,1)

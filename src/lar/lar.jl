@@ -92,7 +92,7 @@ export lar_used_vertices
 # //////////////////////////////////////////////////////////////////////////////
 function lar_bounding_box(lar::Lar; only_used_vertices=false)
   V=only_used_vertices ? lar.V[:, CAT(lar.C[:EV]) ] : lar.V
-  return collect([vec(it) for it in bbox_create(V)])
+	return bbox_create(V)
 end
 export lar_bounding_box
 
@@ -469,7 +469,8 @@ function run_lar_viewer(viewer::Viewer)
 	run_viewer(viewer, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
-		"title" => "LAR"
+		"title" => "LAR",
+		"show_axis" => false
 	))
 end
 export run_lar_viewer

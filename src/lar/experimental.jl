@@ -2,46 +2,34 @@ using TetGen
 
 
 # /////////////////////////////////////////////////////////////
-mutable struct PointsDB
-  digits::Int
-	points::Dict{Vector{Float64},Int}
-
-  # constructor
-  function PointsDB(digits::Int)
-    new(digits,Dict{Vector{Float64},Int}())
-  end
-
-end
+PointsDB=Dict{Vector{Float64},Int}
 export PointsDB
 
 # ///////////////////////////////////////////////////////////////////
-function add_point(db::PointsDB, p::Vector{Float64})::Int
-
-  if db.digits!=0
-	  p=[round(value, digits=db.digits) for value in p]
-    p=[p==0.0 ? 0.0 : value for value in p] # for positive negative integer
-  end
-
-  if !haskey(db.points, p)  
-    db.points[p]=length(db.points)+1 
-  end
-
-  idx=db.points[p]
-  return idx
+function round_vector(v::Vector{Float64}, digits::Int)::Vector{Float64}
+  if digits==0 return v end
+  ret=[round(value, digits=digits) for value in p]
+  ret=[ret==0.0 ? 0.0 : value for value in p] # for positive negative integer
+  return ret
 end
 
+# ///////////////////////////////////////////////////////////////////
+function add_point(db::PointsDB, p::Vector{Float64})::Int
+  if !haskey(db, p)  
+    db[p]=length(db)+1 
+  end
+  return db[p]
+end
 
 # ///////////////////////////////////////////////////////////////////
 function get_points(db::PointsDB)::Points
-	v=[Vector{Float64}() for I in 1:length(db.points)]
-	for (pos,idx) in db.points
+	v=[Vector{Float64}() for I in 1:length(db)]
+	for (pos,idx) in db
 		v[idx]=pos
 	end
 	return hcat(v...)
 end
 export get_points
-
-
 
 # ///////////////////////////////////////////////////////
 function find_adjacents(cells::Matrix, needed_len::Int, uncrossable::Dict)::Dict
@@ -94,58 +82,87 @@ function find_groups(adjacent::Dict)
 end
 
 # /////////////////////////////////////////////////////////////////////
-function arrange2d(V::Points,EV::Cells; keep_atom=nothing, debug_mode=false)
+function print_matrix_by_col(name::String,value::Matrix)
+  println(name); for (I,it) in enumerate(eachcol(value)) println(I," ",it) end
+end
 
-  triin = Triangulate.TriangulateIO()
-  triin.pointlist = V 
+# /////////////////////////////////////////////////////////////////////
+function show_edges(V::Points, EV::Cells; explode=[1.0,1.0,1.0])
+  lar=Lar(V,Dict{Symbol,Cells}(:EV=>EV))
+  # print_matrix_by_col("sorted_points", hcat(collect(sort([it for it in eachcol(V)]))))
+  VIEWCOMPLEX(lar, explode=explode, show=["V","EV","V_text"])
+end
+
+# /////////////////////////////////////////////////////////////////////
+function show_edges(V::Points, segmentlist::Matrix; explode=[1.0,1.0,1.0])
+  show_edges(V,[Cell(it) for it in eachcol(segmentlist)], explode=explode)
+end
+
+# /////////////////////////////////////////////////////////////////////
+function show_triangles(V::Points, triangles::Matrix{Int}; explode=[1.0,1.0,1.0])
+  lar=Lar(V, Dict{Symbol,Cells}(:EV => Cells()))
+  for (u,v,w) in eachcol(triangles)
+    append!(lar.C[:EV], [[u,v],[v,w],[w,u]])
+  end
+  VIEWCOMPLEX(lar, explode=explode, show=["V", "EV", "FV", "V_text"])
+end
+
+# /////////////////////////////////////////////////////////////////////
+function arrange2d(V::Points, EV::Cells; debug_mode=false, classify=nothing)
+
+  tin = Triangulate.TriangulateIO()
+  tin.pointlist = V 
 
   # constrained triangulation
-  triin.segmentlist = hcat(EV...) 
-
-  # Triangulates a Planar Straight Line Graph, Q for quiet
-  triout, __ = Triangulate.triangulate("pQ", triin) 
+  tin.segmentlist = hcat(EV...) 
 
   if debug_mode
-    println("V" ); for (I,it) in enumerate(eachcol(V)) println(I, " ",it) end
-    println("EV"); for (I,it) in enumerate(EV)         println(I, " ",it) end
-    println("pointlist"   );for (I,it) in enumerate(eachcol(triout.pointlist   )) println("  ",I," ",it) end
-    println("segmentlist" );for (I,it) in enumerate(eachcol(triout.segmentlist )) println("  ",I," ",it) end
-    println("trianglelist");for (I,it) in enumerate(eachcol(triout.trianglelist)) println("  ",I," ",it) end
+    println("# tin")
+    print_matrix_by_col("# pointlist", tin.pointlist )
+    print_matrix_by_col("# EV"       , tin.segmentlist)
+    show_edges(tin.pointlist, tin.segmentlist)
+  end
+
+  # -p Triangulates a Planar Straight Line Graph, 
+  # -Q for quiet
+  # scrgiorgio: this can easily fail if I add segment list too short
+  #             how to deal with it?
+  tout, __ = Triangulate.triangulate("pQ", tin) 
+
+  if debug_mode
+    println("# tout")
+    print_matrix_by_col("# pointlist"   , tout.pointlist   )
+    print_matrix_by_col("# segmentlist" , tout.segmentlist )
+    print_matrix_by_col("# trianglelist", tout.trianglelist)
+    # show_edges(tout.pointlist, tout.segmentlist)
+    # show_triangles(tout.pointlist, tout.trianglelist)
   end
 
   # NOTE: segment list does not contain internal edges, but only "important" edges
-  ret=Lar(triout.pointlist, Dict{Symbol,Cells}())
-
-  # show triangles
-  if debug_mode
-    tmp=Lar(triout.pointlist, Dict{Symbol,Cells}(:EV => Cells()))
-    for (u,v,w) in eachcol(triout.trianglelist)
-      append!(tmp.C[:EV], [[u,v],[v,w],[w,u]])
-    end
-    VIEWCOMPLEX(SIMPLIFY(tmp), explode=[1.2,1.2,1.2])
-  end
+  ret=Lar(tout.pointlist, Dict{Symbol,Cells}())
 
   # EV (note: segmentlist contains only boundary edges == edges that cannot be crossed; all other edges are internal)
   begin
     ret.C[:EV]=Cells()
     edges = Dict{Vector{Int},Int}()
-    for (E,(a,b))  in enumerate(eachcol(triout.segmentlist))
+    for (E,(a,b))  in enumerate(eachcol(tout.segmentlist))
       edges[ sort([a,b]) ]=E
       push!(ret.C[:EV], [a,b])
-    end
-    if debug_mode
-      VIEWCOMPLEX(ret, explode=[1.2,1.2,1.2])
     end
   end
 
   # FE
   begin
     ret.C[:FE]=Cells()
-    for (A, triangle_ids) in enumerate(find_groups(find_adjacents(triout.trianglelist, 2, edges)))
+    adj=find_adjacents(tout.trianglelist, 2, edges)
+    groups=find_groups(adj)
+    for (A, triangle_ids) in enumerate(groups)
+      # each group will form a face (even non-convex, holed)
       fe=Cell()
-      internal_points=[]
+      # this is needed for containment testing
+      internal_points=Vector{Vector{Float64}}() 
       for triangle_id in triangle_ids
-        (u,v,w) = triout.trianglelist[:,triangle_id]
+        (u,v,w) = tout.trianglelist[:,triangle_id]
         push!(internal_points,(ret.V[:,u]+ret.V[:,v]+ret.V[:,w])/3.0)
         for (a,b) in [collect(sort([u,v])),collect(sort([v,w])),collect(sort([w,u]))]
           if haskey(edges,[a,b])
@@ -153,16 +170,34 @@ function arrange2d(V::Points,EV::Cells; keep_atom=nothing, debug_mode=false)
           end
         end
       end
-      if isnothing(keep_atom) || keep_atom(internal_points)
+
+      fe=remove_duplicates(fe)
+      if (length(fe)>=3)
+        
+        # keep only internal
+        if !isnothing(classify)
+          outside = length([p for p in internal_points if classify(p) == "p_out"])
+          inside  = length(internal_points) - outside
+          if !keep_face(inside, outside)
+            continue
+          end
+        end
+
         push!(ret.C[:FE], fe)
+
       end
     end
   end
 
-  # FV
   compute_FV(ret)
 
-  return SIMPLIFY(ret)
+  ret=SIMPLIFY(ret)
+
+  if debug_mode
+    VIEWCOMPLEX(ret, explode=[1.2,1.2,1.2], show=["V","EV","FV","V_text"])
+  end
+
+  return ret
 end
 export arrange2d
 
@@ -172,70 +207,123 @@ function arrange2d(lar::Lar)
 end
 
 # ///////////////////////////////////////////////////////////////////
-function fragment_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; debug_mode=false)
+function keep_face(inside::Int, outside::Int)::Bool
+  if inside==0 && outside==0
+    return false
 
-  plane_points_db = PointsDB(0) # here I do not want any approximation
+  elseif inside>0 && outside==0
+    return true
+
+  elseif outside>0 && inside==0
+    return false
+
+  else
+    # is this the right thing to do???
+    println("WARNING ambiguity #inside=", inside," #outside=", outside)
+    return inside > outside 
+  end
+end
+
+# ///////////////////////////////////////////////////////////////////
+function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; debug_mode=false)
+
+  plane_points_db = PointsDB()
   face_segments   = Cells()
   other_segments  = Cells()
 
+  # prepare to project
   num_faces=length(src.C[:FV])
-
-  fv1=src.C[:FV][F1]
-  fe1=src.C[:FE][F1]
-
+  fv1, fe1=src.C[:FV][F1], src.C[:FE][F1]
+  world_box1=bbox_create(src.V[:,fv1])
   plane=plane_create(src.V[:,fv1])
   projector=project_points3d(src.V[:,fv1], double_check=true) # scrgiorgio: remove double check 
 
+  #if debug_mode
+  #  println("Fragmenting face ",F1)
+  #  print_matrix_by_col("V", src.V[:,fv1])
+  #  println("plane",plane)
+  #  show_edges(src.V[:,fv1], [src.C[:EV][E1] for E1 in fe1])
+  #end
+
+
+  # project face, find it bounding box
+  begin
+    face_proj_points=Vector{Vector{Float64}}()
+    for E1 in fe1
+      a,b=src.C[:EV][E1]
+      proj1,proj2=[Vector{Float64}(it) for it in eachcol(projector(src.V[:,[a,b]]))]
+      A=add_point(plane_points_db, proj1) # NOTE: no round here (!)
+      B=add_point(plane_points_db, proj2)
+      if A!=B 
+        append!(face_proj_points,[proj1, proj2])
+        push!(face_segments,[A,B]) 
+      end
+    end
+    face_proj_box=bbox_create(face_proj_points)
+  end
+
   if debug_mode
-    @show(BYROW(src.V[:,fv1]))
-    @show(plane)
+    show_edges(get_points(plane_points_db), face_segments)
   end
 
-  for E1 in fe1
-    a,b=src.C[:EV][E1]
-    p1::Vector{Float64},p2::Vector{Float64} = [it for it in eachcol(src.V[:,[a,b]])]
-
-    A=add_point(plane_points_db, projector(hcat(p1))[:,1])
-    B=add_point(plane_points_db, projector(hcat(p2))[:,1])
-    if A!=B push!(face_segments,[A,B]) end
-  end
-  
+  # project other faces
   for F2 in 1:num_faces
     
-    if (F1==F2) continue end
-
-    fv2=src.C[:FV][F2]
-    fe2=src.C[:FE][F2]
+    if (F1==F2) 
+      continue 
+    end
 
     # quick discard not intersecting faces
-    world_box1=bbox_create_from_points(src.V[:,fv1])
-    world_box2=bbox_create_from_points(src.V[:,fv2])
+    fv2, fe2=src.C[:FV][F2], src.C[:FE][F2]
+    world_box2=bbox_create(src.V[:,fv2])
     if !(bbox_intersect(world_box1, world_box2))
       continue
     end
 
-    intersections=[]
-    for E2 in fe2
-      a,b=src.C[:EV][E2]
-      p1::Vector{Float64},p2::Vector{Float64}=[it for it in eachcol(src.V[:,[a,b]])]
-      hit, t = plane_ray_intersection(p1, normalized(p2-p1), plane)
-      if !isnothing(hit)
-        @assert(t>0)
-        # must cross the plane
-        if t<LinearAlgebra.norm(p2-p1)
-          push!(intersections, hit)
+    # find intersection on the main face
+    begin
+      proj_intersections=Vector{Vector{Float64}}()
+      for E2 in fe2
+        a,b = src.C[:EV][E2]
+        p1,p2=[Vector{Float64}(it) for it in eachcol(src.V[:,[a,b]])]
+        hit, t = plane_ray_intersection(p1, normalized(p2-p1), plane)
+        if !isnothing(hit)
+          @assert(t>0)
+          # must cross the plane (be on opposite sides of the plane)
+          if t<LinearAlgebra.norm(p2-p1)
+            hit_proj=projector(hcat(hit))[:,1]
+
+            # I need to snap to existing vertices,to avoid to insert too many vertices
+            # I am doing this only for other faces
+            begin
+              nearest=nothing
+              for (existing,index) in plane_points_db
+                d=LinearAlgebra.norm(hit_proj-existing)
+                if d<LAR_FRAGMENT_ERR && (isnothing(nearest) || d<nearest)
+                  nearest, hit_proj = d, existing
+                end
+              end
+            end
+
+            push!(proj_intersections, hit_proj)
+          end
         end
       end
     end
 
-    # each face can intersect in 2 points
+    # each face can intersect in 2 points ???! not sure for any face here
     # am i forcing convexy here?
-    # @assert(length(intersections)==0 || length(intersections)==2)
-    # println(F1, " ", F2," ", intersections)
-    if length(intersections)==2
-      A=add_point(plane_points_db, projector(hcat(intersections[1]))[:,1])
-      B=add_point(plane_points_db, projector(hcat(intersections[2]))[:,1])
-      if A!=B push!(other_segments,[A,B]) end
+    # @assert(length(proj_intersections)==0 || length(proj_intersections)==2)
+    # println(F1, " ", F2," ", proj_intersections)
+    if length(proj_intersections)==2
+      other_proj_box=bbox_create(proj_intersections)
+      if bbox_intersect(face_proj_box, other_proj_box)
+        A=add_point(plane_points_db, proj_intersections[1])
+        B=add_point(plane_points_db, proj_intersections[2])
+        if A!=B 
+          push!(other_segments, [A,B]) 
+        end
+      end
     end
 
   end
@@ -245,57 +333,31 @@ function fragment_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; debug_m
   face_segments       = remove_duplicates(face_segments)
   all_segments        = remove_duplicates([face_segments; other_segments])
 
-  # if you want to debug prjected points
-  if debug_mode
-    VIEWCOMPLEX(Lar(plane_points, Dict{Symbol,Cells}( :EV => all_segments)))
-  end
-
-  # the logic here is that I want to have only the fragment face, not all "around"
-  function is_inside_face(centroids::Vector)
-    inside,outside=0,0
-    for centroid in centroids
-      if classify_point(centroid, plane_points_row, face_segments) == "p_out"
-        outside+=1
-      else
-        inside+=1
-      end
-    end
-
-    if inside==0
-      return false
-
-    elseif outside==0
-      return true
-    else
-      # both positive, cannot decide really...si this the right thing to do???
-      println("   # centroids=", length(centroids), " #inside=", inside," #outside=", outside)
-      return inside > outside 
-    end
-
-  end
-
-  a2d=arrange2d(plane_points, all_segments,keep_atom=is_inside_face, debug_mode=debug_mode)
-
-  if debug_mode
-    VIEWCOMPLEX(a2d)
-  end
+  a2d=arrange2d(plane_points, all_segments, debug_mode=debug_mode, classify = pos -> classify_point(pos, plane_points_row, face_segments) )
 
   # store to the destination lar unprojecting points
-  unprojected=projector(a2d.V, inverse=true)
-  
-  for fe in a2d.C[:FE]
-    unprojected_fe=Cell()
-    for E in fe
-      a,b = a2d.C[:EV][E]
-      A=add_point(points_db, unprojected[:,a])
-      B=add_point(points_db, unprojected[:,b])
-      if A!=B
-        push!(dst.C[:EV],[A,B])
-        push!(unprojected_fe,length(dst.C[:EV]))
+  begin
+    unprojected=projector(a2d.V, inverse=true)
+    for (F,fe) in enumerate(a2d.C[:FE])
+
+      # just want to keep triangles which are inside the main face
+
+
+      unprojected_fe=Cell()
+      for E in fe
+        a,b = a2d.C[:EV][E]
+        A=add_point(points_db, unprojected[:,a])
+        B=add_point(points_db, unprojected[:,b])
+        if A!=B
+          push!(dst.C[:EV],[A,B])
+          push!(unprojected_fe,length(dst.C[:EV]))
+        end
       end
-    end
-    if length(unprojected_fe)>=3
-      push!(dst.C[:FE],unprojected_fe)
+
+      # must still be a face
+      if length(unprojected_fe)>=3
+        push!(dst.C[:FE],unprojected_fe)
+      end
     end
   end
 
@@ -305,25 +367,24 @@ export fragment_face
 
 
 # ///////////////////////////////////////////////////////////
-function fragment(lar::Lar; fragment_digits::Int=LAR_FRAGMENT_DIGITS, debug_mode=false)
-  points_db=PointsDB(fragment_digits) 
+function fragment_lar(lar::Lar; debug_mode=false)
+  points_db=PointsDB() 
   ret=Lar(zeros(Float64,0,0), Dict{Symbol,Cells}( :EV => Cells(), :FE => Cells()))
   num_faces=length(lar.C[:FV])
   for (F, fv) in enumerate(lar.C[:FV])
     println("fragmenting face ",F,"/",num_faces)
-    fragment_face(points_db, ret, lar, F, debug_mode=false)
+    fragment_lar_face(points_db, ret, lar, F, debug_mode=debug_mode)
   end
   println("All faces fragmented")
   ret.V=get_points(points_db)
   compute_FV(ret)
   return SIMPLIFY(ret)
 end
+export fragment_lar
 
-const LAR_FRAGMENT_DIGITS=5
-export LAR_FRAGMENT_DIGITS
 
 # /////////////////////////////////////////////////////////////////////
-function arrange3d(lar::Lar; debug_mode=false, fragment_digits=LAR_FRAGMENT_DIGITS)
+function arrange3d(lar::Lar; debug_mode=false)
 
   # needed step: fragment all faces so that the input is PLCs (intersecting on edges)
   # otherwise it will not work
@@ -333,7 +394,7 @@ function arrange3d(lar::Lar; debug_mode=false, fragment_digits=LAR_FRAGMENT_DIGI
   # two facets are either 
   #   - completely disjointed or 
   #   - intersecting only at shared segments or vertices  
-  lar=fragment(lar, fragment_digits=fragment_digits, debug_mode=false)
+  lar=fragment_lar(lar, debug_mode=debug_mode)
 
   if debug_mode
     @show(lar)
@@ -347,6 +408,17 @@ function arrange3d(lar::Lar; debug_mode=false, fragment_digits=LAR_FRAGMENT_DIGI
       push!(facets,[a for (a,b) in cycle])
     end
   end
+
+  tin=TetGen.RawTetGenIO{Cdouble}()
+  tin.pointlist=copy(lar.V)
+  TetGen.facetlist!(tin, facets)
+
+  if debug_mode
+    println("# TIN")
+    print_matrix_by_col("#pointlist",tin.pointlist)
+    println("#facets"); for (I,it) in facets println(I, " ", it) end
+  end
+
   # https://wias-berlin.de/software/tetgen/1.5/doc/manual/manual.pdf
   #  see Command Line Switches
   #   -Q  Quiet:  No terminal output except errors.
@@ -354,21 +426,16 @@ function arrange3d(lar::Lar; debug_mode=false, fragment_digits=LAR_FRAGMENT_DIGI
   #   -c Retains the convex hull of the PLC.
   #   -Y preserves the input surface mesh 
   #   -V Verbose: Detailed information, more terminal output.
-  tin=TetGen.RawTetGenIO{Cdouble}()
-  tin.pointlist=copy(lar.V)
-  TetGen.facetlist!(tin, facets)
+  println("Running tetrahedralize...")
   tout = tetrahedralize(tin, "cpQ") 
+  println("done")
 
   if debug_mode
-    println("# TIN")
-    println("pointlist"      );for (I,it) in enumerate(eachcol(tin.pointlist       )) println("  ",I," ",it) end
-    println("facets"         );for (I,it) in enumerate(facets                      ) println("  ",I," ",it) end
-    println("")
     println("# TOUT")
-    println("pointlist"      );for (I,it) in enumerate(eachcol(tout.pointlist       )) println("  ",I," ",it) end
-    println("edgelist"       );for (I,it) in enumerate(eachcol(tout.edgelist        )) println("  ",I," ",it) end
-    println("trifacelist"    );for (I,it) in enumerate(eachcol(tout.trifacelist     )) println("  ",I," ",it) end
-    println("tetrahedronlist");for (I,it) in enumerate(eachcol(tout.tetrahedronlist )) println("  ",I," ",it) end
+    print_matrix_by_col("pointlist"      ,tout.pointlist       )
+    print_matrix_by_col("edgelist"       ,tout.edgelist        )
+    print_matrix_by_col("trifacelist"    ,tout.trifacelist     )
+    print_matrix_by_col("tetrahedronlist",tout.tetrahedronlist )
   end
 
   # NOTE: segment list does not contain internal edges, but only "important" edges
@@ -437,4 +504,4 @@ function arrange3d(lar::Lar; debug_mode=false, fragment_digits=LAR_FRAGMENT_DIGI
   return SIMPLIFY(ret)
 
 end
-export arrange3d
+export arrange3d#
