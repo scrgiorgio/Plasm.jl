@@ -23,26 +23,17 @@ julia --project=. test/points.jl
 julia --project=. test/plane.jl
 
 julia --project=. test/hpc.jl
+julia --project=. test/structural_frames.jl
 
-# generic lar
+# lar
 julia --project=. test/lar.jl
-
-# 2d arrangement
-julia --project=. test/randomsquares.jl
-julia --project=. test/randombubbles.jl
-
-# 3d arrangement
-julia --project=. test/twocubes.jl
-julia --project=. test/randomcubes.jl
-julia --project=. test/piece_cylinder.jl
-julia --project=. test/piece_tube.jl
-
-# boolean
-julia --project=. test/boolean1.jl
-julia --project=. test/boolean2.jl
+julia --project=. test/arrange2d.jl
+julia --project=. test/arrange3d.jl
+julia --project=. test/boolean.jl
+# julia --project=. test/experimental.jl
 
 #misc 
-julia --project=. test/structural_frames.jl
+
 ```
 
 ## Developing Plasm.jl
