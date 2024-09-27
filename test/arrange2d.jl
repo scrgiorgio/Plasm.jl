@@ -1,5 +1,4 @@
 using Plasm
-using TetGen
 using Random
 
 Random.seed!(0)

@@ -1,4 +1,4 @@
-using TetGen
+
 
 
 # /////////////////////////////////////////////////////////////
@@ -108,7 +108,7 @@ function show_triangles(V::Points, triangles::Matrix{Int}; explode=[1.0,1.0,1.0]
 end
 
 # /////////////////////////////////////////////////////////////////////
-function arrange2d(V::Points, EV::Cells; debug_mode=false, classify=nothing)
+function arrange2d_experimental(V::Points, EV::Cells; debug_mode=false, classify=nothing)
 
   tin = Triangulate.TriangulateIO()
   tin.pointlist = V 
@@ -206,11 +206,11 @@ function arrange2d(V::Points, EV::Cells; debug_mode=false, classify=nothing)
 
   return ret
 end
-export arrange2d
+export arrange2d_experimental
 
 # /////////////////////////////////////////////////////////////////////
-function arrange2d(lar::Lar)
-  return arrange2d(lar.V,lar.C[:EV])
+function arrange2d_experimental(lar::Lar)
+  return arrange2d_experimental(lar.V,lar.C[:EV])
 end
 
 # ///////////////////////////////////////////////////////////////////
@@ -340,7 +340,7 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
   face_segments       = remove_duplicates(face_segments)
   all_segments        = remove_duplicates([face_segments; other_segments])
 
-  a2d=arrange2d(plane_points, all_segments, debug_mode=debug_mode, classify = pos -> classify_point(pos, plane_points_row, face_segments) )
+  a2d=arrange2d_experimental(plane_points, all_segments, debug_mode=debug_mode, classify = pos -> classify_point(pos, plane_points_row, face_segments) )
 
   # store to the destination lar unprojecting points
   begin
@@ -391,7 +391,11 @@ export fragment_lar
 
 
 # /////////////////////////////////////////////////////////////////////
-function arrange3d(lar::Lar; debug_mode=false)
+"""
+
+not working (!)
+
+function arrange3d_experimental(lar::Lar; debug_mode=false)
 
   # needed step: fragment all faces so that the input is PLCs (intersecting on edges)
   # otherwise it will not work
@@ -415,6 +419,7 @@ function arrange3d(lar::Lar; debug_mode=false)
       push!(facets,[a for (a,b) in cycle])
     end
   end
+  facets=remove_duplicates(facets)
 
   tin=TetGen.RawTetGenIO{Cdouble}()
   tin.pointlist=copy(lar.V)
@@ -433,6 +438,10 @@ function arrange3d(lar::Lar; debug_mode=false)
   #   -c Retains the convex hull of the PLC.
   #   -Y preserves the input surface mesh 
   #   -V Verbose: Detailed information, more terminal output.
+
+  # perturbate a little
+  # tin.pointlist=ToPoints([p+LAR_FRAGMENT_ERR*rand(3) for p in eachcol(tin.pointlist)])
+
   println("Running tetrahedralize...")
   tout = tetrahedralize(tin, "cpQ") 
   println("done")
@@ -511,11 +520,16 @@ function arrange3d(lar::Lar; debug_mode=false)
   return SIMPLIFY(ret)
 
 end
-export arrange3d#
+export arrange3d_experimental#
+"""
 
+
+"""
 
 # attempt to find CF
-"""
+# TOTALLY WRONG, since I cannot use the bounding-box or volumes to find minimal cycles
+# but keeping the code around anyway
+
 
 using Plasm
 using DataStructures

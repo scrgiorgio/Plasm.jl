@@ -1,17 +1,19 @@
 using Plasm
-using TetGen
 using Random
 
 Random.seed!(0)
 
+# ///////////////////////////////////
 function RandomSquares(num_squares::Int=6)
   return STRUCT([RandomSquare(2.0,3.0) for I in 1:num_squares ])
 end
 
+# ///////////////////////////////////
 function RandomBubbles(num_bubbles::Int=50)
   return STRUCT([RandomBubble() for I in 1:num_bubbles])
 end
 
+# ///////////////////////////////////
 function TwoCubes()
   return STRUCT(
     CUBOID([1,1,1]), 
@@ -19,11 +21,12 @@ function TwoCubes()
     CUBOID([1,1,1]))
 end
 
-
+# ///////////////////////////////////
 function RandomCubes(ncubes=6)
   return STRUCT([RandomCube(0.2,2.0) for I in 1:ncubes])
 end
 
+# ///////////////////////////////////
 function PieceCylinder(num_subdivisions::Int=8)
   primitive=T(3)(-2)(CYLINDER([0.5,4])(num_subdivisions))
   return STRUCT( 
@@ -34,6 +37,7 @@ function PieceCylinder(num_subdivisions::Int=8)
   )
 end
 
+# ///////////////////////////////////
 function PieceTube(num_subdivisions::Int=4)
   primitive=T(3)(-2)(TUBE([0.3,0.5,4.0])(num_subdivisions))
   return STRUCT( 
@@ -44,24 +48,32 @@ function PieceTube(num_subdivisions::Int=4)
   )
 end
 
+# ///////////////////////////////////
 function View2D(lar::Lar)
-  VIEWCOMPLEX(lar, show=["V","EV"], explode=[1.5,1.5,1.5])
+  VIEWCOMPLEX(lar, show=["V","EV"        ], explode=[1.5,1.5,1.5])
   VIEWCOMPLEX(lar, show=["V","EV", "atom"], explode=[1.5,1.5,1.5])
-  VIEWCOMPLEX(lar, show=["V","FV"], explode=[1.5,1.5,1.5])
+  VIEWCOMPLEX(lar, show=["V","FV"        ], explode=[1.5,1.5,1.5])
 end
 
+# ///////////////////////////////////
 function View3D(lar::Lar)
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
+  VIEWCOMPLEX(lar, show=["FV"       ], explode=[1.4,1.4,1.4])
   VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.4,1.4,1.4])
 end
 
-#View2D(ARRANGE2D(LAR(RandomSquares())))
-#View2D(ARRANGE2D(LAR(RandomBubbles())))
+# View2D(arrange2d_experimental(LAR(RandomSquares())))
+# View2D(arrange2d_experimental(LAR(RandomBubbles())))
 
-View3D(fragment_lar(LAR(TwoCubes())))
-View3D(fragment_lar(LAR(RandomCubes())))
-View3D(fragment_lar(LAR(PieceCylinder())))
-View3D(fragment_lar(LAR(PieceTube())))
+# View3D(fragment_lar(LAR(TwoCubes())))
+# View3D(fragment_lar(LAR(RandomCubes())))
+# View3D(fragment_lar(LAR(PieceCylinder())))
+# View3D(fragment_lar(LAR(PieceTube())))
+
+# broken
+# View3D(arrange3d_experimental(LAR(TwoCubes())))
+# View3D(arrange3d_experimental(LAR(RandomCubes())))
+# View3D(arrange3d_experimental(LAR(PieceCylinder())))
+# View3D(arrange3d_experimental(LAR(PieceTube())))
 
 # arrange3d(lar, debug_mode=true)
 

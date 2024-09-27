@@ -84,8 +84,7 @@ Pkg.add([
   "MeshCat",
   "IJulia",
   "Random",
-  "Statistics",
-  "TetGen"
+  "Statistics"
 ])
 
 # update the manifest too
