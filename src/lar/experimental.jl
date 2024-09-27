@@ -125,9 +125,16 @@ function arrange2d(V::Points, EV::Cells; debug_mode=false, classify=nothing)
 
   # -p Triangulates a Planar Straight Line Graph, 
   # -Q for quiet
-  # scrgiorgio: this can easily fail if I add segment list too short
-  #             how to deal with it?
-  tout, __ = Triangulate.triangulate("pQ", tin) 
+  tout=nothing
+  while true
+    try
+      tout, __ = Triangulate.triangulate("Qp", tin) 
+      break
+    catch TriangulateError
+      println("WARNING Triangulate failed to perturing points")
+      tin.pointlist=ToPoints([p + LAR_FRAGMENT_ERR*rand(2) for p in eachcol(V)])
+    end
+  end
 
   if debug_mode
     println("# tout")
@@ -362,7 +369,7 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
   end
 
 end
-export fragment_face
+export fragment_lar_face
 
 
 
@@ -505,3 +512,176 @@ function arrange3d(lar::Lar; debug_mode=false)
 
 end
 export arrange3d#
+
+
+# attempt to find CF
+"""
+
+using Plasm
+using DataStructures
+
+# ///////////////////////////////////////////////
+function get_adjacent_edges(lar::Lar, active_edges::Set{Int}, E::Int)::Vector{Tuple{Int,Int}}
+  ret=Vector{Tuple{Int,Int}}()
+  for v_index in lar.C[:EV][E]
+    num_links=length([e_index for e_index in lar.C[:VE][v_index] if e_index in active_edges])
+    for e_index in lar.C[:VE][v_index]
+      if (e_index!=E) && (e_index in active_edges) 
+        push!(ret,(e_index, num_links))
+      end
+    end
+  end
+  return ret
+end
+
+# ///////////////////////////////////////////////
+function compute_edge_bbox(lar, E::Int)::Vector
+  return bbox_create(lar.V[:,lar.C[:EV][E]])
+end
+
+# ///////////////////////////////////////////////
+function compute_bbox_volume(box)::Float64
+  m,M=box
+  return prod([(b-a) for (a,b) in zip(m,M)])
+end
+
+# ///////////////////////////////////////////////
+function compute_box_union(b1,b2)
+  m1,M1=b1
+  m2,M2=b2
+  return minimum([m1,m2]),maximum([M1,M2])
+end
+
+# ///////////////////////////////////////////////
+function find_boundary_edge(lar::Lar, active_edges::Set{Int}; max_attempts=100)::Int
+  
+  points=[]
+  for E in active_edges
+    fv=lar.C[:EV][E]
+    append!(points,[p for p in eachcol(lar.V[:, fv])])
+  end
+
+  b1,b2=bbox_create(ToPoints(points))
+  move_out = LinearAlgebra.norm(b2 - b1)
+
+  for attempt in 1:max_attempts
+
+    inside_bbox    = [random(b1[I],b2[I]) for I in 1:length(b1) ]
+    external_point = inside_bbox + move_out * random_dir()
+    ray_dir        = normalized(inside_bbox-external_point)
+
+    num_hits=0
+    first_hit=nothing
+    for E in active_edges
+      hit, distance=ray_face_intersection(external_point, ray_dir, lar, F)
+      if !isnothing(hit) 
+        num_hits+=1
+        if isnothing(first_hit) || distance<first_hit[2]
+          first_hit= E, distance
+        end
+      end
+    end
+
+    # should go from outside to outside
+    if (num_hits >= 2) && (num_hits % 2) == 0
+      return first_hit[1]
+    end
+
+  end
+
+  # cannot find anyone
+  @assert(false)
+    
+end
+
+# ///////////////////////////////////////////////
+function find_boundary_edges(result::Vector(), lar::Lar, active_edges::Set{Int}, First::Int)
+
+  @assert(First in active_edges)
+
+  # already added
+  if First in active_edges
+    return 
+  end
+
+  push!(result, First)
+
+  for (Adj, num_links) in get_adjacent_edges(lar, active_edges, First)
+    if !(Adj in active_edges) continue
+    if num_links==2 # it must be boundary
+      find_boundary_edges(result, lar, active_edges, Adj)
+    end
+  end
+
+end
+
+
+function find_boundary_edges(lar::Lar, active_edges::Set{Int}, First::Int)::Vector
+  result=Vector()
+  find_boundary_edges(result, lar, active_edges, E)
+  return result
+end
+
+
+# ///////////////////////////////////////////////
+function find_atoms(lar::Lar)
+
+  lar.C[:VE]=compute_VE(lar)
+
+  active_edges=Set(1::length(lar.C[:FE]))
+
+  atoms=Vector{Vector{Int}}()
+
+  while length(active_edges)>0
+
+    First=find_boundary_edge(lar, active_edges)
+    @assert(First in active_edges)
+  
+    visited=Set()
+    pq=PriorityQueue{Float64, Vector}()
+  
+    box=compute_edge_bbox(lar, First)
+    volume=compute_bbox_volume(box)
+    push!(pq, volume => [box,First])
+  
+    atom=nothing
+    while !isempty(pq)
+      box, E= pq[peek(pq)]
+      dequeue!(pq)  
+      last=active_edges[end]
+  
+      if last in visited
+        if last==First
+          atom=active_edges
+          break
+        end
+        continue
+      end
+  
+      push!(visited, E)
+  
+      for (Adj, num_links) in get_adjacent_edges(lar, active_edges, E)
+        if !(it in active_edges) continue
+        sub_box=compute_box_union(box, compute_edge_bbox(lar, Adj)) 
+        push!(pq,compute_bbox_volume(sub.box) => [sub_box, [active_edges; Adj]])
+      end
+  
+    end
+  
+    @assert(!isnothing(atom))
+    push!(atoms,atom)
+  
+    for it in find_boundary_edges(lar, active_edges, First)
+      delete!(active_edges, it)
+    end
+  end
+
+  delete!(lar.C[:VE])
+  return atoms
+
+end
+
+
+lar=Lar()
+find_atoms(lar)
+"""
