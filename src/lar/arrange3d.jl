@@ -540,3 +540,31 @@ end
 function cop_coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
 	return cop_coboundary_1(V, lar2cop(FV), lar2cop(EV), convex, exterior)
 end
+
+
+# ////////////////////////////////////////////////////////////////
+function arrange3d_split(src::Lar; debug_mode=false)::Tuple{Lar,Lar}
+  # scrgiorgio: I do not think this is correct, because it could be there is an outer cell with the exact 
+  #             same bounding box of an inner cell
+  atoms=ATOMS(src, debug_mode=debug_mode)
+  diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
+  max_diag = maximum(diags)
+  outers=lar_copy(src); outers.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
+  inners=lar_copy(src); inners.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
+  return outer,inners
+end
+
+# ////////////////////////////////////////////////////////////////
+function INNERS(src::Lar)::Lar
+  outers,inners=arrange3d_split(src)
+  return inners
+end
+
+# ////////////////////////////////////////////////////////////////
+function OUTERS(src::Lar)::Lar
+  outers,inners=arrange3d_split(src)
+  return outers
+end
+
+
+

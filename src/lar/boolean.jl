@@ -5,14 +5,16 @@ using SparseArrays
 using LinearAlgebra
 
 # //////////////////////////////////////////////////////////////////////////////
-function random(a::Float64,b::Float64)
+function random_float(a::Float64,b::Float64)
   return a+rand()*(b-a)
 end
+export random_float
 
 # //////////////////////////////////////////////////////////////////////////////
 function random_dir()
-  return normalized([random(-1.0,1.0) for I in 1:3])
+  return normalized([random_float(-1.0,1.0) for I in 1:3])
 end
+export random_dir
 
 # //////////////////////////////////////////////////////////////////////////////
 function ray_face_intersection(ray_origin::Vector{Float64}, ray_dir::Vector{Float64}, lar::Lar, F::Int)
@@ -75,7 +77,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
   b1,b2=lar_bounding_box(lar; only_used_vertices=true)
   
   # i want to move out of the complex
-  move_out = LinearAlgebra.norm(b2 - b1)   
+  move_out = 3*LinearAlgebra.norm(b2 - b1)   
 
   #@show(b1,b2)
   #@show(move_out)
@@ -83,7 +85,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
   for attempt in 1:max_attempts
 
     # choose a random point inside the box and a random direction
-    inside_bbox = [random(b1[I],b2[I]) for I in 1:3 ]
+    inside_bbox = [random_float(b1[I],b2[I]) for I in 1:3 ]
 
     external_point = inside_bbox + move_out * random_dir()
     ray_dir    = normalized(inside_bbox-external_point)
@@ -168,26 +170,11 @@ function ATOMS(arrangement::Lar; debug_mode=false)
 end
 export ATOMS
 
-# ////////////////////////////////////////////////////////////////
-function SPLIT(src::Lar; debug_mode=false)::Tuple{Lar,Lar}
-  atoms=ATOMS(src, debug_mode=debug_mode)
 
-  diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
-  max_diag = maximum(diags)
-
-  inners=lar_copy(src); inners.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
-  outer =lar_copy(src);  outer.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
-
-  return inners, outer
-end
-export SPLIT
 
 # ////////////////////////////////////////////////////////////////
 function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
   
-  # remove outer
-  arrangement,___=SPLIT(arrangement, debug_mode=debug_mode)
-
   atoms=ATOMS(arrangement, debug_mode=debug_mode)
 
   internal_points=[find_internal_point(atom) for atom in atoms] 

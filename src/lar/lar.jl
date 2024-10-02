@@ -39,6 +39,7 @@ function lar_copy(src::Lar)::Lar
 		mapping=deepcopy(src.mapping)
 	)
 end
+export lar_copy
 
 # ////////////////////////////////////////////
 function lar_vertex_name(lar::Lar, id::Int)::String

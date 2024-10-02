@@ -7,6 +7,7 @@ export Points
 function ToPoints(v::Vector{Vector{Float64}})::Matrix{Float64}
 	return hcat(v...) 
 end
+export ToPoints
 
 
 # ///////////////////////////////////////////////////////////////////
@@ -28,7 +29,14 @@ function bbox_intersect(box_a, box_b)
   (A,B),(C,D)=box_a,box_b
   return all([a <= d && b >= c for (a,b,c,d) in zip(A,B,C,D)])
 end
+export bbox_intersect
 
+# ///////////////////////////////////////////////////////////////////
+function bbox_contain(box_a, box_b)
+  (A,B),(C,D)=box_a,box_b
+  return all([a <= c && b >= d for (a,b,c,d) in zip(A,B,C,D)])
+end
+export bbox_contain
 
 """ returns point dim (assuming by-col rep)"""
 function PDIM(V::Points)

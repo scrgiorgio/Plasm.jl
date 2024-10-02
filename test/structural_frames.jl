@@ -39,5 +39,5 @@ VIEW(hpc)
 
 # BROKEN (!)
 #arrangement=ARRANGE3D(LAR(hpc))
-#___, outer=SPLIT(arrangement)
+#arrangement=INNERS(arrangement)
 #VIEW(outer)

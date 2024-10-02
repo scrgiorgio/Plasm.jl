@@ -24,7 +24,9 @@ LAR_DEFAULT_ERR=1e-8
 export LAR_DEFAULT_ERR
 
 LAR_FRAGMENT_ERR=1e-5
+LAR_FRAGMENT_DIGITS=4
 export LAR_FRAGMENT_ERR
+export LAR_FRAGMENT_DIGITS
 
 include("./config.jl")
 include("./geometry.jl")

@@ -35,15 +35,17 @@ function PieceTube(num_subdivisions::Int=4)
   )
 end
 
-function View3D(lar::Lar)
+# ///////////////////////////////////////////
+function View3D(hpc::Hpc)
+  lar=INNERS(ARRANGE3D(LAR(hpc)))
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
   VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.4,1.4,1.4])
 end
 
-View3D(SPLIT(ARRANGE3D(LAR(TwoCubes()     )))[1])
-View3D(SPLIT(ARRANGE3D(LAR(RandomCubes()  )))[1])
-View3D(SPLIT(ARRANGE3D(LAR(PieceCylinder())))[1])
-View3D(SPLIT(ARRANGE3D(LAR(PieceTube()    )))[1])
+View3D(TwoCubes())
+View3D(RandomCubes())
+View3D(PieceCylinder())
+View3D(PieceTube())
 
 
 

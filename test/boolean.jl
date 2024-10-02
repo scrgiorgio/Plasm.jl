@@ -16,6 +16,7 @@ function TwoCubes()
   lar=LAR(assembly)
   input_args=[LAR(it) for it in TOPOS(assembly)]
   arrangement=ARRANGE3D(lar)
+  arrangement=INNERS(arrangement)
   return BOOL3D(arrangement, bool_op=Difference, input_args=input_args, debug_mode=false)
 
 end
@@ -40,6 +41,7 @@ function PieceCylinder()
   lar = LAR(assembly)
   input_args=[LAR(it) for it in TOPOS(assembly)]
   arrangement=ARRANGE3D(lar)
+  arrangement=INNERS(lar)
   return BOOL3D(arrangement, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
 
 end
