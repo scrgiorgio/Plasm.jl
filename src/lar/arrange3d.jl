@@ -543,28 +543,30 @@ end
 
 
 # ////////////////////////////////////////////////////////////////
-function arrange3d_split(src::Lar; debug_mode=false)::Tuple{Lar,Lar}
+function arrange3d_split(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
   # scrgiorgio: I do not think this is correct, because it could be there is an outer cell with the exact 
   #             same bounding box of an inner cell
-  atoms=ATOMS(src, debug_mode=debug_mode)
+  atoms=ATOMS(lar, debug_mode=debug_mode)
   diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
   max_diag = maximum(diags)
-  outers=lar_copy(src); outers.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
-  inners=lar_copy(src); inners.C[:CF]=[src.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
-  return outer,inners
+  outers=lar_copy(lar); outers.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
+  inners=lar_copy(lar); inners.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
+  return outers,inners
 end
 
 # ////////////////////////////////////////////////////////////////
-function INNERS(src::Lar)::Lar
-  outers,inners=arrange3d_split(src)
+function INNERS(lar::Lar)::Lar
+  outers,inners=arrange3d_split(lar)
   return inners
 end
+export INNERS
 
 # ////////////////////////////////////////////////////////////////
-function OUTERS(src::Lar)::Lar
-  outers,inners=arrange3d_split(src)
+function OUTERS(lar::Lar)::Lar
+  outers,inners=arrange3d_split(lar)
   return outers
 end
+export OUTERS
 
 
 
