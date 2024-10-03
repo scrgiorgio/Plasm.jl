@@ -117,19 +117,20 @@ function run_viewer(viewer::MeshCatViewer; properties::Properties=Properties())
 	
 	vis=viewer.vis
 
-	# reduce to the case -1,+1
+	# reduce to the case -1,+1 (do not consider the axis)
 	begin
 		box_size = viewer.bbox.p2 - viewer.bbox.p1
 		max_size = maximum([box_size[1], box_size[2], box_size[3]])
 		box_center = center(viewer.bbox)
-		for id in viewer.objects
-			settransform!(vis[id], LinearMap(UniformScaling(2.0/max_size)) ∘ Translation(-box_center...))
-		end
 	end
 
 	show_axis = get(properties, "show_axis", true)
 	if show_axis
 		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
+	end
+
+	for id in viewer.objects
+		settransform!(vis[id], LinearMap(UniformScaling(2.0/max_size)) ∘ Translation(-box_center...))
 	end
 
 	setvisible!(vis["/Grid"], false)

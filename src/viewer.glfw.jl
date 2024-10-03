@@ -44,6 +44,7 @@ export GLVertexArray
 
 # /////////////////////////////////////////////////////////////////////
 mutable struct GLBatch
+	id::Int64
 	primitive::UInt32
 	T::Matrix4d
 	vertex_array::GLVertexArray
@@ -910,39 +911,39 @@ end
 # ///////////////////////////////////////////////////////////////////////
 function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 
-	batches=copy(viewer.batches)
+	# there should NOT be any repetition
+	@assert(length(Set(viewer.batches))==length(viewer.batches))
 
-
-
-	# reduce to the case -1,+1
+	# compute bbox before adding the axis
 	begin
-		bbox=compute_bbox(batches)
+		bbox=compute_bbox(viewer.batches)
 		box_size = bbox.p2 - bbox.p1
 		max_size = maximum([box_size[1], box_size[2], box_size[3]])
 		box_center = center(bbox)
 		use_ortho=(box_size[3]==0.0)
+	end
 
+	show_axis = get(properties, "show_axis", true)
+	if show_axis
+		render_axis(viewer, Point3d(0, 0, 0), Point3d(1.05, 1.05, 1.05))
+	end
+
+	# reduce to the case -1,+1 (this is needed for meshcat)
+	if true
 		T =  scaleMatrix(Point3d(2.0/max_size, 2.0/max_size, 2.0/max_size)) * translateMatrix(-box_center)
+		for (B,batch) in enumerate(viewer.batches)
 
-		@assert(length(Set(batches))==length(batches))
-		for B in eachindex(batches)
+			batch.T= T * batch.T # prepend transformation
 
-			if true
-				batches[B].T= T * batches[B].T # prepend transformation
-			else
-				batches[B].vertices.vector=transform_points(T, batch.vertices.vector)
-				# note: scaling/translation will not change the normals so I will be fine
-				# batch.normals.vector=transform_normals(T,batch.normals.vector)
-			end
+			# batch.vertices.vector=transform_points(T, batch.vertices.vector)
+			# note: scaling/translation will not change the normals so I will be fine
+			# batch.normals.vector=transform_normals(T,batch.normals.vector)
+
 		end
 		
 	end
 
-	
-	show_axis = get(properties, "show_axis", true)
-	if show_axis
-		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
-	end
+
 
 	viewer.background_color =            get(properties, "background_color", viewer.background_color)
 	viewer.title            =            get(properties, "title", viewer.title)

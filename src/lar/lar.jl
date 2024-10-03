@@ -472,6 +472,7 @@ function run_lar_viewer(viewer::Viewer)
 		"use_ortho" => true,
 		"title" => "LAR",
 		"show_axis" => false
+		#, "line_width" => 3
 	))
 end
 export run_lar_viewer
