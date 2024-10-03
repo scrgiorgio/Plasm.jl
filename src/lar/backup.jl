@@ -20,7 +20,7 @@ function arrange3d_experimental(lar::Lar; debug_mode=false)
 
   if debug_mode
     @show(lar)
-    VIEWCOMPLEX(lar, explode=[1.2,1.2,1.2], show=["V","EV","FV","V_text", "FV_text"])
+    VIEWCOMPLEX(lar, explode=[1.2,1.2,1.2], show=["V","EV","FV","Vtext", "Ftext"])
   end
 
   facets=Cells()

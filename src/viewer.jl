@@ -97,7 +97,7 @@ function render_axis(viewer::Viewer, p0::Point3d, p1::Point3d)
 	append!(vertices, p0);append!(vertices, Point3d(p1[1], p0[2], p0[3]));append!(colors, R);append!(colors, R)
 	append!(vertices, p0);append!(vertices, Point3d(p0[1], p1[2], p0[3]));append!(colors, G);append!(colors, G)
 	append!(vertices, p0);append!(vertices, Point3d(p0[1], p0[2], p1[3]));append!(colors, B);append!(colors, B)
-	render_lines(viewer, vertices, colors=colors, line_width=2)
+	render_lines(viewer, vertices, colors=colors, line_width=DEFAULT_LINE_WIDTH)
 end
 
 export render_axis

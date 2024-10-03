@@ -93,7 +93,7 @@ end
 function show_edges(V::Points, EV::Cells; explode=[1.0,1.0,1.0])
   lar=Lar(V,Dict{Symbol,Cells}(:EV=>EV))
   # print_matrix_by_col("sorted_points", hcat(collect(sort([it for it in eachcol(V)]))))
-  VIEWCOMPLEX(lar, explode=explode, show=["V","EV","V_text"])
+  VIEWCOMPLEX(lar, explode=explode, show=["V","EV","Vtext"])
 end
 
 # /////////////////////////////////////////////////////////////////////
@@ -110,7 +110,7 @@ function show_triangles(V::Points, triangles::Matrix; explode=[1.0,1.0,1.0])
     push!(lar.C[:FE], [E+1,E+2,E+3])
   end
   compute_FV(lar)
-  VIEWCOMPLEX(lar, explode=explode, show=["V", "EV", "FV", "V_text"])
+  VIEWCOMPLEX(lar, explode=explode, show=["V", "EV", "FV", "Vtext"])
 end
 
 # /////////////////////////////////////////////////////////////////////
@@ -213,7 +213,7 @@ function arrange2d_experimental(V::Points, EV::Cells; debug_mode=false, classify
   ret=SIMPLIFY(ret)
 
   if debug_mode
-    VIEWCOMPLEX(ret, explode=[1.2,1.2,1.2], show=["V","EV","FV","V_text"])
+    VIEWCOMPLEX(ret, explode=[1.2,1.2,1.2], show=["V","EV","FV","Vtext"])
   end
 
   return ret
@@ -400,7 +400,7 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
 
   if F1==4
     @show(a2d)
-    VIEWCOMPLEX(a2d,show=["FV", "FV_text", "V_text"],explode=[2.2,1.2,1.2])
+    VIEWCOMPLEX(a2d,show=["FV", "Ftext", "Vtext"],explode=[2.2,1.2,1.2])
   end
 
   # store to the destination lar unprojecting points
@@ -432,7 +432,7 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
         push!(dst.C[:FE],unprojected_fe)
         #if remove_duplicates(fv)==remove_duplicates([1, 8, 25, 27, 28])
         #  @show(F1, " " ,length(dst.C[:FE]), " ",fv)
-        #  VIEWCOMPLEX(dst, show=["FV", "FV_text", "V_text"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT)
+        #  VIEWCOMPLEX(dst, show=["FV", "Ftext", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT)
         #  aaa()
        # end
 
@@ -688,7 +688,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
   atoms=[collect(sort([abs(jt) for jt in it])) for it in atoms]
 
   #v=remove_duplicates([abs(it) for it in [56, -79, 81, 30, 41, 43, -67, -70, -77, 80, -43, 84, -78, -25, 65, -62, -83, -36, -64, -41]])
-  #VIEWCOMPLEX(SELECT(lar, v), show=["FV", "FV_text"], explode=[1.2,1.2,1.2], face_color=TRANSPARENT)
+  #VIEWCOMPLEX(SELECT(lar, v), show=["FV", "Ftext"], explode=[1.2,1.2,1.2], face_color=TRANSPARENT)
 
   # @show(atoms)
 
@@ -749,12 +749,12 @@ function arrange3d_experimental(lar::Lar; debug_mode=false)
     #sel=remove_duplicates([F for (F,fv) in enumerate(lar.C[:FV]) if length(intersect(Set(sel),Set(fv)))>0])
     #@show(sel)
     #sel=[17,35]
-    #VIEWCOMPLEX(SELECT(lar,sel), show=["FV", "FV_text", "V_text"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT)
+    #VIEWCOMPLEX(SELECT(lar,sel), show=["FV", "Ftext", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT)
   end
 
   if debug_mode
     @show(lar)
-    VIEWCOMPLEX(lar, explode=[1.2,1.2,1.2], show=["V","EV","FV","V_text", "FV_text"])
+    VIEWCOMPLEX(lar, explode=[1.2,1.2,1.2], show=["V","EV","FV","Vtext", "Ftext"])
   end  
 
   # will be created again later
@@ -785,9 +785,9 @@ function arrange3d_experimental(lar::Lar; debug_mode=false)
 
 
   # @show(lar)
-  # VIEWCOMPLEX(lar,show=["FV","FV_text","V_text"], explode=[1.0,1.0,1.0],face_color=TRANSPARENT)
+  # VIEWCOMPLEX(lar,show=["FV","Ftext","Vtext"], explode=[1.0,1.0,1.0],face_color=TRANSPARENT)
   #piece=SELECT(lar,[41,42, 67, 80, 83])
-  #VIEWCOMPLEX(piece,show=["FV","FV_text","V_text"], explode=[1.0,1.0,1.0],face_color=TRANSPARENT)
+  #VIEWCOMPLEX(piece,show=["FV","Ftext","Vtext"], explode=[1.0,1.0,1.0],face_color=TRANSPARENT)
 
   lar.C[:CF]=lar_find_atoms(lar.V, cycles, debug_mode=debug_mode)
   

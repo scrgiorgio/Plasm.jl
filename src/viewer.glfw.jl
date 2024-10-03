@@ -912,10 +912,7 @@ function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 
 	batches=copy(viewer.batches)
 
-	show_axis = get(properties, "show_axis", true)
-	if show_axis
-		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
-	end
+
 
 	# reduce to the case -1,+1
 	begin
@@ -939,6 +936,12 @@ function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 			end
 		end
 		
+	end
+
+	
+	show_axis = get(properties, "show_axis", true)
+	if show_axis
+		render_axis(viewer, Point3d(0.0, 0.0, 0.0), Point3d(1.05, 1.05, 1.05))
 	end
 
 	viewer.background_color =            get(properties, "background_color", viewer.background_color)

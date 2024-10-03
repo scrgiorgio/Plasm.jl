@@ -163,7 +163,7 @@ function ATOMS(arrangement::Lar; debug_mode=false)
 		push!(ret,atom)
 		if debug_mode
 			@show(atom)
-			VIEWCOMPLEX(atom, explode=[1.4, 1.4, 1.4], show=["V", "EV", "FV", "V_text", "EV_text", "FV_text"], face_color=TRANSPARENT)
+			VIEWCOMPLEX(atom, explode=[1.4, 1.4, 1.4], show=["V", "EV", "FV", "Vtext", "Etext", "Ftext"], face_color=TRANSPARENT)
 		end
 	end
 	return ret
@@ -212,7 +212,7 @@ function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
           append!(colors,  YELLOW); append!(lines,  internal_point)
           append!(colors,  YELLOW); append!(lines,  internal_point+distance*ray_dir)
         end
-        render_lines(viewer, lines,  colors=colors, line_width=2)
+        render_lines(viewer, lines,  colors=colors, line_width=DEFAULT_LINE_WIDTH)
       end
 
       render_text(viewer, join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)

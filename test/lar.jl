@@ -105,7 +105,7 @@ using Combinatorics
 
       VIEW(PROPERTIES(
         STRUCT(hpc1, T(2)(2.5), hpc2),
-        Properties("line_color" => WHITE, "line_width" => 2)
+        Properties("line_color" => WHITE, "line_width" => DEFAULT_LINE_WIDTH)
       ))
     end
 

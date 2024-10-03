@@ -864,16 +864,16 @@ end
 
 function FRAME2(p1=[0.0, 0.0], p2=[1.0, 1.0])
 	return STRUCT(
-		LINE([p1[1], p1[2]], [p2[1], p1[2]], line_color=RED, line_width=2),
-		LINE([p1[1], p1[2]], [p1[1], p2[2]], line_color=GREEN, line_width=2)
+		LINE([p1[1], p1[2]], [p2[1], p1[2]], line_color=RED, line_width=DEFAULT_LINE_WIDTH),
+		LINE([p1[1], p1[2]], [p1[1], p2[2]], line_color=GREEN, line_width=DEFAULT_LINE_WIDTH)
 	)
 end
 
 function FRAME3(p1=[0.0, 0.0, 0.0], p2=[1.0, 1.0, 1.0])
 	return STRUCT(
-		LINE([p1[1], p1[2], p1[3]], [p2[1], p1[2], p1[3]], line_color=RED, line_width=2),
-		LINE([p1[1], p1[2], p1[3]], [p1[1], p2[2], p1[3]], line_color=GREEN, line_width=2),
-		LINE([p1[1], p1[2], p1[3]], [p1[1], p1[2], p2[3]], line_color=BLUE, line_width=2),
+		LINE([p1[1], p1[2], p1[3]], [p2[1], p1[2], p1[3]], line_color=RED, line_width=DEFAULT_LINE_WIDTH),
+		LINE([p1[1], p1[2], p1[3]], [p1[1], p2[2], p1[3]], line_color=GREEN, line_width=DEFAULT_LINE_WIDTH),
+		LINE([p1[1], p1[2], p1[3]], [p1[1], p1[2], p2[3]], line_color=BLUE, line_width=DEFAULT_LINE_WIDTH),
 	)
 end
 

@@ -501,14 +501,14 @@ function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0
 	lines,colors=Vector{Float32}(),Vector{Float32}()
 	append!(lines, edge_points[:,1]);append!(colors, line_color)
 	append!(lines, edge_points[:,2]);append!(colors, line_color)
-	render_lines(viewer, lines, colors=colors, line_width=2)
+	render_lines(viewer, lines, colors=colors, line_width=DEFAULT_LINE_WIDTH)
 
-	if "V_text" in show
+	if "Vtext" in show
 		render_text(viewer, lar_vertex_name(lar, ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 		render_text(viewer, lar_vertex_name(lar, ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 	end
 
-	if "EV_text" in show
+	if "Etext" in show
 		render_text(viewer, lar_edge_name(lar, E), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 	end
 end
@@ -546,7 +546,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	# render points
 	begin
 		for (v_index, pos) in zip(fv,eachcol(face_points))
-			if "V_text" in show
+			if "Vtext" in show
 				render_text(viewer, lar_vertex_name(lar, v_index), center=pos, color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 			end
 		end		
@@ -579,7 +579,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 
 	# render text
 	begin
-		if "FV_text" in show
+		if "Ftext" in show
 			
 			render_text(viewer, lar_face_name(lar, F), center=compute_centroid(face_points), color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 		end

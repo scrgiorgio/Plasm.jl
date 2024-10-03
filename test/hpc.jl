@@ -379,7 +379,7 @@ function TestProperties()
     Properties(
       "face_color" => Point4d(0.0, 1.0, 0.0, 1.0),
       "line_color" => Point4d(1.0, 1.0, 0.0, 1.0),
-      "line_width" => 3
+      "line_width" => DEFAULT_LINE_WIDTH
     )
   )
   cube_b = STRUCT(T(1)(1.0), CUBE(1))
@@ -387,7 +387,7 @@ function TestProperties()
     Properties(
       "face_color" => Point4d(1.0, 0.0, 0.0, 1.0),
       "line_color" => Point4d(0.0, 1.0, 1.0, 1.0),
-      "line_width" => 3
+      "line_width" => DEFAULT_LINE_WIDTH
     )
   )
   VIEW(
@@ -424,7 +424,7 @@ function TestProperties()
         Properties(
           "face_color" => TRANSPARENT,
           "line_color" => GREEN,
-          "line_width" => 2
+          "line_width" => DEFAULT_LINE_WIDTH
         )
       ),
       # show frame
@@ -459,7 +459,7 @@ function TestProperties()
         Properties(
           "face_color" => GRAY,
           "line_color" => GREEN,
-          "line_width" => 2
+          "line_width" => DEFAULT_LINE_WIDTH
         )
       ),
       # show frame
@@ -1117,9 +1117,9 @@ function TestFenvs()
   begin
     VIEW(
       STRUCT(
-        LINE([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], line_color=RED, line_width=3),
-        LINE([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], line_color=GREEN, line_width=3),
-        LINE([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], line_color=BLUE, line_width=3),
+        LINE([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], line_color=RED, line_width=DEFAULT_LINE_WIDTH),
+        LINE([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], line_color=GREEN, line_width=DEFAULT_LINE_WIDTH),
+        LINE([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], line_color=BLUE, line_width=DEFAULT_LINE_WIDTH),
       ),
       properties=Properties(
         "show_axis" => false,
