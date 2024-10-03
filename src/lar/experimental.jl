@@ -335,52 +335,9 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
     # @assert(length(proj_intersections)==0 || length(proj_intersections)==2)
     # println(F1, " ", F2," ", proj_intersections)
     if length(proj_intersections)==2
-
       a,b=proj_intersections
-
       other_proj_box=bbox_create([a,b])
       if bbox_intersect(face_proj_box, other_proj_box)
-
-        # I THINK this approach is even WORST (!!!)
-        # if a or b are too near to the original face border, project on it
-        if false
-
-          # https://discourse.julialang.org/t/how-to-calculate-the-nearest-point-on-a-line-to-a-given-point/105743/2
-          # given a point `p` and a line segment starting at point `A` and ending at point `B`, 
-          # find a point on that line that is closest to `p`
-          function nearest_point_on_line(p, A, B)
-              v1 = (B - A)
-              v2 = (p - A)
-              tt = (v1 ⋅ v2) / (v1 ⋅ v1)
-              pp=A + tt * v1
-              dd=LinearAlgebra.norm(pp-p)
-              return tt, dd, pp   
-          end
-
-          for (fa,fb) in face_segments
-            f1=[k for (k,v) in plane_points_db if v==fa][1]
-            f2=[k for (k,v) in plane_points_db if v==fb][1]
-            tt, dd, pp=nearest_point_on_line(a, f1, f2)
-            @show(tt, dd, pp)
-            if tt>=0.0 && tt<=1.0 && dd<=LAR_FRAGMENT_ERR 
-              a=pp 
-              break
-            end
-          end
-
-          for (fa,fb) in face_segments
-            f1=[k for (k,v) in plane_points_db if v==fa][1]
-            f2=[k for (k,v) in plane_points_db if v==fb][1]
-            tt, dd, pp=nearest_point_on_line(b, f1, f2)
-            if tt>=0.0 && tt<=1.0 && dd<=LAR_FRAGMENT_ERR 
-              b=pp 
-              break
-            end
-          end
-
-        end
-
-
         A=add_point(plane_points_db, a)
         B=add_point(plane_points_db, b)
         if A!=B 
@@ -452,19 +409,7 @@ function fragment_lar(lar::Lar; debug_mode=false)
   num_faces=length(lar.C[:FV])
   for (F, fv) in enumerate(lar.C[:FV])
     println("fragmenting face ",F,"/",num_faces)
-
-    # it's even worst (!!!)
-    # idea: don't want projected faces to intersect on boundaries, otherwise they will not attach consistently in 3d
-    # TODO better
-    if false
-      Vrestore=lar.V
-      lar.V=ToPoints([p + rand(3)*LAR_FRAGMENT_ERR*10.0 for p in eachcol(lar.V)])
-      fragment_lar_face(points_db, ret, lar, F, debug_mode=false)
-      lar.V=Vrestore
-    else
-      fragment_lar_face(points_db, ret, lar, F, debug_mode=false)
-    end
-
+    fragment_lar_face(points_db, ret, lar, F, debug_mode=false)
   end
   println("All faces fragmented")
   ret.V=get_points(points_db)

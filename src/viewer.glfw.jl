@@ -44,7 +44,6 @@ export GLVertexArray
 
 # /////////////////////////////////////////////////////////////////////
 mutable struct GLBatch
-	id::Int64
 	primitive::UInt32
 	T::Matrix4d
 	vertex_array::GLVertexArray
