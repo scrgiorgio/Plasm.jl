@@ -1,19 +1,50 @@
 module Plasm
 
+using LinearAlgebra
+using DataStructures
+using SparseArrays
+using StaticArrays
+using Triangulate
+using NearestNeighbors
+using Random
+using Statistics
+
+
+TO_GEOMETRY_DEFAULT_PRECISION_DIGITS = 14
+export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
+
+DEFAULT_LAR_FONT_SIZE=0.03
+export DEFAULT_LAR_FONT_SIZE
+
+DEFAULT_VIEWER="glfw"
+export DEFAULT_VIEWER
+
+# scrgiorgio: do not use different errors/tolerance in lar code, try to use same number
+LAR_DEFAULT_ERR=1e-8
+export LAR_DEFAULT_ERR
+
+LAR_FRAGMENT_ERR=1e-5
+LAR_FRAGMENT_DIGITS=4
+export LAR_FRAGMENT_ERR
+export LAR_FRAGMENT_DIGITS
+
 include("./config.jl")
+include("./geometry.jl")
+include("./points.jl")
+include("./plane.jl")
+include("./defaults.jl")
 include("./viewer.jl")
 include("./hpc.jl")
 include("./fenvs.jl")
-include("./arrange.jl")
-include("./complex.jl")
-include("./boolean.jl")
-#include("./congruence.jl")
-include("./lar2triangles.jl")
-include("./atoms.jl")
+include("./lar/lar.jl")
+include("./lar/classify.jl")
+include("./lar/arrange2d.jl")
+include("./lar/arrange3d.jl")
+include("./lar/experimental.jl")
+include("./lar/boolean.jl")
 
-# module init
 function __init__()
-	InitToLAR()
+	InitPythonHullCode()
 end
 
 end

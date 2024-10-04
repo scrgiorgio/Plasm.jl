@@ -2,33 +2,38 @@
 
 [![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
+Per alberto:
+
+```bash
+
+# book
+git checkout main
+git pull
+
+# Boolean operation
+git checkout fixing-bool
+git pull
+```
 
 ## Run tests
 
 ```bash
+julia --project=. test/bbox.jl
+julia --project=. test/points.jl
+julia --project=. test/plane.jl
 
-# core
-julia --project=. test/viewer.jl
 julia --project=. test/hpc.jl
-julia --project=. test/temple.jl
-julia --project=. test/manhattan.jl
-julia --project=. test/properties.jl
-julia --project=. test/properties2.jl
-julia --project=. test/fenvs.jl
+julia --project=. test/structural_frames.jl
 
-# LAR part
+# lar
 julia --project=. test/lar.jl
-julia --project=. test/complex.jl
+julia --project=. test/arrange2d.jl
+julia --project=. test/arrange3d.jl
+julia --project=. test/boolean.jl
+# julia --project=. test/experimental.jl
 
-julia --project=. test/randomlines.jl
-julia --project=. test/randombubbles.jl
-julia --project=. test/randomcubes.jl
+#misc 
 
-julia --project=. test/congruence.jl
-julia --project=. test/3tubes3d.jl
-<!-- julia --project=. test/bool3d-1.jl -->
-julia --project=. test/lar2triangles.jl
-julia --project=. test/atoms.jl
 ```
 
 ## Developing Plasm.jl
@@ -39,14 +44,6 @@ Links:
 **Always remember to activate the current project** (in the current directory):
 
 ```bash
-using Pkg
-Pkg.status()
-Pkg.activate(".")
-# Pkg.add(name="your-dependency-name-here", version="x.y.z"))
-Pkg.instantiate()
-Pkg.status()
-
-exit()
 
 # from here use
 julia --project=. whatever...
@@ -63,22 +60,51 @@ cd Plasm.jl
 
 julia
 
-# Go to the package mode
-# see https://julialang.org/contribute/developing_package
-] 
-
-# Activate the environment in the current directory
-activate .
-
-# add packages
-add Combinatorics GLFW ModernGL PyCall StaticArrays Test LinearAlgebra DataStructures SparseArrays NearestNeighbors Triangulate IntervalTrees QHull CoordinateTransformations Rotations GeometryBasics Colors MeshCat FileIO MeshIO Meshing IJulia 
-
-# exit package MODE
-# CTRL+C 
-
 using Pkg
+Pkg.activate(".")
+
+Pkg.add([
+  "Combinatorics", 
+  "GLFW", 
+  "ModernGL", 
+  "PyCall", 
+  "StaticArrays", 
+  "Test", 
+  "LinearAlgebra", 
+  "DataStructures", 
+  "SparseArrays", 
+  "NearestNeighbors", 
+  "Triangulate", 
+  "IntervalTrees",
+  "CoordinateTransformations", 
+  "Rotations",
+  "GeometryBasics",
+  "Colors",
+  "FileIO",
+  "MeshCat",
+  "IJulia",
+  "Random",
+  "Statistics"
+])
+
+# update the manifest too
 Pkg.resolve()
+
+exit()
 ```
+
+## Viewer options
+
+- GLMakie.jl (using internally glfw for desktop)
+  - more complicate to use
+  - more development by Julia Communinity
+  - HUGE problem: takes forever to run. Not a viable option (!)
+    - see https://discourse.julialang.org/t/starting-glmakie-takes-very-long/64106/2
+
+- MeshCat.jl (using MeshCat/ThreeJL)
+  - no support for 3d text (we can always use alberto's code)
+  - no many releases
+  - seems the best choice
 
 ## (OPTIONAL) Julia notebooks
 
@@ -91,7 +117,7 @@ For Jupyter Notebooks alternatives see [ :](https://marketsplash.com/julia-ides/
 
 ```bash
 using IJulia
-notebook()
+notebook(dir=pwd())
 # jupyterlab() (OPTIONAL) if you want to install lab
 
 # force to use julia internal jupyter

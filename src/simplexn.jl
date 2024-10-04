@@ -1,9 +1,8 @@
-
+#///////////////////////////////////////////////////////////////////////////////
 """
 	simplex(n::Int, fullmodel=false::Bool)
 
 Return a `LAR` model of the *`n`-dimensional simplex* in *`n`-space*.
-
 When `fullmodel==true` return a `LARmodel`, including the faces, from dimension `1` to `n`.
 
 # Example
@@ -27,12 +26,27 @@ function simplex(n, fullmodel=false)
 		h = n
 		cells = [CV]
 		while h != 0
-			push!(cells, simplexFacets(cells[end]))
+			push!(cells, simplexfacets(cells[end]))
 			h -= 1
 		end
 		return V,reverse(cells)
 	end
 end
+
+function SIMPLEX(n; boundary=false)
+	eye(n) = LinearAlgebra.Matrix{Int}(I,n,n)
+	V = [zeros(n,1) eye(n)]
+	CV = [collect(1:n+1)]
+	if boundary == false
+		return MKPOL(V,CV)
+	else
+		return LAR(MKPOL(V,CV))
+	end
+end
+
+
+
+#///////////////////////////////////////////////////////////////////////////////
 
 function SIMPLEXFACETS(simplices)
    for h=1:length(simplices)
@@ -45,18 +59,29 @@ function SIMPLEXFACETS(simplices)
 end
 
 
-julia> function SIMPLEXFACETS(simplices)
-          for h=1:length(simplices)
-             simplex = LAR(simplices[h])
-             V = simplex.V
-             EV = simplex.C[:EV]
-             FV = simplex.C[:FV]
-          end
-          return V,EV,FV
-       end
+simplexfacets([[1,2,3], [2,4,3]])
+simplexfacets([[1, 2], [1, 3], [2, 3], [2, 4], [4, 3]])
+simplexfacets([[1,2,3], [2,4,3], [1,3,5]])
+simplexfacets([[1, 2], [1, 3], [1, 5], [2, 3], [2, 4], [3, 5], [4, 3]]
+
+
+function simplexfacets(simplices)
+@assert hcat(simplices...) isa Matrix
+   out = Array{Int64,1}[] 
+   for simplex in simplices
+      for v in simplex
+         facet = setdiff(simplex,v)
+         push!(out, facet) 
+      end
+   end
+   # remove duplicate facets
+   return sort(collect(Set(out))) 
+end
 
 
 
+
+#///////////////////////////////////////////////////////////////////////////////
 """
 	extrudeSimplicial(model::LAR, pattern::Array)::LAR
 
@@ -129,8 +154,7 @@ function extrudeSimplicial(model::Union{Any,Lar.Cells}, pattern)
     hcat(outVertices...), cellGroups
 end
 
-
-
+#///////////////////////////////////////////////////////////////////////////////
 """
 	simplexGrid(shape::Array)::LAR
 
@@ -184,6 +208,7 @@ end
 
 
 
+#///////////////////////////////////////////////////////////////////////////////
 
 """
 	simplexFacets(simplices::Cells)::Cells
@@ -237,6 +262,7 @@ end
 CV = simplexGrid([1,1,1])
 
 
+#///////////////////////////////////////////////////////////////////////////////
 """
 	quads2triangles(quads::Cells)::Cells
 
@@ -268,6 +294,7 @@ function quads2triangles(quads::Lar.Cells)::Lar.Cells
 end
 
 
+#///////////////////////////////////////////////////////////////////////////////
 function sparsetranspose(S::SparseMatrixCSC{Int8,Int64})::SparseMatrixCSC{Int8,Int64}
 	I,J,V = SparseArrays.findnz(S)
 	return SparseArrays.sparse(J,I,V)
