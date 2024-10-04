@@ -192,7 +192,7 @@ function arrange2d_experimental(V::Points, EV::Cells; debug_mode=false, classify
     T=1
     while T<=length(triangles)
       
-      tpoints= [it for it in eachcol(tout.pointlist[:,triangles[T])]
+      tpoints= [it for it in eachcol(tout.pointlist[:,triangles[T]])]
       (da,db,dc),(a,b,c)=sort([
         (LinearAlgebra.norm(p[2]-p[1]),(tpoints[1],tpoints[2],tpoints[3])),
         (LinearAlgebra.norm(p[3]-p[2]),(tpoints[2],tpoints[3],tpoints[1])),
@@ -210,7 +210,7 @@ function arrange2d_experimental(V::Points, EV::Cells; debug_mode=false, classify
       triangles[T]=nothing
 
       # if (a,b) is on the boundary, (c,a) (b,c) will become boundary
-      if is_boundary(a,b):
+      if is_boundary(a,b)
         rm_boundary(a,b)
         add_boundary(a,c)
         add_boundary(b,c)
@@ -234,7 +234,7 @@ function arrange2d_experimental(V::Points, EV::Cells; debug_mode=false, classify
 
     end 
 
-    tout.trianglelist = hcat([it for it in triangles is !isnothing(it)]...) 
+    tout.trianglelist = hcat([it for it in triangles if !isnothing(it)]...) 
     tout.segmentlist  = hcat(collect(boundary_segments)...) 
 
   end
