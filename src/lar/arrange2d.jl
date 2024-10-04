@@ -844,7 +844,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function ARRANGE2D(lar::Lar)
+function arrange2d_v1(lar::Lar)
 	copEV = convert(ChainOp, cop_coboundary_0(lar.C[:EV]))
 	V, copEV, copFE = planar_arrangement(lar.V, copEV)
 	ret=Lar(V, Dict( 
@@ -854,7 +854,6 @@ function ARRANGE2D(lar::Lar)
 	return SIMPLIFY(ret)
 
 end
-export ARRANGE2D
 
 
 

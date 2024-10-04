@@ -377,7 +377,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
-function ARRANGE3D(lar::Lar)::Lar
+function arrange3d_v1(lar::Lar)::Lar
 
 	V=lar.V
 	EV=lar.C[:EV]
@@ -434,7 +434,6 @@ function ARRANGE3D(lar::Lar)::Lar
 
 	return SIMPLIFY(ret)
 end
-export ARRANGE3D
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -555,14 +554,14 @@ function arrange3d_split(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
 end
 
 # ////////////////////////////////////////////////////////////////
-function INNERS(lar::Lar)::Lar
+function arrange3d_v1_inners(lar::Lar)::Lar
   outers,inners=arrange3d_split(lar)
   return inners
 end
 export INNERS
 
 # ////////////////////////////////////////////////////////////////
-function OUTERS(lar::Lar)::Lar
+function arrange3d_v1_outers(lar::Lar)::Lar
   outers,inners=arrange3d_split(lar)
   return outers
 end

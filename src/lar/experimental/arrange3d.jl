@@ -111,13 +111,11 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
   face_segments       = remove_duplicates(face_segments)
   all_segments        = remove_duplicates([face_segments; other_segments])
 
-  a2d=arrange2d_experimental(
+  a2d=arrange2d_v2(
     plane_points, 
     all_segments, 
     debug_mode=debug_mode, 
     classify = pos -> classify_point(pos, plane_points_row, face_segments) )
-
-
 
   #if F1==4
   #  @show(a2d)
@@ -428,7 +426,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
 end
 
 # //////////////////////////////////////////////////////////////
-function arrange3d_experimental(lar::Lar; debug_mode=false)
+function arrange3d_v2(lar::Lar; debug_mode=false)
 
   # problema qui sulla faccia 17 torna una cosa senza senso
 
@@ -504,7 +502,7 @@ function arrange3d_experimental(lar::Lar; debug_mode=false)
 
   return lar
 end
-export arrange3d_experimental
+export arrange3d_v2
 
 # //////////////////////////////////////////////////////////////////////////////
 function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Vector{Int}
@@ -546,7 +544,7 @@ function compute_atom_bbox(lar::Lar, atom::Cell)
 end
 
 # ////////////////////////////////////////////////////////////////
-function arrange3d_experimental_split(lar::Lar)::Tuple{Lar,Lar}
+function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
 
   atoms=[cf for cf in lar.C[:CF]]
 
@@ -643,18 +641,17 @@ function arrange3d_experimental_split(lar::Lar)::Tuple{Lar,Lar}
 end
 
 # ////////////////////////////////////////////////////////////////
-function INNERS_experimental(lar::Lar)::Lar
-  outers,inners = arrange3d_experimental_split(lar)
+function arrange3d_v2_inners(lar::Lar)::Lar
+  outers,inners = arrange3d_v2_split(lar)
   return inners
 end
-export INNERS_experimental
 
 # ////////////////////////////////////////////////////////////////
-function OUTERS_experimental(lar::Lar)::Lar
-  outers,inners=arrange3d_experimental_split(lar)
+function arrange3d_v2_outers(lar::Lar)::Lar
+  outers,inners=arrange3d_v2_split(lar)
   return outers
 end
-export OUTERS_experimental
+
 
 
 

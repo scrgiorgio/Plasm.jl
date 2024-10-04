@@ -6,7 +6,7 @@
 
 not working (!)
 
-function arrange3d_experimental(lar::Lar; debug_mode=false)
+function arrange3d_v2(lar::Lar; debug_mode=false)
 
   # needed step: fragment all faces so that the input is PLCs (intersecting on edges)
   # otherwise it will not work
@@ -131,7 +131,7 @@ function arrange3d_experimental(lar::Lar; debug_mode=false)
   return SIMPLIFY(ret)
 
 end
-export arrange3d_experimental#
+export arrange3d_v2#
 """
 
 

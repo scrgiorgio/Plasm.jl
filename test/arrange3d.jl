@@ -1,8 +1,8 @@
 using Plasm
 using Random
 
-Random.seed!(0)
 
+# ////////////////////////////////////////////
 function TwoCubes()
   return STRUCT(
     CUBOID([1,1,1]), 
@@ -10,11 +10,12 @@ function TwoCubes()
     CUBOID([1,1,1]))
 end
 
-
+# ////////////////////////////////////////////
 function RandomCubes(ncubes=6)
   return STRUCT([RandomCube(0.2,2.0) for I in 1:ncubes])
 end
 
+# ////////////////////////////////////////////
 function PieceCylinder(num_subdivisions::Int=8)
   primitive=T(3)(-2)(CYLINDER([0.5,4])(num_subdivisions))
   return STRUCT( 
@@ -25,6 +26,7 @@ function PieceCylinder(num_subdivisions::Int=8)
   )
 end
 
+# ////////////////////////////////////////////
 function PieceTube(num_subdivisions::Int=4)
   primitive=T(3)(-2)(TUBE([0.3,0.5,4.0])(num_subdivisions))
   return STRUCT( 
@@ -42,10 +44,31 @@ function View3D(hpc::Hpc)
   VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.4,1.4,1.4])
 end
 
-View3D(TwoCubes())
-View3D(RandomCubes())
-View3D(PieceCylinder())
-View3D(PieceTube())
+begin
+  Random.seed!(0)
 
+  if true
+    LAR_ARRANGE_VERSION=1
+    View3D(TwoCubes())
+    View3D(RandomCubes())
+    View3D(PieceCylinder())
+    View3D(PieceTube())
 
+  else
+
+    LAR_ARRANGE_VERSION=2
+    hpc=TwoCubes()
+    # hpc=RandomCubes(2)
+    # hpc=RandomCubes(6)
+    # hpc=PieceCylinder()
+    #hpc=PieceTube()
+
+    lar=LAR(hpc)
+    lar=ARRANGE3D(lar, debug_mode=false)
+    lar=INNERS(lar)
+    # @show(lar)
+    VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2])
+
+  end
+end
 

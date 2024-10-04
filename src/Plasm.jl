@@ -40,11 +40,33 @@ include("./lar/lar.jl")
 include("./lar/classify.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
-
 include("./lar/experimental/arrange2d.jl")
 include("./lar/experimental/arrange3d.jl")
-
 include("./lar/boolean.jl")
+
+LAR_ARRANGE_VERSION=1
+
+function ARRANGE2D(lar::Lar; debug_mode=false)
+	return LAR_ARRANGE_VERSION==2 ? arrange2d_v2(lar,debug_mode=debug_mode) : arrange2d_v1(lar)
+end
+
+function ARRANGE3D(lar::Lar)
+	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2(lar,debug_mode=debug_mode) : arrange3d_v1(lar)
+end
+
+function INNERS(lar)
+	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_inners(lar,debug_mode=debug_mode) : arrange3d_v1_inners(lar)
+end
+
+function OUTERS(lar)
+	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_outers(lar,debug_mode=debug_mode) : arrange3d_v1_outers(lar)
+end
+
+export ARRANGE2D
+export ARRANGE3D
+export INNERS
+export OUTERS
+
 
 function __init__()
 	InitPythonHullCode()

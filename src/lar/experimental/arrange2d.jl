@@ -133,7 +133,7 @@ function keep_face(inside::Int, outside::Int)::Bool
 end
 
 # /////////////////////////////////////////////////////////////////////
-function arrange2d_experimental(V::Points, EV::Cells; debug_mode=false, classify=nothing)
+function arrange2d_v2(V::Points, EV::Cells; debug_mode=false, classify=nothing)
 
   tin = Triangulate.TriangulateIO()
   tin.pointlist = V 
@@ -294,15 +294,40 @@ function arrange2d_experimental(V::Points, EV::Cells; debug_mode=false, classify
 
   ret=SIMPLIFY(ret)
 
+
+  # sanity check
+  begin
+
+    # each edge should be have 1 or 2 faces
+    begin
+      get_faces=Dict{Int,Set{Int}}()
+      for (F,fe) in enumerate(ret.C[:FE])
+        for E in fe
+          if !haskey(get_faces,E) get_faces[E]=Set{Int}() end
+          add!(get_faces[E],F)
+        end
+      end
+      @assert(all([length(it) in [1,2] for it in values(get_faces)]))
+    end
+
+    aaa
+    # one face should have at least 3 edges
+    begin
+      for fe in ret.C[:FE]
+        @assert(length(fe)>=3)
+      end
+    end
+
+  end
+
   if debug_mode
     VIEWCOMPLEX(ret, explode=[1.2,1.2,1.2], show=["V","EV","FV","Vtext"])
   end
 
   return ret
 end
-export arrange2d_experimental
 
 # /////////////////////////////////////////////////////////////////////
-function arrange2d_experimental(lar::Lar)
-  return arrange2d_experimental(lar.V,lar.C[:EV])
+function arrange2d_v2(lar::Lar)
+  return arrange2d_v2(lar.V,lar.C[:EV])
 end
