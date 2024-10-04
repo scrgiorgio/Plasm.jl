@@ -40,7 +40,10 @@ include("./lar/lar.jl")
 include("./lar/classify.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
-include("./lar/experimental.jl")
+
+include("./lar/experimental/arrange2d.jl")
+include("./lar/experimental/arrange3d.jl")
+
 include("./lar/boolean.jl")
 
 function __init__()

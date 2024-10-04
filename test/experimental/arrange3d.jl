@@ -44,9 +44,9 @@ end
 begin
   Random.seed!(0)
 
-# hpc=TwoCubes()
+  hpc=TwoCubes()
   # hpc=RandomCubes(2)
-  hpc=RandomCubes(6)
+  # hpc=RandomCubes(6)
   # hpc=PieceCylinder()
   #hpc=PieceTube()
 
