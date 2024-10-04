@@ -177,36 +177,46 @@ function arrange2d_v2(V::Points, EV::Cells; debug_mode=false, classify=nothing)
   end
 
 
-  # remove triangles too small (it can happen if I have segment very near to the boundary)
+  # remove small triangles (it can happen if I have segment very near to the boundary like for arrange3d function)
   remove_small_triangle=LAR_FRAGMENT_ERR
   if !isnothing(remove_small_triangle) && remove_small_triangle>0
 
-    triangles=[it for it in eachcol(triangles)]
+    triangles=Vector{Any}([it for it in eachcol(tout.trianglelist)])
     
-    boundary_segments=Set([sorted([a,b]) for (a,b) in eachcol(segmentlist)])
-    function is_boundary(a,b) return haskey(boundary_segments,sort([a,b])) end
-    function add_boundary(a,b) add!(boundary_segments,sort([a,b])) end
-    function rm_boundary(a,b) delete(!boundary_segments,sort([a,b])) end
-
+    boundary_segments=Set{Vector{Int}}([collect(sort([a,b])) for (a,b) in eachcol(tout.segmentlist)])
+    function is_boundary(a,b)  return collect(sort([a,b])) in boundary_segments end
+    function add_boundary(a,b) push!(boundary_segments,collect(sort([a,b])))    end
+    function rm_boundary(a,b)  delete!(boundary_segments,collect(sort([a,b])))  end
 
     T=1
     while T<=length(triangles)
-      
-      tpoints= [it for it in eachcol(tout.pointlist[:,triangles[T]])]
-      (da,db,dc),(a,b,c)=sort([
-        (LinearAlgebra.norm(p[2]-p[1]),(tpoints[1],tpoints[2],tpoints[3])),
-        (LinearAlgebra.norm(p[3]-p[2]),(tpoints[2],tpoints[3],tpoints[1])),
-        (LinearAlgebra.norm(p[1]-p[3]),(tpoints[3],tpoints[1],tpoints[2])),
+
+      if isnothing(triangles[T])
+        T+=1
+        continue
+      end
+
+      a,b,c=triangles[T]
+
+      ab=LinearAlgebra.norm(tout.pointlist[:,b]-tout.pointlist[:,a])
+      bc=LinearAlgebra.norm(tout.pointlist[:,c]-tout.pointlist[:,b])
+      ca=LinearAlgebra.norm(tout.pointlist[:,a]-tout.pointlist[:,c])
+
+      # order so (a,b) is the longest edge
+      __longest,(ab,bc,ca),(a,b,c)=sort([
+        (ab,(ab,bc,ca),(a,b,c)),
+        (bc,(bc,ca,ab),(b,c,a)),
+        (ca,(ca,ab,bc),(c,a,b)),
       ])[1]
 
       # large enough not split and go to the next one
-      if (db+dc-da)>LAR_FRAGMENT_ERR
+      if (bc+ca-ab)>LAR_FRAGMENT_ERR
         T+=1
         continue
       end
 
       # remove this triangle and split the other one (if there is one)
-      println("Removing small triangle ", db+dc-da)
+      println("Removing small triangle ", bc+ca-ab)
       triangles[T]=nothing
 
       # if (a,b) is on the boundary, (c,a) (b,c) will become boundary
@@ -217,24 +227,27 @@ function arrange2d_v2(V::Points, EV::Cells; debug_mode=false, classify=nothing)
       end
 
       # fix the triangle sharing the edge (a,b)
-      for Other in 1:length(triangles)
-        if S!=T
-          other=triangles[Other]
-          if a in other && b in other
-            d=[it for it in other if it!=a && it!=b];assert(length(d)==1)
-            d=d[1]
-            # split it into 2 triangles 
-            # NOTE: new edge (c,d) is not a boundary segment (i.e. i can move from one triangle to the other)
-            triangles[Other]=nothing
-            push!(triangles, [a,c,d])
-            push!(triangles, [b,c,d])
-          end
-        end
+      # split adjacent triangle into 2 triangles 
+      # NOTE: new edge (c,d) is not a boundary segment (i.e. i can move from one triangle to the other)
+      Adj=[Adj for Adj in 1:length(triangles) if (Adj != T) && !isnothing(triangles[Adj]) && (a in triangles[Adj]) && (b in triangles[Adj])]
+      @assert(length(Adj)<=1)
+      if length(Adj)!=0
+        Adj=Adj[1]
+        d=[v_index for v_index in triangles[Adj] if v_index!=a && v_index!=b]
+        @assert(length(d)==1)
+        d=d[1]
+        triangles[Adj]=nothing
+        push!(triangles, [a,c,d])
+        push!(triangles, [b,c,d])
       end
+
+      T+=1
 
     end 
 
-    tout.trianglelist = hcat([it for it in triangles if !isnothing(it)]...) 
+    # @show(triangles)
+    triangles=[Vector{Int}(it) for it in triangles if !isnothing(it)]
+    tout.trianglelist = hcat(triangles...) 
     tout.segmentlist  = hcat(collect(boundary_segments)...) 
 
   end
@@ -294,7 +307,6 @@ function arrange2d_v2(V::Points, EV::Cells; debug_mode=false, classify=nothing)
 
   ret=SIMPLIFY(ret)
 
-
   # sanity check
   begin
 
@@ -304,13 +316,12 @@ function arrange2d_v2(V::Points, EV::Cells; debug_mode=false, classify=nothing)
       for (F,fe) in enumerate(ret.C[:FE])
         for E in fe
           if !haskey(get_faces,E) get_faces[E]=Set{Int}() end
-          add!(get_faces[E],F)
+          push!(get_faces[E],F)
         end
       end
       @assert(all([length(it) in [1,2] for it in values(get_faces)]))
     end
 
-    aaa
     # one face should have at least 3 edges
     begin
       for fe in ret.C[:FE]

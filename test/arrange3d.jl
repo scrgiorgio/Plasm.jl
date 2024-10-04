@@ -39,36 +39,34 @@ end
 
 # ///////////////////////////////////////////
 function View3D(hpc::Hpc)
-  lar=INNERS(ARRANGE3D(LAR(hpc)))
+  lar=LAR(hpc)
+  lar=ARRANGE3D(lar)
+  lar=INNERS(lar)
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
   VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.4,1.4,1.4])
 end
 
+# //////////////////////////////////////////////
 begin
   Random.seed!(0)
 
-  if true
-    LAR_ARRANGE_VERSION=1
-    View3D(TwoCubes())
-    View3D(RandomCubes())
-    View3D(PieceCylinder())
-    View3D(PieceTube())
+  Plasm.LAR_ARRANGE_VERSION=1
+  View3D(TwoCubes())
+  View3D(RandomCubes())
+  View3D(PieceCylinder())
+  View3D(PieceTube())
 
-  else
 
-    LAR_ARRANGE_VERSION=2
-    hpc=TwoCubes()
-    # hpc=RandomCubes(2)
-    # hpc=RandomCubes(6)
-    # hpc=PieceCylinder()
-    #hpc=PieceTube()
+  #Plasm.LAR_ARRANGE_VERSION=2
+  #hpc=TwoCubes()
+  #hpc=RandomCubes(2)
+  #hpc=RandomCubes(6)
+  #hpc=PieceCylinder()
+  #hpc=PieceTube()
+  #lar=LAR(hpc)
+  #lar=ARRANGE3D(lar, debug_mode=true)
+  #lar=INNERS(lar)
+  #VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2])
 
-    lar=LAR(hpc)
-    lar=ARRANGE3D(lar, debug_mode=false)
-    lar=INNERS(lar)
-    # @show(lar)
-    VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2])
-
-  end
 end
 

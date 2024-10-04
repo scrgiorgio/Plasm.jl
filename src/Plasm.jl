@@ -46,27 +46,27 @@ include("./lar/boolean.jl")
 
 LAR_ARRANGE_VERSION=1
 
-function ARRANGE2D(lar::Lar; debug_mode=false)
-	return LAR_ARRANGE_VERSION==2 ? arrange2d_v2(lar,debug_mode=debug_mode) : arrange2d_v1(lar)
+function ARRANGE2D(lar::Lar; debug_mode=false)::Lar
+	return LAR_ARRANGE_VERSION==2 ? arrange2d_v2(lar) : arrange2d_v1(lar)
 end
 
-function ARRANGE3D(lar::Lar)
+function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2(lar,debug_mode=debug_mode) : arrange3d_v1(lar)
 end
 
-function INNERS(lar)
-	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_inners(lar,debug_mode=debug_mode) : arrange3d_v1_inners(lar)
+function INNERS(lar::Lar)::Lar
+	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_inners(lar) : arrange3d_v1_inners(lar)
 end
 
-function OUTERS(lar)
-	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_outers(lar,debug_mode=debug_mode) : arrange3d_v1_outers(lar)
+function OUTERS(lar::Lar)::Lar
+	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_outers(lar) : arrange3d_v1_outers(lar)
 end
 
+export LAR_ARRANGE_VERSION
 export ARRANGE2D
 export ARRANGE3D
 export INNERS
 export OUTERS
-
 
 function __init__()
 	InitPythonHullCode()

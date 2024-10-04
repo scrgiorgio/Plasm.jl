@@ -170,7 +170,7 @@ function fragment_lar(lar::Lar; debug_mode=false)
   num_faces=length(lar.C[:FV])
   for (F, fv) in enumerate(lar.C[:FV])
     println("fragmenting face ",F,"/",num_faces)
-    fragment_lar_face(points_db, ret, lar, F, debug_mode=false)
+    fragment_lar_face(points_db, ret, lar, F, debug_mode=debug_mode)
   end
   println("All faces fragmented")
   ret.V=get_points(points_db)
@@ -280,7 +280,7 @@ end
 # ////////////////////////////////////////////////////////////////////////
 function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
 
-  if true
+  if false
     println("Cycles")
     for (C,cycle) in enumerate(cycles)
       println(cycle, " # ",C)
@@ -522,7 +522,7 @@ function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Vecto
 
     # this means I need two hit and should start outside and end in outside
     if length(distances) >=2 && (length(distances) % 2) == 0
-      print("OK guess_boundary_faces #attempt=",attempt) # , " distances=", distances)
+      println("guess_boundary_faces #attempt=",attempt) # , " distances=", distances)
       distances=sort(distances)
       return [ distances[1][end], distances[end][end]]
     end
