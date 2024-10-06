@@ -228,7 +228,7 @@ function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
     end
   end
 
-  return SELECT(arrangement, remove_duplicates(sel))
+  return SELECT(arrangement, normalize_cell(sel))
 
 end
 export BOOL3D

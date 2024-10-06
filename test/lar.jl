@@ -220,7 +220,9 @@ using Combinatorics
         # check vertices
         begin
           vertices=[]
-          for F in face_indices append!(vertices,FV[F]) end
+          for F in face_indices 
+            append!(vertices,FV[F]) 
+          end
           vertices=remove_duplicates(vertices)
           @test(vertices==lar_used_vertices(sub))
         end
@@ -228,7 +230,9 @@ using Combinatorics
         # check edges
         begin
           edges=[]
-          for F in face_indices append!(edges,FE[F]) end
+          for F in face_indices 
+            append!(edges,FE[F]) 
+          end
           edges=remove_duplicates(edges)
         end
         @test(length(edges)==length(sub.C[:EV]))

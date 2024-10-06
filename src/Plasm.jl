@@ -13,20 +13,14 @@ using Statistics
 TO_GEOMETRY_DEFAULT_PRECISION_DIGITS = 14
 export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 
-DEFAULT_LAR_FONT_SIZE=0.03
+DEFAULT_LAR_FONT_SIZE=0.05
 export DEFAULT_LAR_FONT_SIZE
 
 DEFAULT_VIEWER="glfw"
 export DEFAULT_VIEWER
 
-# scrgiorgio: do not use different errors/tolerance in lar code, try to use same number
 LAR_DEFAULT_ERR=1e-8
 export LAR_DEFAULT_ERR
-
-LAR_FRAGMENT_ERR=1e-5
-LAR_FRAGMENT_DIGITS=4
-export LAR_FRAGMENT_ERR
-export LAR_FRAGMENT_DIGITS
 
 include("./config.jl")
 include("./geometry.jl")
@@ -38,10 +32,16 @@ include("./hpc.jl")
 include("./fenvs.jl")
 include("./lar/lar.jl")
 include("./lar/classify.jl")
+
+LAR_ARRANGE2D_SMALL_TRIANGLES_ERR    = 1e-4
+LAR_ARRANGE2D_TRIANGLE_PERTURBATION  = LAR_ARRANGE2D_SMALL_TRIANGLES_ERR * 0.01
+LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS = 4
+
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
 include("./lar/experimental/arrange2d.jl")
 include("./lar/experimental/arrange3d.jl")
+
 include("./lar/boolean.jl")
 
 LAR_ARRANGE_VERSION=1

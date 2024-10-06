@@ -16,15 +16,21 @@ export Cell
 const Cells = Vector{Cell}
 export Cells
 
+
 # ///////////////////////////////////////////////////////////////////
 function remove_duplicates(cell::AbstractVector)::AbstractVector
 	return collect(sort(collect(Set(cell))))
 end
 export remove_duplicates
 
+function normalize_cell(cell::Cell)
+	return remove_duplicates(cell)
+end
+export normalize_cell
+
 # ///////////////////////////////////////////////////////////////////
 function simplify_cells(cells::Cells)::Cells
-	return remove_duplicates([remove_duplicates(cell) for cell in cells])
+	return remove_duplicates([normalize_cell(cell) for cell in cells])
 end
 export simplify_cells
 

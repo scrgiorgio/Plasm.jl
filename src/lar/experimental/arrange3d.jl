@@ -4,25 +4,24 @@
 # ///////////////////////////////////////////////////////////////////
 function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; debug_mode=false)
 
-  # debug_mode=(F1==4)
-
   plane_points_db = PointsDB()
   face_segments   = Cells()
   other_segments  = Cells()
 
   # prepare to project
   num_faces=length(src.C[:FV])
-  fv1, fe1=src.C[:FV][F1], src.C[:FE][F1]
+  
+  fe1=src.C[:FE][F1]
+  fv1=src.C[:FV][F1] 
   world_box1=bbox_create(src.V[:,fv1])
   plane=plane_create(src.V[:,fv1])
   projector=project_points3d(src.V[:,fv1], double_check=true) # scrgiorgio: remove double check 
 
-  #if debug_mode
+  if debug_mode
   #  println("Fragmenting face ",F1)
-  #  print_matrix_by_col("V", src.V[:,fv1])
   #  println("plane",plane)
-  #  show_edges(src.V[:,fv1], [src.C[:EV][E1] for E1 in fe1])
-  #end
+    show_edges(src.V, [src.C[:EV][E1] for E1 in fe1])
+  end
 
   # project face, find it bounding box
   begin
@@ -41,7 +40,7 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
   end
 
   if debug_mode
-    show_edges(get_points(plane_points_db), face_segments)
+    show_edges(get_points(plane_points_db), face_segments, title="arrange3d / frament $(F1) / projected edges")
   end
 
   # project other faces
@@ -70,18 +69,6 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
           # must cross the plane (be on opposite sides of the plane)
           if t<LinearAlgebra.norm(p2-p1)
             hit_proj=projector(hcat(hit))[:,1]
-
-            # I need to snap to existing vertices,to avoid to insert too many vertices
-            # I am doing this only for "other" faces
-            if true
-              nearest=nothing
-              for (existing,index) in plane_points_db
-                d=LinearAlgebra.norm(hit_proj-existing)
-                if d<LAR_FRAGMENT_ERR && (isnothing(nearest) || d<nearest)
-                  nearest, hit_proj = d, existing
-                end
-              end
-            end
             push!(proj_intersections, hit_proj)
           end
         end
@@ -115,50 +102,52 @@ function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; deb
     plane_points, 
     all_segments, 
     debug_mode=debug_mode, 
-    classify = pos -> classify_point(pos, plane_points_row, face_segments) )
-
-  #if F1==4
-  #  @show(a2d)
-  #  VIEWCOMPLEX(a2d,show=["FV", "Ftext", "Vtext"],explode=[2.2,1.2,1.2])
-  #end
+    classify_for_3d = pos -> classify_point(pos, plane_points_row, face_segments) )
 
   # store to the destination lar unprojecting points
+  faces3d=Cell()
   begin
     unprojected=projector(a2d.V, inverse=true)
+
     for (F,fe) in enumerate(a2d.C[:FE])
 
       # just want to keep triangles which are inside the main face
       unprojected_fe=Cell()
-      fv=Cell()
       for E in fe
         a,b = a2d.C[:EV][E]
-        r1=round_vector(unprojected[:,a], digits=LAR_FRAGMENT_DIGITS)
-        r2=round_vector(unprojected[:,b], digits=LAR_FRAGMENT_DIGITS)
+        r1=round_vector(unprojected[:,a], digits=LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS)
+        r2=round_vector(unprojected[:,b], digits=LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS)
         A=add_point(points_db, r1)
         B=add_point(points_db, r2)
         if A!=B
           push!(dst.C[:EV],[A,B])
-          push!(unprojected_fe,length(dst.C[:EV]))
-          push!(fv,A)
-          push!(fv,B)
+          push!(unprojected_fe, length(dst.C[:EV]))
         end
       end
-      fv=remove_duplicates(fv)
 
-      # must still be a face
-      if length(unprojected_fe)>=3
-        push!(dst.C[:FE],unprojected_fe)
-        #if remove_duplicates(fv)==remove_duplicates([1, 8, 25, 27, 28])
-        #  @show(F1, " " ,length(dst.C[:FE]), " ",fv)
-        #  VIEWCOMPLEX(dst, show=["FV", "Ftext", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT)
-        #  aaa()
-       # end
+      # must still be a face with cycles
+      push!(dst.C[:FE], unprojected_fe)
+      push!(faces3d,length(dst.C[:FE]))
 
-      end
+      n1=length(find_vcycles([dst.C[:EV][E] for E in dst.C[:FE][end]]))
+      #n2=length(find_vcycles([a2d.C[:EV][E] for E in dst.C[:FE][end]]))
+      #@assert(n1==n2)
+      
     end
   end
 
+  # TODO: faster
+  dst.V=get_points(points_db)
+  if haskey(dst.C,:FV)  delete!(dst.C,:FV)  end
+  compute_FV(dst)
+  
+  if debug_mode 
+    VIEWCOMPLEX(SELECT(dst,faces3d), show=["FV", "Vtext"],explode=[1.0, 1.0, 1.0], title="arrange3d / frament $(F1) / 3d")
+  end
+
 end
+
+
 export fragment_lar_face
 
 
@@ -169,13 +158,12 @@ function fragment_lar(lar::Lar; debug_mode=false)
   ret=Lar(zeros(Float64,0,0), Dict{Symbol,Cells}( :EV => Cells(), :FE => Cells()))
   num_faces=length(lar.C[:FV])
   for (F, fv) in enumerate(lar.C[:FV])
-    println("fragmenting face ",F,"/",num_faces)
-    fragment_lar_face(points_db, ret, lar, F, debug_mode=debug_mode)
+    println("# ////////////////// fragmenting ",F,"/",num_faces)
+    fragment_lar_face(points_db, ret, lar, F, debug_mode=(F in [11,4]))
   end
   println("All faces fragmented")
-  ret.V=get_points(points_db)
-  compute_FV(ret)
-  return SIMPLIFY(ret)
+  ret=SIMPLIFY(ret)
+  return ret
 end
 export fragment_lar
 
@@ -280,12 +268,15 @@ end
 # ////////////////////////////////////////////////////////////////////////
 function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
 
-  if false
+  if true
     println("Cycles")
     for (C,cycle) in enumerate(cycles)
       println(cycle, " # ",C)
     end
   end
+
+  #0.5 1.0 0.0;# 187
+  #0.0 0.5 -0.5;# 224
 
   num_cycles=length(cycles)
 
@@ -393,8 +384,6 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
   # I do not need the sign anymore (could be useful for debugging)
   atoms=[collect(sort([abs(jt) for jt in it])) for it in atoms]
 
-  #v=remove_duplicates([abs(it) for it in [56, -79, 81, 30, 41, 43, -67, -70, -77, 80, -43, 84, -78, -25, 65, -62, -83, -36, -64, -41]])
-  #VIEWCOMPLEX(SELECT(lar, v), show=["FV", "Ftext"], explode=[1.2,1.2,1.2], face_color=TRANSPARENT)
 
   # @show(atoms)
 
@@ -426,41 +415,46 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
 end
 
 # //////////////////////////////////////////////////////////////
-function arrange3d_v2(lar::Lar; debug_mode=false)
+function debug_edge(lar::Lar, a,b; enlarge=nothing)
 
-  # problema qui sulla faccia 17 torna una cosa senza senso
+  @show(lar)
+  for (I,fv) in enumerate(lar.C[:FV])
+    println("fv ", fv, " # ",I)
+  end
+  
+  selected_vertices=[a,b]
+
+  # take any vertex near by
+  if !isnothing(enlarge)
+    for (P,p) in enumerate(eachcol(lar.V))
+      if LinearAlgebra.norm(p - lar.V[:,a])<enlarge || LinearAlgebra.norm(p - lar.V[:,b])<enlarge push!(selected_vertices,P) end
+    end
+  end
+
+  # show all faces touching the vertices
+  selected_faces=Cell()
+  for (F,fv) in enumerate(lar.C[:FV])
+    inters=intersect(Set(selected_vertices),Set(fv))
+    if length(inters)>0
+      push!(selected_faces,F)
+    end
+  end
+
+  selected_faces=normalize_cell(selected_faces)
+  VIEWCOMPLEX(SELECT(lar,selected_faces), show=["FV", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT, title="debug edge")
+
+end
+
+# //////////////////////////////////////////////////////////////
+function arrange3d_v2(lar::Lar; debug_mode=true)
 
   lar=fragment_lar(lar, debug_mode=debug_mode)
 
-  # topology check: each edge should be shared by >=2 faces
-  begin
-
-  end
-
-  # if you had a problem with an edge
-  if false
-    #@show(lar)
-    #for (I,fv) in enumerate(lar.C[:FV])
-    #  println("fv ", fv, " # ",I)
-    #end
-    #a,b=[28,27]
-
-    #sel=[a,b]
-    #for (P,p) in enumerate(eachcol(lar.V))
-    #  if LinearAlgebra.norm(p - lar.V[:,a])<0.1 || LinearAlgebra.norm(p - lar.V[:,b])<0.1
-    #    push!(sel,P)
-    #  end
-    #end
-    #@show(sel)
-    #sel=remove_duplicates([F for (F,fv) in enumerate(lar.C[:FV]) if length(intersect(Set(sel),Set(fv)))>0])
-    #@show(sel)
-    #sel=[17,35]
-    #VIEWCOMPLEX(SELECT(lar,sel), show=["FV", "Ftext", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT)
-  end
+  # if you had a problem with an edge, you should be able to debug here
+  debug_edge(lar,21,26)
 
   if debug_mode
-    @show(lar)
-    VIEWCOMPLEX(lar, explode=[1.2,1.2,1.2], show=["V","EV","FV","Vtext", "Ftext"])
+    VIEWCOMPLEX(lar, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange3d_v2 after all faces fragmentation")
   end  
 
   # will be created again later
@@ -471,33 +465,27 @@ function arrange3d_v2(lar::Lar; debug_mode=false)
 
     # need to create the new FE (since two cycles will become the same face)
     # note: ev will be the same with the same indices
-    existing_edges=Dict( sort([a,b]) => E for (E,(a,b)) in enumerate(lar.C[:EV]) )
+    existing_edges=Dict( normalize_cell([a,b]) => E for (E,(a,b)) in enumerate(lar.C[:EV]) )
     FE=Dict{Cell,Cycle}()
     for (F,fe) in enumerate(lar.C[:FE])
       face_edges=[lar.C[:EV][E] for E in fe]
       for cycle in find_vcycles(face_edges)
-        # println("Face ",F, " has cycle ", cycle)
-        fe=remove_duplicates([existing_edges[sort([a,b])] for (a,b) in cycle])
+        # println("Face ",F, " has cycle ", cycle, " face_edges=",face_edges)
+        fe=normalize_cell([existing_edges[normalize_cell([a,b])] for (a,b) in cycle])
         if !haskey(FE,fe)
           FE[fe]=cycle
         end
       end
     end
-    lar.C[:FE],cycles=collect(keys(FE)),collect(values(FE))
+    lar.C[:FE], cycles=collect(keys(FE)),collect(values(FE))
   end
 
   compute_FV(lar)
 
-
-  # @show(lar)
-  # VIEWCOMPLEX(lar,show=["FV","Ftext","Vtext"], explode=[1.0,1.0,1.0],face_color=TRANSPARENT)
-  #piece=SELECT(lar,[41,42, 67, 80, 83])
-  #VIEWCOMPLEX(piece,show=["FV","Ftext","Vtext"], explode=[1.0,1.0,1.0],face_color=TRANSPARENT)
-
   lar.C[:CF]=lar_find_atoms(lar.V, cycles, debug_mode=debug_mode)
   
   if debug_mode
-    VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2])
+    VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2], title="arrange3d_v2 showing atoms")
   end
 
   return lar

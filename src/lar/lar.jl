@@ -142,8 +142,8 @@ function lar_simplify_internal(dst::Lar, src::Lar, key)
 
   already_added = Dict()
   for (old_id, cell) in enumerate(src.C[key])
-    cell = [isnothing(Smap) ? it : Smap[it] for it in cell]
-    simplified = remove_duplicates(cell)
+    cell = Cell([isnothing(Smap) ? it : Smap[it] for it in cell])
+    simplified = normalize_cell(cell)
 
     if !haskey(already_added, simplified)
       push!(dst.C[key], simplified)
@@ -189,7 +189,7 @@ NOTE: ignoring :CF that is generally used to crate the `sel`
 """
 function SELECT(lar::Lar, sel::Cell)::Lar
 
-	sel=remove_duplicates(sel)
+	sel=normalize_cell(sel)
 
 	ret=Lar(lar.V, Dict(:EV => Cells(), :FV => Cells(), :FE => Cells() ))
 	ret.mapping=Dict(:F => Dict{Int,Int}(), :E => Dict{Int,Int}())
@@ -198,7 +198,7 @@ function SELECT(lar::Lar, sel::Cell)::Lar
 	emap=Dict{Cell,Int}() # from (a,b) to new edge index
 	for Fold in sel
 
-		fv=remove_duplicates(lar.C[:FV][Fold])
+		fv=normalize_cell(lar.C[:FV][Fold])
 		if fv in fmap  continue end
 
 		# add new face
@@ -215,7 +215,7 @@ function SELECT(lar::Lar, sel::Cell)::Lar
 			
 			for Eold in lar.C[:FE][Fold]
 
-				(a,b)=remove_duplicates(lar.C[:EV][Eold])
+				(a,b)=normalize_cell(lar.C[:EV][Eold])
 
 				# already added
 				if haskey(emap,[a,b])
@@ -237,8 +237,8 @@ function SELECT(lar::Lar, sel::Cell)::Lar
 
 			end
 
-			ret.C[:FV][Fnew]=remove_duplicates(ret.C[:FV][Fnew])
-			ret.C[:FE][Fnew]=remove_duplicates(ret.C[:FE][Fnew])
+			ret.C[:FV][Fnew]=normalize_cell(ret.C[:FV][Fnew])
+			ret.C[:FE][Fnew]=normalize_cell(ret.C[:FE][Fnew])
 
 			@assert(ret.C[:FV][Fnew]==fv)
 
@@ -303,7 +303,7 @@ function compute_FE(lar::Lar; is_convex=False)
         end
       end
     end
-    push!(ret,remove_duplicates(fe))
+    push!(ret,normalize_cell(fe))
   end
 
 	return ret
@@ -319,7 +319,7 @@ function compute_FV(lar::Lar)
 		for E in fe 
 			append!(v,lar.C[:EV][E]) 
 		end
-		v=remove_duplicates(v)
+		v=normalize_cell(v)
 		push!(lar.C[:FV],v)
 	end
 end
@@ -460,17 +460,19 @@ function find_vcycles(EV::Cells)::Vector{Cells}
 	end
 
 	@assert(length(vcat(ret...))==length(EV))
+	@assert(all([length(it)>=3 for it in ret]))
+
 	return ret
 
 end
 export find_vcycles
 
 # //////////////////////////////////////////////////////////////////////////////
-function run_lar_viewer(viewer::Viewer)
+function run_lar_viewer(viewer::Viewer; title="LAR")
 	run_viewer(viewer, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
-		"title" => "LAR",
+		"title" => title,
 		"show_axis" => false
 		#, "line_width" => 3
 	))
@@ -548,7 +550,9 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	begin
 		for (v_index, pos) in zip(fv,eachcol(face_points))
 			if "Vtext" in show
-				render_text(viewer, lar_vertex_name(lar, v_index), center=pos, color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+				perturbation= [0.0,0.0,0.0] 
+				# perturbation=rand(3)*0.05
+				render_text(viewer, lar_vertex_name(lar, v_index), center=pos + perturbation , color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 			end
 		end		
 	end
@@ -581,7 +585,6 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	# render text
 	begin
 		if "Ftext" in show
-			
 			render_text(viewer, lar_face_name(lar, F), center=compute_centroid(face_points), color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 		end
 	end
@@ -608,7 +611,9 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		if "atom" in show && haskey(lar.C, :CF)
 			for (C,cf) in enumerate(lar.C[:CF])
 				v_indices=[]
-				for F in cf append!(v_indices,lar.C[:FV][F]) end
+				for F in cf 
+					append!(v_indices,lar.C[:FV][F]) 
+				end
 				v_indices=remove_duplicates(v_indices)
 				vt=get_explosion_vt(lar.V[:, v_indices], explode)
 				atom_face_color = isnothing(face_color) ? RandomColor() : face_color
@@ -620,7 +625,12 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		else
 			for (F, fv) in enumerate(lar.C[:FV])
 				vt=get_explosion_vt(lar.V[:, fv], explode)
-				render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show)
+				# sometimes getting LoadError: StackOverflowError
+				try
+					render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show)
+				catch
+					println("ERROR in render_face, what is going on???")
+				end
 			end
 		end
 
@@ -650,13 +660,13 @@ end
 export render_lar
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing)
+function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR")
 	render_lar(viewer, lar, show=show, explode=explode, face_color=face_color)
-	run_lar_viewer(viewer)
+	run_lar_viewer(viewer, title=title)
 end
 
-function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing)
-	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color)
+function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR")
+	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color, title=title)
 end
 
 export VIEWCOMPLEX
