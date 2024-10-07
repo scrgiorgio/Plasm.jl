@@ -16,12 +16,22 @@ export Cell
 const Cells = Vector{Cell}
 export Cells
 
+# ///////////////////////////////////////////////////////////////////
 const Cycle=Vector{Vector{Int}} # e.g. [[a,b],[b,c],[c,d]]
 const Cycles=Vector{Cycle}
 
 function reverse_cycle(value::Cycle)::Cycle
   return [[b, a] for (a, b) in reverse(value)]
 end
+
+function normalize_cycle(value::Cycle)::Cycle
+	return [[a,b] for (a, b) in value if a!=b]
+end
+
+function simplify_cycles(value::Cycles)::Cycles
+	return [normalize_cycle(cycle) for cycle in value]
+end
+
 
 
 # ///////////////////////////////////////////////////////////////////

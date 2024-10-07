@@ -27,28 +27,28 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
     VIEWTRIANGLES(tout.pointlist, tout.trianglelist, title="arrange2d_v2 / Triangulate output")
   end
 
-  # NOTE: segment list does not contain internal edges, but only "important" edges
-  lar=Lar(tout.pointlist)
-  segments  = Set(simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)]))
-  triangles =     simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
-
   # round vertices
   begin
     vmap=Dict()
-    pointsdb=points_db=PointsDB() 
-    for (P,p) in enumerate(eachcol(lar.V))
+    pointsdb=PointsDB() 
+    for (P,p) in enumerate(eachcol(tout.pointlist))
       vmap[P]=add_point(pointsdb, round_vector(Vector{Float64}(p), digits=LAR_ARRANGE2D_ROUND))
     end
-    lar.V=get_points(pointsdb)
-    segments   = Set([it for it in simplify_cells( [[vmap[a],vmap[b]]         for (a,b)   in segments ]) if length(it)==2])
-    triangles  =     [it for it in simplify_cells( [[vmap[a],vmap[b],vmap[c]] for (a,b,c) in triangles]) if length(it)==3]
   end
 
-  # build faces
+  # find cycles
   begin
-    lar.C[:FE]=Cells() 
-    lar.C[:EV]=Cells()
-    for cycle in find_triangles_cycles(triangles, segments)
+    segments  = simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)])
+    triangles = simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
+    cycles    = find_triangles_cycles(triangles, Set(segments))
+    cycles    = simplify_cycles([[[vmap[a],vmap[b]] for (a,b) in cycle] for cycle in cycles])
+    cycles    = [cycle for cycle in cycles if length(cycle)>=3]
+  end
+
+  # build lar
+  begin
+    lar=Lar(get_points(pointsdb), Dict( :EV => Cells(), :FE => Cells()))
+    for cycle in cycles
       fe=Cell()
       for (I,(a,b)) in enumerate(cycle)
         a,b= (I==length(cycle)) ? cycle[end] : [cycle[I][1],cycle[I+1][1]]

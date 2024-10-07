@@ -24,8 +24,8 @@ begin
   Random.seed!(0)
 
   Plasm.LAR_ARRANGE_VERSION=1
-  View2D(ARRANGE2D(LAR(RandomSquares())))
-  View2D(ARRANGE2D(LAR(RandomBubbles())))
+  #View2D(ARRANGE2D(LAR(RandomSquares())))
+  #View2D(ARRANGE2D(LAR(RandomBubbles())))
 
   Plasm.LAR_ARRANGE_VERSION=2
   View2D(ARRANGE2D(LAR(RandomSquares())))

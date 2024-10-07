@@ -1,454 +1,143 @@
 
 
-# /////////////////////////////////////////////////////////////////////
-function transform_triangles(V::Points, in_segments::Cells, in_triangles::Cells; 
-  segment_map::Dict{Cell,Cells}=Dict{Cell,Cells}(), triangle_map=Dict(),vertex_map=Dict())
+# //////////////////////////////////////////////////////////////
+function arrange3d_v2(lar::Lar; debug_mode=true)
 
-  out_segments=Cells()
-  segment_map=Dict(normalize_cell(k) => v  for (k,v) in segment_map)
-  for Old::Cell in in_segments
-    for New::Cell in get(segment_map, normalize_cell(Old), [Old])
-      New=normalize_cell(New)
-      # apply vertex map
-      New=[get(vertex_map,v_index,v_index) for v_index in New] 
-      push!(out_segments, New)
-    end
-  end
-  out_segments::Cells=[it for it in simplify_cells(out_segments) if length(it)==2]
+  POINTS3D, EV, FE=PointsDB(), Cells(),Cells()
 
-  out_triangles=Cells()
-  triangle_map=Dict(normalize_cell(k) => v  for (k,v) in triangle_map )
-  for Old::Cell in in_triangles
-    for New::Cell in get(triangle_map, normalize_cell(Old), [Old])
-      New=normalize_cell(New)
-      # apply vertex map
-      New=[get(vertex_map,v_index,v_index)  for v_index in New]
-      push!(out_triangles, New)
-    end
-  end 
-  out_triangles::Cells=[it for it in simplify_cells(out_triangles) if length(it)==3]
+  num_faces=length(lar.C[:FV])
+  for (F1, fv) in enumerate(lar.C[:FV])
+    println("# // fragmenting face=$(F1) / $(num_faces)")
 
-  return V, out_segments, out_triangles
-end
+    points2d, segments = PointsDB(), Cells()
 
-# /////////////////////////////////////////////////////////////////////
-function remove_small_or_skewed_triangles(V, segments::Cells, triangles::Cells; epsilon=LAR_ARRANGE2D_SMALL_TRIANGLES_ERR)
-
-  # go in order by number of edges <= epsilon
-  for required_num_small in [3,2,1,0]
-
-    for (a,b,c) in triangles
-
-      triangle_info=GetTriangleInfo(V, a,b,c)
-      edge_lengths=triangle_info[:edge_lengths]
-      num_small=length([it for it in edge_lengths if it<epsilon])
-
-      # I want to go in order from the smalled stuff to the largest stuff
-      if num_small!=required_num_small
-        continue
-      end
-
-      # [OK]
-      # collapsing triangle and its edgesin a point
-      # **hoping (ab),(bc),(c,d) are not `boundaries` because they disappear**
-      # NOTE: this will remove the 3 edges and 3 triangles since they will become degenerate
-      if num_small==3
-        println("Removing triangle because too small overall triangle=", [a,b,c], " edge_lengths=", edge_lengths)
-        # VIEWTRIANGLES(V, triangles, explode=[1.8,1.8,1.8])
-        return transform_triangles(V, segments, triangles, vertex_map=Dict( b=> a, c=>a )) 
-      end
-
-      # [OK]
-      # collapsing triangle and its edges in a point
-      # 3rd edge has module in the range [epsilon,2epsilon] and so I think it can be removed as well
-      # **hoping (ab),(bc),(c,d) are not `boundaries` because they disappear**
-      # NOTE: this will remove the 3 edges and 3 triangles since they will become degenerate
-      if num_small==2
-        println("Removing triangle because 2 small edges and 1 slightly more than small=", [a,b,c], " edge_lengths=", edge_lengths)
-        # VIEWTRIANGLES(V, triangles, explode=[1.8,1.8,1.8])
-        return transform_triangles(V, segments, triangles, vertex_map=Dict( b=> a, c=>a )) 
-      end
-
-      # [OK]
-      # collapsing shorted edge and all triangles incident to it
-      # **hoping (ab) is not `boundary` because it disappears**
-      # NOTE: this will remove 1 edges and 1 triangle since they will become degenerate
-      if num_small==1
-        shortest_edge, highest_h,(a,b,c), (ab,bc,ca)=triangle_info[:order_by_shortest_edge]
-        println("Removing short edge shortest=", ab, " triangle=",[a,b,c], " other_norm=", [bc,ca])
-        # VIEWTRIANGLES(V, triangles, explode=[1.8,1.8,1.8])
-        return transform_triangles(V, segments, triangles, vertex_map=Dict( b=> a )) 
-      end
-
-      if num_small==0
-
-        longest_edge, shortest_h, (a,b,c), (ab,bc,ca) = triangle_info[:order_by_longest_edge]
-        if shortest_h>epsilon
-          continue
-        end
-
-        # MOST COMPLICATE CASE if I want to preserve the topology
-        # there is also the case that the triangle is very skeewed (its height is very small)
-        # need to replace the long edge (a,b) with the shortes edge (a,c) (c,b)
-        # if there is an adiancent triangle using the (a,b vertex), this triangle will be split into two triangles or collapsed depending on the configuration
-
-        # about boundary...
-        #   if [a,b] is     in segments it will replaced by two new edges
-        #   if [a,b] is NOT in segment map nothing will happen 
-        segment_map =Dict{Cell,Cells}([a,b] => [[a,c],[c,b]]) # ab  will disappear
-        triangle_map=Dict{Cell,Cells}([a,b,c] =>[])           # abc will disappear
-
-        for t2 in triangles
-          if a in t2 && b in t2 && !(c in t2)
-            adj=t2
-            d=[K for K in t2 if K!=a && K!=b][1]
-            @assert(d!=c)
-            cd=LinearAlgebra.norm(V[:,d]-V[:,c])
-            if cd<2*epsilon
-              println("Removing skewed with near skewed and [a,b,c,d]=", [a,b,c,d], " , d->c since they are near each othger")
-              # abd will disappear too since d almost equal to `c``
-              triangle_map[[a,b,d]]=[] 
-              # VIEWTRIANGLES(V, triangles, explode=[1.8,1.8,1.8])
-              return transform_triangles(V, segments, triangles, segment_map=segment_map, triangle_map=triangle_map, vertex_map=Dict(d=>c))
-            else
-              println("Removing skewed with near big splitting the adj [a,b,c,d]=", [a,b,c,d])
-              # abd will split into 2 triangles (i.e. cannot disappear since `d`` is different from `c`)
-              triangle_map[[a,b,d]]=[[a,c,d],[b,c,d]] 
-              # VIEWTRIANGLES(V, triangles, explode=[1.8,1.8,1.8])
-              return transform_triangles(V, segments, triangles, segment_map=segment_map, triangle_map=triangle_map)
-            end
-          end
-        end
-
-        # no adjacency
-        println("Removing skewed with no adj [a,b,c]=", [a,b,c])
-        # VIEWTRIANGLES(V, triangles, explode=[1.8,1.8,1.8])
-        return transform_triangles(V, segments, triangles, segment_map=segment_map, triangle_map=triangle_map)
-      end
-    end
-
-  end
-
-  # cannot simplify...
-  return nothing
-
-end
-
-# ///////////////////////////////////////////////////////////////////
-function fragment_lar_face(points_db::PointsDB, dst::Lar, src::Lar, F1::Int; debug_mode=false)
-
-  plane_points_db = PointsDB()
-  face_segments   = Cells()
-  other_segments  = Cells()
-
-  # prepare to project
-  num_faces=length(src.C[:FV])
+    projector, roi_3d, roi_2d=nothing, nothing, nothing
+    F2s=collect(1:length(lar.C[:FV]))
+    delete!(F2s,F1)
+    for (K,F) in enumerate([F1 ; F2s ])
   
-  fe1=src.C[:FE][F1]
-  fv1=src.C[:FV][F1] 
-  world_box1=bbox_create(src.V[:,fv1])
-  plane=plane_create(src.V[:,fv1])
-  projector=project_points3d(src.V[:,fv1], double_check=true) # scrgiorgio: remove double check 
-
-  if debug_mode
-    VIEWEDGES(src.V, [src.C[:EV][E1] for E1 in fe1])
-  end
-
-  # project face, find it bounding box
-  begin
-    face_proj_points=Vector{Vector{Float64}}()
-    for E1 in fe1
-      a,b=src.C[:EV][E1]
-      proj1,proj2=[Vector{Float64}(it) for it in eachcol(projector(src.V[:,[a,b]]))]
-      A=add_point(plane_points_db, proj1) 
-      B=add_point(plane_points_db, proj2)
-      if A!=B 
-        append!(face_proj_points,[proj1, proj2])
-        push!(face_segments,[A,B]) 
-      end
-    end
-    face_proj_box=bbox_create(face_proj_points)
-  end
-
-  if debug_mode
-    VIEWEDGES(get_points(plane_points_db), face_segments, title="arrange3d / frament $(F1) / projected edges")
-  end
-
-  # project other faces
-  for F2 in 1:num_faces
-    
-    if (F1==F2) 
-      continue 
-    end
-
-    # quick discard not intersecting faces
-    fv2, fe2=src.C[:FV][F2], src.C[:FE][F2]
-    world_box2=bbox_create(src.V[:,fv2])
-    if !(bbox_intersect(world_box1, world_box2))
-      continue
-    end
-
-    # find intersection on the main face
-    begin
-      proj_intersections=Vector{Vector{Float64}}()
-      for E2 in fe2
-        a,b = src.C[:EV][E2]
-        p1,p2=[Vector{Float64}(it) for it in eachcol(src.V[:,[a,b]])]
-        hit, t = plane_ray_intersection(p1, normalized(p2-p1), plane)
-        if !isnothing(hit)
-          @assert(t>0)
-          # must cross the plane (be on opposite sides of the plane)
-          if t<LinearAlgebra.norm(p2-p1)
-            hit_proj=projector(hcat(hit))[:,1]
-            push!(proj_intersections, hit_proj)
-          end
-        end
-      end
-    end
-
-    # each face can intersect in 2 points ???! not sure for any face here
-    # am i forcing convexy here?
-    # @assert(length(proj_intersections)==0 || length(proj_intersections)==2)
-    # println(F1, " ", F2," ", proj_intersections)
-    if length(proj_intersections)==2
-      a,b=proj_intersections
-      other_proj_box=bbox_create([a,b])
-      if bbox_intersect(face_proj_box, other_proj_box)
-        A=add_point(plane_points_db, a)
-        B=add_point(plane_points_db, b)
-        if A!=B 
-          push!(other_segments, [A,B]) 
-        end
-      end
-    end
-
-  end
-
-  plane_points        = get_points(plane_points_db)
-  plane_points_row    = BYROW(plane_points)
-  face_segments       = remove_duplicates(face_segments)
-  all_segments        = remove_duplicates([face_segments; other_segments])
-
-  tin = Triangulate.TriangulateIO()
-  tin.pointlist = plane_points 
-  tin.segmentlist = hcat(all_segments...) # constrained triangulation
-
-  if debug_mode
-    VIEWEDGES(tin.pointlist, tin.segmentlist, title="arrange2d_v2 / input")
-  end
-
-  # https://github.com/JuliaGeometry/Triangulate.jl/blob/8e0fc2c0fb58ffb3ae351afcca5da375522d2e84/docs/src/triangle-h.md?plain=1#L193
-  # -p Triangulates a Planar Straight Line Graph, 
-  # -Q for quiet
-  # -X  No exact arithmetic.
-  # -q  Quality mesh generation by Delaunay refinement 
-  # -D  Conforming Delaunay triangulatio
-  # -S  Specifies the maximum number of Steiner points
-  # -Y  No new vertices on the boundary.  This switch is useful when the mesh boundary must be preserved so that it conforms to some adjacent mesh
-  #     USe `-YY' to prevent all segment splitting, including internalboundaries.
-  tout=nothing
-  while true
-    try
-      tout, __ = Triangulate.triangulate("pQ", tin) 
-      break
-    catch TriangulateError
-      println("WARNING Triangulate failed, perturing points")
-      tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(plane_points)])
-    end
-  end
-
-  if debug_mode
-    VIEWTRIANGLES(tout.pointlist, tout.trianglelist, explode=[1.0,1.0,1.0], title="arrange2d_v2 / output / triangles")
-  end
-
-  plane_points, Vinput=tout.pointlist, plane_points
-  segments  = simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)])
-  triangles = simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
-  tout=nothing
-
-  # remove small triangles (it can happen if I have segment very near to the boundary like for arrange3d function)
-  begin
-    while true
-      #@show(segments)
-      #@show(triangles)
-      next=remove_small_or_skewed_triangles(plane_points, segments, triangles)
-      if isnothing(next)  break  end
-      plane_points, segments,triangles=next
-    end
-  end
-
-  # I want to keep only vertices 
-  #   - coming from user input
-  #   - coming from the intersection of 2 EVs
-  # I do NOT want spurios points on the boundary due to the triangulation (I am getting some of them even if I use -YY)
-          
-  begin
-    
-    Vint=Vector{Vector{Float64}}()
-    for (E1,(a,b)) in enumerate(all_segments)
-      p1,p2=Vinput[:,a],Vinput[:,b]
-      for (E2,(c,d)) in enumerate(all_segments)
-        if E1==E2 continue end
-        p3,p4=Vinput[:,c],Vinput[:,d]
-        inter=segment_intersection(p1,p2,p3,p4, LAR_ARRANGE2D_SMALL_TRIANGLES_ERR)
-        println("Vint $(a) $(b) $(c) $(d) $(inter)")
-        if !isnothing(inter)
-          push!(Vint,Vector{Float64}([it for it in inter]))
-        end
-      end
-    end
-    Vint=ToPoints(Vint)
-
-    keeps=Set()
-    for (I, p) in enumerate(eachcol(plane_points))
-
-      keep=false
-      for (J,q) in enumerate(eachcol(Vinput))
-        if point_distance(p,q) < LAR_ARRANGE2D_SMALL_TRIANGLES_ERR
-          println("KEEP $(I) because near to user vertices $(J)")
-          keep=true
-          break
-        end
-      end
-
-      for (J,q) in enumerate(eachcol(Vint))
-        if point_distance(p,q) < LAR_ARRANGE2D_SMALL_TRIANGLES_ERR
-          println("KEEP $(I) because near to cross intersection")
-          keep=true
-          break
-        end
-      end
-
-      if keep
-        push!(keeps,I)
+      fv=lar.C[:FV][F]
+      face_points3d=lar.V[:,fv]
+      face_box3d=bbox_create(face_points3d)
+  
+      if K==1
+        plane=plane_create(face_points3d)
+        projector=project_points3d(face_points3d, double_check=true) # scrgiorgio: remove double check 
+        roi_3d=face_box3d
       else
-        println("SPURIOUS ON BOUNDARY ", I, p)
+        if !bbox_intersect(roi_3d, face_box3d) 
+          continue 
+        end
       end
-      
+  
+      face_points_2d=Vector{Vector{Float64}}()
+      for E in lar.C[:FE][F]
+        a,b=lar.C[:EV][E]
+        p1,p2=[Vector{Float64}(it) for it in eachcol(projector(lar.V[:,[a,b]]))]
+        append!(face_points_2d,[p1, p2])
+      end
+
+      if K==1
+        roi_2d=bbox_create(face_points_2d)
+      end
+    
+      for (p1,p2) in face_points_2d
+        if K==1 || !bbox_intersect(roi_2d, bbox_create([p1,p2]))
+          a=add_point(points2d, p1)
+          b=add_point(points2d, p2)
+          push!(segments,[a,b]) 
+        end
+      end
+  
     end
-  end
-
-  # NOTE: segment list does not contain internal edges, but only "important" edges
-  a2d=Lar(plane_points)
-
-  # compute EV,FE
-  begin
-    a2d.C[:FE]=Cells()
-    a2d.C[:EV]=Cells()
-
-    adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
-    groups=find_groups_of_cells(adjacent_triangles)
-
-    for (A, triangle_ids) in enumerate(groups)
-
-      # each group will form a face (even non-convex, holed)
-      face_boundary=Cells()
-      internal_points=Vector{Vector{Float64}}() # this is needed in case classify is run
-      for triangle_id in triangle_ids 
-        u,v,w = triangles[triangle_id]
-        push!(internal_points,(a2d.plane_points[:,u] + a2d.plane_points[:,v] + a2d.plane_points[:,w])/3.0)
-        for (a,b) in [ [u,v], [v,w], [w,u] ]
-          a,b = normalize_cell([a,b])
-          if [a,b] in segments
-            push!(face_boundary, [a,b])
-          end
-        end
+  
+    segments=[it for it in simplify_cells(segments) if length(it)==2]
+    tin = Triangulate.TriangulateIO()
+    tin.pointlist  = ToPoints(points2d)
+    tin.segmentlist = hcat(segments...)  # constrained triangulation
+  
+    if debug_mode
+      VIEWEDGES(tin.pointlist, tin.segmentlist, title="arrange3d_v2 / Triangulate input")
+    end
+  
+    # https://github.com/JuliaGeometry/Triangulate.jl/blob/8e0fc2c0fb58ffb3ae351afcca5da375522d2e84/docs/src/triangle-h.md?plain=1#L193
+    # -p Triangulates a Planar Straight Line Graph, 
+    # -Q for quiet
+    tout=nothing
+    while true
+      try
+        tout, __ = Triangulate.triangulate("pQ", tin) 
+        break
+      catch TriangulateError
+        println("WARNING Triangulate.triangulate failed, so perturnbing the points")
+        tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(lar.V)])
       end
-      face_boundary=simplify_cells(face_boundary)
-      cycles=find_vcycles(face_boundary)
-
-      # skip if outside
-      if !isnothing(classify_for_3d)
-        outside = length([p for p in internal_points if classify_for_3d(p) == "p_out"])
-        inside  = length(internal_points) - outside
-
-        keep_face=false
-        if outside>0 && inside>0
-          # is this the right thing to do???
-          println("WARNING ambiguity #inside=", inside," #outside=", outside)
-          keep_face=inside > outside 
-        else
-          keep_face=inside>0
-        end
-
-        if !keep_face
-          continue
-        end
+    end
+  
+    if debug_mode
+      VIEWTRIANGLES(tout.pointlist, tout.trianglelist, title="arrange3d_v2 / Triangulate output")
+    end
+  
+    segments  = Set(simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)]))
+    triangles =     simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
+  
+    # unproject and round vertices (in 3D! so that faces can glue together)
+    begin
+      vmap=Dict()
+      unprojected=projector(tout.pointlist, inverse=true)
+      for P in 1:size(tout.pointlist,2)
+        p3d=unprojected[:,P]
+        r3d=round_vector(Vector{Float64}(p3d), digits=LAR_ARRANGE2D_ROUND)
+        vmap[P]=add_point(POINTS3D, r3d)
       end
-
-      for cycle in cycles
-
-        loop=[a for (a,b) in cycle]
-
-        # insert into the lar complex (note: i will simplify later!)
-        loop=[v_index for v_index in loop if v_index in keeps]
+    end
+  
+    # build faces (vertex indices are now referring to rounded 3d)
+    begin
+      face_EV=Cells()
+      face_FE=Cells()
+      for cycle in find_triangles_cycles(triangles, segments)
         fe=Cell()
-        for I in 1:length(loop)
-          a = loop[I]
-          b = loop[I==length(loop) ? 1 : I+1] 
-          push!(a2d.C[:EV], [a,b])
-          push!(fe, length(a2d.C[:EV]))
+        for (C,(a,b)) in enumerate(cycle)
+          a,b= (C==length(cycle)) ? cycle[end] : [cycle[C][1],cycle[C+1][1]]
+          a,b=vmap[a],vmap[b]
+          push!(face_EV, [a,b]) # will simplify later
+          push!(fe, length(face_EV))
         end
-        @show(fe)
-        push!(a2d.C[:FE], fe)
+        push!(face_FE, fe)
       end
+      face_EV=[it for it in simplify_cells(face_EV) if length(it)>=2]
+      face_FE=[it for it in simplify_cells(face_FE) if length(it)>=3]
+      append!(EV, face_EV)
+      append!(FE, face_FE)
     end
   end
 
-  a2d=SIMPLIFY(a2d)
-  COMPUTE(a2d,:FV)
-  CHECK(a2d)
+  POINTS3D=get_points(POINTS3D)
+  lar=Lar(POINTS3D, Dict( :EV => EV, :FE => FE))
+
+  # if you had a problem with an edge, you should be able to debug here
+  # debug_edge(lar,21,26)
+
+  lar=SIMPLIFY(lar)
+  COMPUTE(lar,:FV)
 
   if debug_mode
-    VIEWCOMPLEX(a2d, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange2d_v2 / output / final")
+    VIEWCOMPLEX(lar, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange3d_v2 / all faces fragmented")
+  end  
+
+  # find atoms
+  lar.C[:CF]=lar_find_atoms(lar.V, cycles, debug_mode=debug_mode)
+
+  # show atoms
+  if debug_mode
+    VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2], title="arrange3d_v2 / atoms")
   end
 
-  # store to the destination lar unprojecting points
-  faces3d=Cell()
-  begin
-    unprojected=projector(a2d.V, inverse=true)
-
-    for (F,fe) in enumerate(a2d.C[:FE])
-
-      # just want to keep triangles which are inside the main face
-      unprojected_fe=Cell()
-      for E in fe
-        a,b = a2d.C[:EV][E]
-        r1=round_vector(unprojected[:,a], digits=LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS)
-        r2=round_vector(unprojected[:,b], digits=LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS)
-        A=add_point(points_db, r1)
-        B=add_point(points_db, r2)
-        if A!=B
-          push!(dst.C[:EV],[A,B])
-          push!(unprojected_fe, length(dst.C[:EV]))
-        end
-      end
-
-      # must still be a face with cycles
-      push!(dst.C[:FE], unprojected_fe)
-      push!(faces3d,length(dst.C[:FE]))
-
-      n1=length(find_vcycles([dst.C[:EV][E] for E in dst.C[:FE][end]]))
-      #n2=length(find_vcycles([a2d.C[:EV][E] for E in dst.C[:FE][end]]))
-      #@assert(n1==n2)
-      
-    end
-  end
-
-  # TODO: faster
-  dst.V=get_points(points_db)
-  if haskey(dst.C,:FV)  delete!(dst.C,:FV)  end
-  COMPUTE(dst,:FV)
-  
-  if debug_mode 
-    VIEWCOMPLEX(SELECT(dst,faces3d), show=["FV", "Vtext"],explode=[1.0, 1.0, 1.0], title="arrange3d / frament $(F1) / 3d")
-  end
-
+  return lar
 end
+export arrange3d_v2
 
-# ///////////////////////////////////////
-#  TGW 3D from here
-# ///////////////////////////////////////
 
 
 # ///////////////////////////////////////////////////////////////////////////
@@ -715,62 +404,6 @@ function debug_edge(lar::Lar, a,b; enlarge=nothing)
 
 end
 
-# //////////////////////////////////////////////////////////////
-function arrange3d_v2(lar::Lar; debug_mode=true)
-
-  # fragment
-  begin
-    points_db=PointsDB() 
-    fragmented=Lar(zeros(Float64,0,0), Dict{Symbol,Cells}( :EV => Cells(), :FE => Cells()))
-    for (F, fv) in enumerate(lar.C[:FV])
-      println("# ////////////////// fragmenting ",F,"/",length(lar.C[:FV]))
-      fragment_lar_face(points_db, fragmented, lar, F, debug_mode=debug_mode)
-    end
-    lar=SIMPLIFY(fragmented)
-  end
-
-
-  # if you had a problem with an edge, you should be able to debug here
-  # debug_edge(lar,21,26)
-
-  if debug_mode
-    VIEWCOMPLEX(lar, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange3d_v2 after all faces fragmentation")
-  end  
-
-  # will be created again later
-  delete!(lar.C,:FV)
-
-  # find cycles (note: the same cycle can appear twice, so I need to filter it out)
-  begin
-
-    # need to create the new FE (since two cycles will become the same face)
-    # note: ev will be the same with the same indices
-    existing_edges=Dict( normalize_cell([a,b]) => E for (E,(a,b)) in enumerate(lar.C[:EV]) )
-    FE=Dict{Cell,Cycle}()
-    for (F,fe) in enumerate(lar.C[:FE])
-      face_edges=[lar.C[:EV][E] for E in fe]
-      for cycle in find_vcycles(face_edges)
-        # println("Face ",F, " has cycle ", cycle, " face_edges=",face_edges)
-        fe=normalize_cell([existing_edges[normalize_cell([a,b])] for (a,b) in cycle])
-        if !haskey(FE,fe)
-          FE[fe]=cycle
-        end
-      end
-    end
-    lar.C[:FE], cycles=collect(keys(FE)),collect(values(FE))
-  end
-
-  COMPUTE(lar,:FV)
-
-  lar.C[:CF]=lar_find_atoms(lar.V, cycles, debug_mode=debug_mode)
-  
-  if debug_mode
-    VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2], title="arrange3d_v2 showing atoms")
-  end
-
-  return lar
-end
-export arrange3d_v2
 
 # //////////////////////////////////////////////////////////////////////////////
 function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Vector{Int}
