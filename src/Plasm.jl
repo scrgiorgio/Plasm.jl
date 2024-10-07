@@ -9,7 +9,6 @@ using NearestNeighbors
 using Random
 using Statistics
 
-
 TO_GEOMETRY_DEFAULT_PRECISION_DIGITS = 14
 export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 
@@ -23,6 +22,7 @@ LAR_DEFAULT_ERR=1e-8
 export LAR_DEFAULT_ERR
 
 include("./config.jl")
+include("./utils.jl")
 include("./geometry.jl")
 include("./points.jl")
 include("./plane.jl")
@@ -33,12 +33,16 @@ include("./fenvs.jl")
 include("./lar/lar.jl")
 include("./lar/classify.jl")
 
+LAR_ARRANGE2D_ROUND         = 4
+LAR_ARRANGE2D_PERTURBATION  = 1e-4 * 0.01
+
 LAR_ARRANGE2D_SMALL_TRIANGLES_ERR    = 1e-4
-LAR_ARRANGE2D_TRIANGLE_PERTURBATION  = LAR_ARRANGE2D_SMALL_TRIANGLES_ERR * 0.01
 LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS = 4
 
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
+
+
 include("./lar/experimental/arrange2d.jl")
 include("./lar/experimental/arrange3d.jl")
 

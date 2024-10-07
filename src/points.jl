@@ -10,6 +10,75 @@ end
 export ToPoints
 
 
+# /////////////////////////////////////////////////////////////
+PointsDB=Dict{Vector{Float64},Int}
+export PointsDB
+
+# ///////////////////////////////////////////////////////////////////
+function round_vector(v::Vector{Float64}; digits::Int)::Vector{Float64}
+  if digits==0 return v end
+  return [round(value, digits=digits) for value in v]
+end
+export round_vector
+
+# ///////////////////////////////////////////////////////////////////
+function add_point(db::PointsDB, p::Vector{Float64})::Int
+
+  p=[abs(it)==0.0 ? 0.0 : it for it in p]
+
+  if !haskey(db, p)  
+    db[p]=length(db)+1 
+  end
+  return db[p]
+end
+export add_point
+
+# ///////////////////////////////////////////////////////////////////
+function get_points(db::PointsDB)::Points
+	v=[Vector{Float64}() for I in 1:length(db)]
+	for (pos,idx) in db
+		v[idx]=pos
+	end
+	return hcat(v...)
+end
+export get_points
+
+
+# /////////////////////////////////////////////////////////////////////
+function point_distance(a, b)::Float64
+  return LinearAlgebra.norm(a-b)
+end
+
+# /////////////////////////////////////////////////////////////////////
+function point_is_between(a, b, c, epsilon):Bool
+  return abs(point_distance(a,c) + point_distance(c,b) - point_distance(a,b)) <= epsilon
+end
+
+# /////////////////////////////////////////////////////////////////////
+#  see https://gist.github.com/kylemcdonald/6132fc1c29fd3767691442ba4bc84018
+function segment_intersection(p1, p2, p3, p4, epsilon::Float64)
+
+  (x1,y1),(x2,y2),(x3,y3),(x4,y4) = p1,p2,p3,p4
+  
+  # parallel
+  denom = (y4-y3)*(x2-x1) - (x4-x3)*(y2-y1)
+  if abs(denom) < epsilon
+    return nothing
+  end
+
+  # out of range
+  ua = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / denom
+  if (ua < -epsilon) || (ua > 1+epsilon) return nothing end
+
+  # out of range
+  ub = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / denom
+  if (ub < -epsilon) || (ub > 1+epsilon) return nothing end
+
+  return (
+    x1 + ua * (x2-x1),
+    y1 + ua * (y2-y1))
+end
+
 # ///////////////////////////////////////////////////////////////////
 function bbox_create(points::Points)
   return (

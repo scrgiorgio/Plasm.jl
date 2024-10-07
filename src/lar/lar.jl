@@ -181,6 +181,50 @@ export SIMPLIFY
 
 
 
+# /////////////////////////////////////////////////////////////////////
+function CHECK(lar::Lar)
+
+  # each vertex should have >=2 edges in 2dim and >=3 edges in 3d
+  begin
+    pdim=size(lar.V,1)
+    count=Dict{Int64, Int64}(P => 0 for P in 1:size(lar.V,2))
+    for (a,b) in lar.C[:EV]
+      count[a]+=1
+      count[b]+=1
+    end
+    @assert(all([v==0 || v>=pdim for (k,v) in count]))
+  end
+
+  # eatch edge should have 2 vertives
+  for ev in lar.C[:EV]
+    @assert(length(ev)==2)
+  end
+
+  # each edge should be have 1 or 2 faces
+  begin
+    count_faces=Dict{Int,Set{Int}}()
+    for (F,fe) in enumerate(lar.C[:FE])
+      for E in fe
+        if !haskey(count_faces,E) count_faces[E]=Set{Int}() end
+        push!(count_faces[E],F)
+      end
+    end
+    @assert(all([length(it) in [1,2] for it in values(count_faces)]))
+  end
+
+  # one face should have at least 3 edges
+  begin
+    for (F,fe) in enumerate(lar.C[:FE])
+      @assert(length(fe)>=3)
+
+      # and should be able to find face cycles
+      cell_ev=[lar.C[:EV][E] for E in fe]
+      find_vcycles(cell_ev)
+    end
+  end
+
+end
+
 
 # //////////////////////////////////////////////////////////////////////////////
 """can be used also to simplify
@@ -284,7 +328,7 @@ end
 export compute_VE
 
 # //////////////////////////////////////////////////////////////////////////////
-function compute_FE(lar::Lar; is_convex=False)
+function compute_FE(lar::Lar; is_convex=false)
 
 	# only convex cells supported
 	@assert(is_convex && !haskey(lar.C,:FE)) 
@@ -311,7 +355,8 @@ end
 export compute_FE
 
 # //////////////////////////////////////////////////////////////////////////////
-function compute_FV(lar::Lar)
+function COMPUTE(lar::Lar, symbol)
+	@assert(symbol==:FV)
 	@assert(!haskey(lar.C,:FV)) 
 	lar.C[:FV]=Cells()
 	for (F,fe) in enumerate(lar.C[:FE])
@@ -323,7 +368,7 @@ function compute_FV(lar::Lar)
 		push!(lar.C[:FV],v)
 	end
 end
-export compute_FV
+export M
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
@@ -672,43 +717,33 @@ end
 export VIEWCOMPLEX
 
 
-# //////////////////////////////////////////////////////////////////////////////
-function RandomSquare(size_min::Float64,size_max::Float64)
-	size = size_min+rand()*(size_max-size_min)
-	return STRUCT(
-		T(1,2)(rand(2)...), 
-		S([1,2])([size,size]), 
-		R([1,2])(2*pi*rand()),
-		Plasm.SQUARE(1)
-	)
+# /////////////////////////////////////////////////////////////////////
+function VIEWEDGES(V::Points, EV::Cells; explode=[1.0,1.0,1.0], title="LAR")
+  lar=Lar(V,Dict{Symbol,Cells}(:EV=>EV))
+  # print_matrix("sorted_points", hcat(collect(sort([it for it in eachcol(V)]))))
+  VIEWCOMPLEX(lar, explode=explode, show=["V","EV","Vtext"], title=title)
 end
-export RandomSquare
 
-# //////////////////////////////////////////////////////////////////////////////
-function RandomBubble()
-  vs = rand()
-  vt = rand(2)
-  return STRUCT(
-    T(1,2)(vt...),
-    S([1,2])([0.25*vs, 0.25*vs]), 
-    CIRCUMFERENCE(1)(rand(3:32))
-  )
+# /////////////////////////////////////////////////////////////////////
+function VIEWEDGES(V::Points, segmentlist::Matrix; explode=[1.0,1.0,1.0], title="LAR")
+  VIEWEDGES(V,[Cell(it) for it in eachcol(segmentlist)], explode=explode, title=title)
 end
-export RandomBubble
 
-# //////////////////////////////////////////////////////////////////////////////
-function RandomCube(size_min::Float64,size_max::Float64)
-  size = size_min+rand()*(size_max-size_min)
-  return STRUCT(
-    T(1,2,3)(rand(3)...), 
-    S([1,2,3])([size,size,size]), 
-    R([1,2])(2*pi*rand()),
-    R([2,3])(2*pi*rand()),
-    R([1,3])(2*pi*rand()),
-    Plasm.CUBE(1) 
-  )
+# /////////////////////////////////////////////////////////////////////
+function VIEWTRIANGLES(V::Points, triangles::Cells; explode=[1.0,1.0,1.0], title="LAR")
+  lar=Lar(V, Dict{Symbol,Cells}(:EV => Cells(),:FE => Cells()))
+  for (u,v,w) in triangles
+    E=length(lar.C[:EV])
+    append!(lar.C[:EV], [[u,v],[v,w],[w,u]])
+    push!(lar.C[:FE], [E+1,E+2,E+3])
+  end
+  COMPUTE(lar,:FV)
+  VIEWCOMPLEX(lar, explode=explode, show=["V", "EV", "FV", "Vtext"], title=title)
 end
-export RandomCube
+
+function VIEWTRIANGLES(V::Points, triangles::Matrix; explode=[1.0,1.0,1.0], title="LAR")
+  return VIEWTRIANGLES(V,[Cell(it) for it in eachcol(triangles)], explode=explode, title=title)
+end
 
 
 # /////////////////////////////////////////////////////

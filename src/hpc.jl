@@ -16,6 +16,13 @@ export Cell
 const Cells = Vector{Cell}
 export Cells
 
+const Cycle=Vector{Vector{Int}} # e.g. [[a,b],[b,c],[c,d]]
+const Cycles=Vector{Cycle}
+
+function reverse_cycle(value::Cycle)::Cycle
+  return [[b, a] for (a, b) in reverse(value)]
+end
+
 
 # ///////////////////////////////////////////////////////////////////
 function remove_duplicates(cell::AbstractVector)::AbstractVector
@@ -35,6 +42,85 @@ end
 export simplify_cells
 
 
+
+# ///////////////////////////////////////////////////////
+function find_adjacents_cells(cells::Cells, intersection_length::Int64, boundaries::Set)::Dict{Int,Set{Int}}
+
+  tot=length(cells)
+  ret= Dict( (id => Set{Int}() for id in 1:tot) )
+  for (id1, v1) in enumerate(cells)
+    for (id2, v2) in enumerate(cells)
+      if id1==id2 
+        continue 
+      end
+      intersection=Cell(collect(intersect(Set(v1),Set(v2))))
+      if length(intersection)==intersection_length
+        intersection=normalize_cell(intersection)
+        if !(intersection in boundaries)
+          push!(ret[id1], id2)
+          push!(ret[id2], id1)
+        end
+      end
+    end
+  end
+  return ret
+end
+
+
+# ///////////////////////////////////////////////////////
+function find_groups_of_cells(adjacent::Dict{Int,Set{Int}})
+  ret=[]
+  to_assign=Set(1:length(keys(adjacent)))
+  while !isempty(to_assign)
+    seed=pop!(to_assign)
+    group=[seed]
+    push!(ret, group)
+    stack=[seed]
+    while !isempty(stack)
+      cur=popfirst!(stack)
+      for other in adjacent[cur]
+        if other in group
+          # all ok, aready assigned
+
+        elseif other in to_assign
+          delete!(to_assign,other)
+          push!(group, other)
+          push!(stack, other)
+          
+        else
+          # internal error, show not happen
+          @assert(false) 
+        end
+      end
+    end
+  end
+  return ret
+end
+
+# /////////////////////////////////////////////////////////////
+function find_triangles_cycles(triangles::Cells, segments::Set)::Cycles
+	ret=Cycles()
+	adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
+	groups=find_groups_of_cells(adjacent_triangles)
+	for (A, triangle_ids) in enumerate(groups)
+		# each group will form a face (can be holed and non-convex)
+		complex_face=Cells()
+		for triangle_id in triangle_ids 
+			u,v,w = triangles[triangle_id]
+			for (a,b) in [ [u,v], [v,w], [w,u] ]
+				a,b = normalize_cell([a,b])
+				if [a,b] in segments
+					push!(complex_face, [a,b])
+				end
+			end
+		end
+		complex_face=simplify_cells(complex_face)
+		append!(ret, find_vcycles(complex_face))
+	end
+	return ret
+end
+
+
 # /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
 	p0 = vcat(p0, zeros(3 - length(p0)))
@@ -50,6 +136,34 @@ function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vec
 	return [ret[i] / N for i in 1:3]
 end
 export ComputeTriangleNormal
+
+
+# /////////////////////////////////////////////////////////////////////
+function GetTriangleInfo(V::Points, a::Int, b::Int, c::Int)::Dict
+
+  ab=LinearAlgebra.norm(V[:,b]-V[:,a])
+  bc=LinearAlgebra.norm(V[:,c]-V[:,b])
+  ca=LinearAlgebra.norm(V[:,a]-V[:,c])
+
+  s = (ab + bc + ca) / 2
+  area=sqrt(s * (s - ca) * (s - bc) * (s - ab))
+
+  # sort by base ASC, height DESC
+  tmp=collect(sort([
+    (ab, 2*area/ab, (a,b,c), (ab, bc, ca)),
+    (bc, 2*area/bc, (b,c,a), (bc, ca, ab)),
+    (ca, 2*area/ca, (c,a,b), (ca, ab, bc)),
+  ]))
+
+  return Dict(
+    :order_by_shortest_edge => tmp[1],
+    :order_by_middle_edge   => tmp[2],
+    :order_by_longest_edge  => tmp[3],
+    :edge_lengths => [ab, bc, ca]
+  )
+
+end
+
 
 # /////////////////////////////////////////////////////////////
 function GoodTetOrientation(v0::Vector{Float64}, v1::Vector{Float64}, v2::Vector{Float64}, v3::Vector{Float64})
@@ -1450,3 +1564,42 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 	return ret
 end
 export ToGeometry
+
+
+# //////////////////////////////////////////////////////////////////////////////
+function RandomSquare(size_min::Float64,size_max::Float64)
+	size = size_min+rand()*(size_max-size_min)
+	return STRUCT(
+		T(1,2)(rand(2)...), 
+		S([1,2])([size,size]), 
+		R([1,2])(2*pi*rand()),
+		Plasm.SQUARE(1)
+	)
+end
+export RandomSquare
+
+# //////////////////////////////////////////////////////////////////////////////
+function RandomBubble()
+  vs = rand()
+  vt = rand(2)
+  return STRUCT(
+    T(1,2)(vt...),
+    S([1,2])([0.25*vs, 0.25*vs]), 
+    CIRCUMFERENCE(1)(rand(3:32))
+  )
+end
+export RandomBubble
+
+# //////////////////////////////////////////////////////////////////////////////
+function RandomCube(size_min::Float64,size_max::Float64)
+  size = size_min+rand()*(size_max-size_min)
+  return STRUCT(
+    T(1,2,3)(rand(3)...), 
+    S([1,2,3])([size,size,size]), 
+    R([1,2])(2*pi*rand()),
+    R([2,3])(2*pi*rand()),
+    R([1,3])(2*pi*rand()),
+    Plasm.CUBE(1) 
+  )
+end
+export RandomCube

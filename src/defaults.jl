@@ -36,7 +36,8 @@ export GetColorByName
 
 
 function RandomColor()::Point4d
-	ret=0.5*Plasm.COLORS[rand(1:12)] +0.5* Plasm.COLORS[rand(1:12)]
+	# ret=Plasm.COLORS[rand(1:12)] +0.5* Plasm.COLORS[rand(1:12)]
+	ret=1.0*[random_float(0.3,1.0) for I in 1:4]+0.0* Plasm.COLORS[rand(1:12)]
 	ret[4] = 1.0
 	return ret
 end
