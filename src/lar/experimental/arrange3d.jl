@@ -1,140 +1,240 @@
-
-
 # //////////////////////////////////////////////////////////////
-function arrange3d_v2(lar::Lar; debug_mode=true)
+function arrange3d_v2(src::Lar; debug_mode=true, debug_face="*", debug_edge=[28,39])
 
-  POINTS3D, EV, FE=PointsDB(), Cells(),Cells()
+  dst=Lar()
+  dst.C[:EV]=Cells()
+  dst.C[:FE]=Cells()
+  points3d=PointsDB()
+  all_cycles=Cycles()
 
-  num_faces=length(lar.C[:FV])
-  for (F1, fv) in enumerate(lar.C[:FV])
-    println("# // fragmenting face=$(F1) / $(num_faces)")
+  num_faces=length(src.C[:FV])
+  for (F1, fv) in enumerate(src.C[:FV])
+    println("# fragmenting face=$(F1) / $(num_faces)")
 
-    points2d, segments = PointsDB(), Cells()
+    points2d = PointsDB()
 
-    projector, roi_3d, roi_2d=nothing, nothing, nothing
-    F2s=collect(1:length(lar.C[:FV]))
-    delete!(F2s,F1)
-    for (K,F) in enumerate([F1 ; F2s ])
-  
-      fv=lar.C[:FV][F]
-      face_points3d=lar.V[:,fv]
-      face_box3d=bbox_create(face_points3d)
-  
-      if K==1
-        plane=plane_create(face_points3d)
-        projector=project_points3d(face_points3d, double_check=true) # scrgiorgio: remove double check 
-        roi_3d=face_box3d
-      else
-        if !bbox_intersect(roi_3d, face_box3d) 
+    # F1
+    begin
+      F1_points_3d=src.V[:,src.C[:FV][F1]]
+      plane=plane_create(F1_points_3d)
+      projector=project_points3d(F1_points_3d, double_check=true) # scrgiorgio: remove double check 
+      F1_box_3d = bbox_create(F1_points_3d)
+      F1_segments = Cells()
+      for E in src.C[:FE][F1]
+        a,b=src.C[:EV][E]
+        p1,p2=[Vector{Float64}(it) for it in eachcol(projector(src.V[:,[a,b]]))]
+        a=add_point(points2d, p1)
+        b=add_point(points2d, p2)
+        push!(F1_segments, [a, b])
+      end
+      F1_box_2d        = bbox_create(get_points(points2d))
+      F1_points_2d_row = BYROW(get_points(points2d))
+      F1_is_inside = p -> (classify_point(p, F1_points_2d_row, F1_segments)  != "p_out")
+    end
+
+    # F2s
+    begin
+      F2_segments=Cells()
+      for F2 in collect(1:num_faces)
+
+        if F2==F1
+          continue
+        end
+
+         # quick discard not intersecting faces
+        F2_box_3d=bbox_create(src.V[:,src.C[:FV][F2]])
+        if !bbox_intersect(F1_box_3d,F2_box_3d) 
           continue 
         end
+
+
+        # find intersection on the main face
+        begin
+          hits_2d=Vector{Vector{Float64}}()
+          for E2 in src.C[:FE][F2]
+            a,b = src.C[:EV][E2]
+            p1,p2=[Vector{Float64}(it) for it in eachcol(src.V[:,[a,b]])]
+            hit, t = plane_ray_intersection(p1, normalized(p2-p1), plane)
+            if isnothing(hit) continue end
+            @assert(t>0) # must cross the plane (be on opposite sides of the plane)
+            if t<LinearAlgebra.norm(p2-p1)
+              push!(hits_2d, projector(hcat(hit))[:,1])
+            end
+          end
+        end
+
+        # scrgiorgio: WRONG. I should take all hits, start from the longest distance and build segment on,off,on,off
+        if length(hits_2d)==2
+          a,b=hits_2d
+          if !bbox_intersect(F1_box_2d, bbox_create([a,b])) continue end
+          A=add_point(points2d, a)
+          B=add_point(points2d, b)
+          if A!=B 
+            push!(F2_segments, [A,B]) 
+          end
+        end
+
       end
+    end
   
-      face_points_2d=Vector{Vector{Float64}}()
-      for E in lar.C[:FE][F]
-        a,b=lar.C[:EV][E]
-        p1,p2=[Vector{Float64}(it) for it in eachcol(projector(lar.V[:,[a,b]]))]
-        append!(face_points_2d,[p1, p2])
+    # triangulate
+    begin
+      segments=[it for it in simplify_cells([F1_segments ;  F2_segments]) if length(it)==2] # remove degenerate (probably not needed since I am not rounding)
+      tin = Triangulate.TriangulateIO()
+      tin.pointlist  = get_points(points2d)
+      tin.segmentlist = hcat(segments...)  # constrained triangulation
+    
+      if debug_face==F1 || debug_face=="*" 
+        VIEWEDGES(tin.pointlist, tin.segmentlist, title="arrange3d / 2d triangulate input face=$(F1)")
       end
 
-      if K==1
-        roi_2d=bbox_create(face_points_2d)
-      end
-    
-      for (p1,p2) in face_points_2d
-        if K==1 || !bbox_intersect(roi_2d, bbox_create([p1,p2]))
-          a=add_point(points2d, p1)
-          b=add_point(points2d, p2)
-          push!(segments,[a,b]) 
+      # https://github.com/JuliaGeometry/Triangulate.jl/blob/8e0fc2c0fb58ffb3ae351afcca5da375522d2e84/docs/src/triangle-h.md?plain=1#L193
+      # -p Triangulates a Planar Straight Line Graph, 
+      # -Q for quiet
+      tout=nothing
+      while true
+        try
+          tout, __ = Triangulate.triangulate("pQ", tin) 
+          break
+        catch TriangulateError
+          println("WARNING Triangulate.triangulate failed, so perturbing the points")
+          tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(get_points(points2d))])
         end
       end
-  
-    end
-  
-    segments=[it for it in simplify_cells(segments) if length(it)==2]
-    tin = Triangulate.TriangulateIO()
-    tin.pointlist  = ToPoints(points2d)
-    tin.segmentlist = hcat(segments...)  # constrained triangulation
-  
-    if debug_mode
-      VIEWEDGES(tin.pointlist, tin.segmentlist, title="arrange3d_v2 / Triangulate input")
-    end
-  
-    # https://github.com/JuliaGeometry/Triangulate.jl/blob/8e0fc2c0fb58ffb3ae351afcca5da375522d2e84/docs/src/triangle-h.md?plain=1#L193
-    # -p Triangulates a Planar Straight Line Graph, 
-    # -Q for quiet
-    tout=nothing
-    while true
-      try
-        tout, __ = Triangulate.triangulate("pQ", tin) 
-        break
-      catch TriangulateError
-        println("WARNING Triangulate.triangulate failed, so perturnbing the points")
-        tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(lar.V)])
+    
+      if debug_face==F1 || debug_face=="*"
+        VIEWTRIANGLES(tout.pointlist, tout.trianglelist, title="arrange3d / 2d triangulate output face=$(F1)")
       end
     end
-  
-    if debug_mode
-      VIEWTRIANGLES(tout.pointlist, tout.trianglelist, title="arrange3d_v2 / Triangulate output")
-    end
-  
-    segments  = Set(simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)]))
-    triangles =     simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
-  
-    # unproject and round vertices (in 3D! so that faces can glue together)
+
+    # round vertices so that faces can glue together)
     begin
       vmap=Dict()
       unprojected=projector(tout.pointlist, inverse=true)
       for P in 1:size(tout.pointlist,2)
         p3d=unprojected[:,P]
         r3d=round_vector(Vector{Float64}(p3d), digits=LAR_ARRANGE2D_ROUND)
-        vmap[P]=add_point(POINTS3D, r3d)
+        vmap[P]=add_point(points3d, r3d)
+      end
+      dst.V=get_points(points3d)
+    end
+
+    # find cycles (in the original triangulate space, i.e. 2d)
+    begin
+      cycles=Cycles()
+
+      V             = tout.pointlist
+      segments      = Set(simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)]))
+      triangles     =     simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
+      adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
+      groups=find_groups_of_cells(adjacent_triangles)
+
+      for (A, triangle_ids) in enumerate(groups)
+
+        # each group will form a face (can be holed and non-convex)
+        outside,inside=0,0
+        complex_face=Cells()
+        for triangle_id in triangle_ids 
+          u,v,w = triangles[triangle_id]
+
+          # need to exclude triangles outside F1
+          centroid=(V[:,u] + V[:,v] + V[:,w])/3.0
+          if F1_is_inside(centroid) inside+=1 else outside+=1 end
+
+          for (a,b) in [ [u,v], [v,w], [w,u] ]
+            a,b = normalize_cell([a,b])
+            if [a,b] in segments
+              push!(complex_face, [a,b])
+            end
+          end
+        end
+
+        # if you want to debug the group
+        if false
+          VIEWTRIANGLES(V, Cells([triangles[tt] for tt in triangle_ids]), title="xxx $(F1)")
+        end
+
+        if inside>0 && outside>0
+          println("WARNING ambiguity F=$(F1) inside=$(inside) outside=$(outside)")
+        end
+
+        # need to exclude triangles outside the current F1 face
+        if inside==0 || inside<=outside
+          continue
+        end
+
+        complex_face=simplify_cells(complex_face)
+        for cycle in find_vcycles(complex_face)
+          cycle=normalize_cycle( [[vmap[a],vmap[b]] for (a,b) in cycle]) # go to the rounded world, so something can get filtered
+          if length(cycle)>=3
+            push!(cycles, cycle)
+            push!(all_cycles, cycle)
+          end
+        end
+        
       end
     end
   
     # build faces (vertex indices are now referring to rounded 3d)
     begin
-      face_EV=Cells()
-      face_FE=Cells()
-      for cycle in find_triangles_cycles(triangles, segments)
+      sel=Cell()
+      for cycle in cycles
         fe=Cell()
         for (C,(a,b)) in enumerate(cycle)
           a,b= (C==length(cycle)) ? cycle[end] : [cycle[C][1],cycle[C+1][1]]
-          a,b=vmap[a],vmap[b]
-          push!(face_EV, [a,b]) # will simplify later
-          push!(fe, length(face_EV))
+          push!(dst.C[:EV], [a,b]) # will simplify later
+          push!(fe, length(dst.C[:EV]))
         end
-        push!(face_FE, fe)
+        push!(dst.C[:FE], fe)
+        push!(sel, length(dst.C[:FE]))
       end
-      face_EV=[it for it in simplify_cells(face_EV) if length(it)>=2]
-      face_FE=[it for it in simplify_cells(face_FE) if length(it)>=3]
-      append!(EV, face_EV)
-      append!(FE, face_FE)
+    end
+
+    vids=vcat([[a for (a,b) in cycle] for cycle in cycles]...)
+    if debug_face==F1 || debug_face=="*" || (!isnothing(debug_edge) && debug_edge[1] in vcat(vids...) && debug_edge[2] in vids)
+      VIEWCOMPLEX(SELECT(dst, sel), show=["V","FV","Vtext"], title="arrange3d / 3d face face=$(F1)")
+    end  
+
+  end
+
+  # triangulate generate spurios/isolated vertex on face boundary, remove them
+  begin
+    VE=compute_VE(dst)
+    for (v_index,ve) in enumerate(VE)
+      # only 3 vertices, it should be >=3
+      if length(ve)==2
+        println("Removing isolated vertex $(v_index)")
+        E1,E2=v2
+        a,b,c,d=dst.C[EV][E1], dst.C[EV][E2]
+        a,b = [it for it in [a,b,c,d] if it!=v_index]
+        dst.C[EV][E1]=a,b
+        dst.C[EV][E2]=a,b # replicate so it will be removed below
+      end
     end
   end
 
-  POINTS3D=get_points(POINTS3D)
-  lar=Lar(POINTS3D, Dict( :EV => EV, :FE => FE))
+  dst=SIMPLIFY(dst)
+
+  dst.C[:FV]=compute_FV(dst)
 
   # if you had a problem with an edge, you should be able to debug here
-  # debug_edge(lar,21,26)
-
-  lar=SIMPLIFY(lar)
-  lar.C[:FV]=compute_FV(lar)
+  if !isnothing(debug_edge)
+    VIEWEDGE(dst, debug_edge)
+  end
 
   if debug_mode
-    VIEWCOMPLEX(lar, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange3d_v2 / all faces fragmented")
+    VIEWCOMPLEX(dst, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange3d / 3d ALL faces")
   end  
 
   # find atoms
-  lar.C[:CF]=lar_find_atoms(lar.V, cycles, debug_mode=debug_mode)
+  dst.C[:CF]=lar_find_atoms(dst.V, all_cycles, debug_mode=debug_mode)
 
   # show atoms
   if debug_mode
-    VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2], title="arrange3d_v2 / atoms")
+    VIEWCOMPLEX(dst, show=["FV","atom"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
   end
 
-  return lar
+  return dst
 end
 export arrange3d_v2
 
@@ -371,37 +471,6 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
   end
 
   return atoms
-end
-
-# //////////////////////////////////////////////////////////////
-function debug_edge(lar::Lar, a,b; enlarge=nothing)
-
-  @show(lar)
-  for (I,fv) in enumerate(lar.C[:FV])
-    println("fv ", fv, " # ",I)
-  end
-  
-  selected_vertices=[a,b]
-
-  # take any vertex near by
-  if !isnothing(enlarge)
-    for (P,p) in enumerate(eachcol(lar.V))
-      if LinearAlgebra.norm(p - lar.V[:,a])<enlarge || LinearAlgebra.norm(p - lar.V[:,b])<enlarge push!(selected_vertices,P) end
-    end
-  end
-
-  # show all faces touching the vertices
-  selected_faces=Cell()
-  for (F,fv) in enumerate(lar.C[:FV])
-    inters=intersect(Set(selected_vertices),Set(fv))
-    if length(inters)>0
-      push!(selected_faces,F)
-    end
-  end
-
-  selected_faces=normalize_cell(selected_faces)
-  VIEWCOMPLEX(SELECT(lar,selected_faces), show=["FV", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT, title="debug edge")
-
 end
 
 

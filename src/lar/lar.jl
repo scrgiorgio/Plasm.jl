@@ -238,11 +238,13 @@ function SELECT(lar::Lar, sel::Cell)::Lar
 	ret=Lar(lar.V, Dict(:EV => Cells(), :FV => Cells(), :FE => Cells() ))
 	ret.mapping=Dict(:F => Dict{Int,Int}(), :E => Dict{Int,Int}())
 
+	FV=haskey(lar.C,:FV) ? lar.C[:FV] : compute_FV(lar)
+
 	fmap=Set{Vector{Int}}() # from (a,b,c,d,...) 
 	emap=Dict{Cell,Int}() # from (a,b) to new edge index
 	for Fold in sel
 
-		fv=normalize_cell(lar.C[:FV][Fold])
+		fv=normalize_cell(FV[Fold])
 		if fv in fmap  continue end
 
 		# add new face
@@ -741,6 +743,38 @@ end
 
 function VIEWTRIANGLES(V::Points, triangles::Matrix; explode=[1.0,1.0,1.0], title="LAR")
   return VIEWTRIANGLES(V,[Cell(it) for it in eachcol(triangles)], explode=explode, title=title)
+end
+
+# //////////////////////////////////////////////////////////////
+function VIEWEDGE(lar::Lar, ev::Cell; enlarge=nothing)
+
+  a,b=ev
+  @show(lar)
+  for (I,fv) in enumerate(lar.C[:FV])
+    println("fv ", fv, " # ",I)
+  end
+  
+  selected_vertices=[a,b]
+
+  # take any vertex near by
+  if !isnothing(enlarge)
+    for (P,p) in enumerate(eachcol(lar.V))
+      if LinearAlgebra.norm(p - lar.V[:,a])<enlarge || LinearAlgebra.norm(p - lar.V[:,b])<enlarge push!(selected_vertices,P) end
+    end
+  end
+
+  # show all faces touching the vertices
+  selected_faces=Cell()
+  for (F,fv) in enumerate(lar.C[:FV])
+    inters=intersect(Set(selected_vertices),Set(fv))
+    if length(inters)>0
+      push!(selected_faces,F)
+    end
+  end
+
+  selected_faces=normalize_cell(selected_faces)
+  VIEWCOMPLEX(SELECT(lar,selected_faces), show=["FV", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT, title="debug edge")
+
 end
 
 
