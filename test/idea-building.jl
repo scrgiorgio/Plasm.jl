@@ -1,4 +1,5 @@
 using Plasm
+SK = SKELETON
 
 X = GRID([2.4,4.5,-3,4.5,2.4]);
 Y = GRID([7,5]); Z = GRID([3,3]); 
@@ -34,6 +35,9 @@ framexy = STRUCT(framex, framey);
 #VIEWCOMPLEX(LAR(framexy))
 framexyz = STRUCT(framex, framey, floors);
 VIEWCOMPLEX(LAR(framexyz))
+
+VIEWCOMPLEX(LAR(SK(1)(idea)))
+
 #arrangement = ARRANGE3D(LAR(framexyz))
 #VIEWCOMPLEX(arrangement, show("FV","atom"))
 

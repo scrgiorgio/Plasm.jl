@@ -42,6 +42,7 @@ include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
 include("./lar/experimental.jl")
 include("./lar/boolean.jl")
+include("./lar/simplexn.jl")
 
 function __init__()
 	InitPythonHullCode()
