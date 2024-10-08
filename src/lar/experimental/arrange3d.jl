@@ -120,7 +120,7 @@ function arrange3d_v2(lar::Lar; debug_mode=true)
   # debug_edge(lar,21,26)
 
   lar=SIMPLIFY(lar)
-  COMPUTE(lar,:FV)
+  lar.C[:FV]=compute_FV(lar)
 
   if debug_mode
     VIEWCOMPLEX(lar, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange3d_v2 / all faces fragmented")

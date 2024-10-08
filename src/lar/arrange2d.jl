@@ -850,7 +850,7 @@ function arrange2d_v1(lar::Lar)
 	ret=Lar(V, Dict( 
 		:EV => cop2lar(copEV), 
 		:FE => cop2lar(copFE)))
-	COMPUTE(ret,:FV)
+	ret.C[:FV]=compute_FV(ret)
 	return SIMPLIFY(ret)
 
 end

@@ -60,7 +60,7 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
   end
 
   lar=SIMPLIFY(lar)
-  COMPUTE(lar, :FV)
+  lar.C[:FV]=compute_FV(lar)
   CHECK(lar)
 
   if debug_mode

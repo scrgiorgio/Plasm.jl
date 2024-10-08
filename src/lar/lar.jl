@@ -355,20 +355,18 @@ end
 export compute_FE
 
 # //////////////////////////////////////////////////////////////////////////////
-function COMPUTE(lar::Lar, symbol)
-	@assert(symbol==:FV)
-	@assert(!haskey(lar.C,:FV)) 
-	lar.C[:FV]=Cells()
+function compute_FV(lar::Lar)::Cells 
+	ret=Cells()
 	for (F,fe) in enumerate(lar.C[:FE])
 		v=Cell()
 		for E in fe 
 			append!(v,lar.C[:EV][E]) 
 		end
 		v=normalize_cell(v)
-		push!(lar.C[:FV],v)
+		push!(ret,v)
 	end
+	return ret
 end
-export M
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
@@ -737,7 +735,7 @@ function VIEWTRIANGLES(V::Points, triangles::Cells; explode=[1.0,1.0,1.0], title
     append!(lar.C[:EV], [[u,v],[v,w],[w,u]])
     push!(lar.C[:FE], [E+1,E+2,E+3])
   end
-  COMPUTE(lar,:FV)
+  lar.C[:FV]=compute_FV(lar)
   VIEWCOMPLEX(lar, explode=explode, show=["V", "EV", "FV", "Vtext"], title=title)
 end
 
