@@ -125,6 +125,15 @@ export ComputeTriangleNormal
 
 
 # /////////////////////////////////////////////////////////////////////
+function GetTriangleArea(a,b,c)::Float64
+  ab=LinearAlgebra.norm(b-a)
+  bc=LinearAlgebra.norm(c-b)
+  ca=LinearAlgebra.norm(a-c)
+  s = (ab + bc + ca) / 2
+  return sqrt(s * (s - ca) * (s - bc) * (s - ab))
+end
+
+# /////////////////////////////////////////////////////////////////////
 function GetTriangleInfo(V::Points, a::Int, b::Int, c::Int)::Dict
 
   ab=LinearAlgebra.norm(V[:,b]-V[:,a])

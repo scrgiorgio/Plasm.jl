@@ -58,7 +58,7 @@ begin
 
   Plasm.LAR_ARRANGE_VERSION=2
   hpc=TwoCubes()
-  # hpc=RandomCubes(2)
+  hpc=RandomCubes(2)
   # hpc=RandomCubes(6)
   # hpc=PieceCylinder()
   # hpc=PieceTube()
