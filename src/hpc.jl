@@ -108,30 +108,6 @@ function find_groups_of_cells(adjacent::Dict{Int,Set{Int}})
 end
 
 # /////////////////////////////////////////////////////////////
-function find_triangles_cycles(triangles::Cells, segments::Set)::Cycles
-	ret=Cycles()
-	adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
-	groups=find_groups_of_cells(adjacent_triangles)
-	for (A, triangle_ids) in enumerate(groups)
-		# each group will form a face (can be holed and non-convex)
-		complex_face=Cells()
-		for triangle_id in triangle_ids 
-			u,v,w = triangles[triangle_id]
-			for (a,b) in [ [u,v], [v,w], [w,u] ]
-				a,b = normalize_cell([a,b])
-				if [a,b] in segments
-					push!(complex_face, [a,b])
-				end
-			end
-		end
-		complex_face=simplify_cells(complex_face)
-		append!(ret, find_vcycles(complex_face))
-	end
-	return ret
-end
-
-
-# /////////////////////////////////////////////////////////////
 function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
 	p0 = vcat(p0, zeros(3 - length(p0)))
 	p1 = vcat(p1, zeros(3 - length(p1)))

@@ -18,7 +18,7 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
       tout, __ = Triangulate.triangulate("pQ", tin) 
       break
     catch TriangulateError
-      println("WARNING Triangulate.triangulate failed, so perturnbing the points")
+      println("WARNING Triangulate.triangulate failed, so perturbing the points")
       tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(lar.V)])
     end
   end
@@ -38,11 +38,37 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
 
   # find cycles
   begin
-    segments  = simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)])
-    triangles = simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
-    cycles    = find_triangles_cycles(triangles, Set(segments))
-    cycles    = simplify_cycles([[[vmap[a],vmap[b]] for (a,b) in cycle] for cycle in cycles])
-    cycles    = [cycle for cycle in cycles if length(cycle)>=3]
+    cycles=Cycles()
+    segments  = Set(simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)]))
+    triangles =     simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
+    adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
+    groups=find_groups_of_cells(adjacent_triangles)
+  
+    for (A, triangle_ids) in enumerate(groups)
+  
+      # each group will form a face (can be holed and non-convex)
+      complex_face=Cells()
+      for triangle_id in triangle_ids 
+        u,v,w = triangles[triangle_id]
+        for (a,b) in [ [u,v], [v,w], [w,u] ]
+          a,b = normalize_cell([a,b])
+          if [a,b] in segments
+            push!(complex_face, [a,b])
+          end
+        end
+      end
+  
+      complex_face=simplify_cells(complex_face)
+      for cycle in find_vcycles(complex_face)
+        cycle=normalize_cycle( [[vmap[a],vmap[b]] for (a,b) in cycle]) # go to the rounded world, so something can get filtered
+        if length(cycle)>=3
+          push!(cycles, cycle)
+        end
+      end
+      
+    end
+
+
   end
 
   # build lar
