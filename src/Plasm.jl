@@ -70,9 +70,8 @@ export OUTERS
 
 function SPLIT(lar::Lar)::Lar
 	inners=INNERS(lar)
-	outers =OUTERS(lar)
-	@assert(length(outers)==1) # backward compatibility for alberto
-	return inners,outer[1] 
+	outer =OUTERS(lar)
+	return inners,outer # assuming outer is 1 atom
 end
 export SPLIT
 
