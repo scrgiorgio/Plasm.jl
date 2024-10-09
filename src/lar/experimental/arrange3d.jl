@@ -1,5 +1,5 @@
 # //////////////////////////////////////////////////////////////
-function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=nothing)
+function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothing)
 
   dst=Lar()
   dst.C[:EV]=Cells()
@@ -29,6 +29,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
       F1_box_2d        = bbox_create(get_points(points2d))
       F1_points_2d_row = BYROW(get_points(points2d))
       F1_is_inside = p -> (classify_point(p, F1_points_2d_row, F1_segments)  != "p_out")
+      # println("  F1_segments=$(F1_segments)")
     end
 
     # F2s
@@ -65,16 +66,18 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
         # scrgiorgio: WRONG. I should take all hits, start from the longest distance and build segment on,off,on,off
         if length(hits)>0
 
-          # probably a face touching F1 in one single point, I need this point to show up/be in the triangulation
-          # it's like a degenerate edge... not sure it will work
+          # not sure what this means... should always F1 cross F1 or can just touch?
           if length(hits)==1
-            hits=[hits[1],hits[1]]
+            continue
           end
+
+          # TODO: ordering here
 
           for (a,b) in zip(hits[1:end-1],hits[2:end])
             if bbox_intersect(F1_box_2d, bbox_create([a,b])) 
               A=add_point(points2d, a)
               B=add_point(points2d, b)
+              # println("  F2=$(F2) $(A) $(B)")
               push!(F2_segments, [A,B]) 
             end
           end
@@ -132,14 +135,21 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
       V             = tout.pointlist
       segments      = Set(simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)]))
       triangles     =     simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
+
+      @show(segments)
+      @show(triangles)
+
+      if F1==5
+        VIEWTRIANGLES(V, triangles, title="triangle F=$(F1)", explode=[2.2,2.2,2.2])
+      end
+
       adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
       groups=find_groups_of_cells(adjacent_triangles)
 
       for (A, triangle_ids) in enumerate(groups)
 
         # each group will form a face (can be holed and non-convex)
-        inside_area=0.0
-        outside_area=0.0
+        inside_area,outside_area=0.0,0.0
 
         complex_face=Cells()
         for triangle_id in triangle_ids 
@@ -163,24 +173,30 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
         end
 
         # if you want to debug the group
-        if false
-          VIEWTRIANGLES(V, Cells([triangles[tt] for tt in triangle_ids]), title="xxx $(F1)")
-        end
+        #if debug_face==F1
+        #  VIEWTRIANGLES(V, Cells([triangles[tt] for tt in triangle_ids]), title="triangle group $(F1)")
+        #end
 
+        println("   inside_area=$(inside_area) outside_area=$(outside_area)")
+        
         # println("inside_area=$(inside_area) outside_area=$(outside_area)")
-        if inside_area>LAR_ARRANGE2D_SMALL_TRIANGLES_ERR 
+        if inside_area>0 
 
-          if outside_area>LAR_ARRANGE2D_SMALL_TRIANGLES_ERR
+          if outside_area>0
             println("WARNING ambiguity F=$(F1) inside_area=$(inside_area) outside_area=$(outside_area)")
-            VIEWTRIANGLES(V, Cells([triangles[tt] for tt in triangle_ids]), title="xxx $(F1)")
+            # VIEWTRIANGLES(V, Cells([triangles[tt] for tt in triangle_ids]), title="xxx $(F1)")
           end
 
           if inside_area> outside_area
             complex_face=simplify_cells(complex_face)
+
+            @show(complex_face)
+
             for cycle in find_vcycles(complex_face)
               cycle=normalize_cycle( [[vmap[a],vmap[b]] for (a,b) in cycle]) # go to the rounded world, so something can get filtered
               if length(cycle)>=3
                 push!(cycles, cycle)
+                println("  Cycle $(cycle)")
               end
             end
           end
@@ -214,6 +230,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
 
   # remove spurios/isolated vertex on cell boundaries (due to the triangulate library)
   begin
+
     VE=compute_VE(dst)
     for (v_index,ve) in enumerate(VE)
       # only 3 vertices, it should be >=3
@@ -227,6 +244,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
         dst.C[:EV][E2]=[a,b] # replicate so it will be removed by SIMPLIFY below
       end
     end
+
   end
 
   dst=SIMPLIFY(dst)
@@ -239,7 +257,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
   end
 
   if debug_mode
-    VIEWCOMPLEX(dst, explode=[1.0,1.0,1.0], show=["V","FV","Vtext"], title="arrange3d / 3d ALL faces")
+    VIEWCOMPLEX(dst, explode=[1.0,1.0,1.0], show=["V","EV","Vtext"], title="arrange3d / 3d ALL faces")
   end  
 
   # find atoms
@@ -349,13 +367,6 @@ end
 
 # ////////////////////////////////////////////////////////////////////////
 function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
-
-  if true
-    println("Cycles")
-    for (C,cycle) in enumerate(cycles)
-      println(cycle, " # ",C)
-    end
-  end
 
   #0.5 1.0 0.0;# 187
   #0.0 0.5 -0.5;# 224

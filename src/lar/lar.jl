@@ -596,7 +596,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 		for (v_index, pos) in zip(fv,eachcol(face_points))
 			if "Vtext" in show
 				perturbation= [0.0,0.0,0.0] 
-				# perturbation=rand(3)*0.05
+				perturbation=rand(3)*0.01
 				render_text(viewer, lar_vertex_name(lar, v_index), center=pos + perturbation , color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
 			end
 		end		

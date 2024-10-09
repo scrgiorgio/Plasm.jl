@@ -12,7 +12,7 @@ using Statistics
 TO_GEOMETRY_DEFAULT_PRECISION_DIGITS = 14
 export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 
-DEFAULT_LAR_FONT_SIZE=0.05
+DEFAULT_LAR_FONT_SIZE=0.01
 export DEFAULT_LAR_FONT_SIZE
 
 DEFAULT_VIEWER="glfw"
@@ -41,7 +41,6 @@ LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS = 4
 
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
-
 
 include("./lar/experimental/arrange2d.jl")
 include("./lar/experimental/arrange3d.jl")
