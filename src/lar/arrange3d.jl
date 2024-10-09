@@ -214,6 +214,7 @@ function build_copFC(V_row, rcopEV, rcopFE)
 		append!(W, vals)
 	end
 	copCF = sparse(J, I, W)
+@show copCF;
 	return copCF
 end
 

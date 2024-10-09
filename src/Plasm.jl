@@ -46,6 +46,7 @@ include("./lar/experimental/arrange2d.jl")
 include("./lar/experimental/arrange3d.jl")
 
 include("./lar/boolean.jl")
+include("./lar/simplexn.jl")
 
 LAR_ARRANGE_VERSION=1
 

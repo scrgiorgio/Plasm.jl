@@ -1,0 +1,55 @@
+<html><head></head><body><h1>Piccole cose da fare</h1>
+
+<h2>in ordine di urgenza</h2>
+
+<h3>(8-12-24) Estendere VIEWCOMPLEX alle celle solide (atomi) quando note e convesse.</h3>
+
+<p>In particolare con sintassi tipo:</p>
+
+<p><code>VIEWCOMPLEX( lar, show = ["CV"], explode=[2,2,2] ) # DA FARE</code></p>
+
+<p>vedi file <strong>test/TODO</strong></p>
+
+<p>#### NOTA: </p>
+
+<p>Non è necessario passare sempre per <code>ARRAGE3D</code> quando gli <code>Hull</code> siano noti.</p>
+
+<h3>(8-12-24) <code>git merge</code> (branch paoluzzi):</h3>
+
+<p>ho scritto due file:</p>
+
+<p><code>src/lar/simplexn.jl</code>
+<code>test/simplexn.jl</code></p>
+
+<p>devi sostituire <code>SIMPLEX</code>  (o eliminarlo)  in <code>fenvs.jl</code></p>
+
+<p>e scommentare i test su <code>SIMPLEX</code>.  Ovviamente dovresti inserire i due file nel <code>main</code> ...</p>
+
+<h3>(6-12-24) Ripristinare SPLIT come l'avevo scritta: ritorna <code>atoms, outer</code></h3>
+
+<p>L'errore che mi ponevi ieri nel 99,99% dei casi <strong>concreti</strong> non si può presentare.  </p>
+
+<p>Col tuo esempio hai barato.  C'era un terzo atomo (A,B; Outer)</p>
+
+<ul>
+<li>fai tutte le diagonali 3D dei bbox degli atomi </li>
+<li>calcola il bordo del complesso (prodotto di matrice FC per vettore unitario)</li>
+<li>fanne il box.</li>
+<li>non esiste che la diagonale del bbox 3D di un atomo sia più lunga di quella del bordo.  </li>
+</ul>
+
+<p>Nel caso peggiore (CREATO AD HOC) ovvero NON CONCRETO, ce ne possono essere due equali, se proprio fai uno zig-zag in x,y,z.  Ma c'è sempre il bordo algebrico di cui sopra, che avrà anche altri atomi.</p>
+
+<p>In questo caso, praticamente impossibile, si può calcolare l'area dei due candidati ... sono due 2-cicli, quindi si può triangolare e calcolare.</p>
+
+<h3>(6-12-24) Eliminare vicoli di tipo troppo stretti</h3>
+
+<p>In particolare <strong>tutte</strong> le volte che fissi <code>::Float64</code> è meglio che metti <code>::Number</code>.</p>
+
+<p>Prima ho dovuto capire perché l'esempio <code>TetGen.jl</code>  mi dava errore in <code>MKPOL</code>.
+Motivo:  tu fissavi <code>Vector{Vector{Int64}}</code> mentre i dati erano <code>Vector{Vector{Int32}}</code> ...</p>
+
+<blockquote>
+  <p>Int is the default integer type in Julia, e.g. it is the default type used for small literal integers like 1, since it is the widest “fast” integer type. It is also used to represent things like the lengths of arrays (since those can never be larger than typemax(UInt32) on a 32-bit system, where the memory addresses are only 32 bits wide, and usually cannot be larger than typemax(Int32) … </p>
+</blockquote>
+</body></html>
