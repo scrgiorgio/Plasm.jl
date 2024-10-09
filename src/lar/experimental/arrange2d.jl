@@ -19,7 +19,7 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
       break
     catch TriangulateError
       println("WARNING Triangulate.triangulate failed, so perturbing the points")
-      tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(lar.V)])
+      tin.pointlist=ToPoints([p + rand(2) * LAR_EXPERIMENTAL_ARRANGE_PERTURBATION for p in eachcol(lar.V)])
     end
   end
 
@@ -32,7 +32,7 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
     vmap=Dict()
     pointsdb=PointsDB() 
     for (P,p) in enumerate(eachcol(tout.pointlist))
-      vmap[P]=add_point(pointsdb, round_vector(Vector{Float64}(p), digits=LAR_ARRANGE2D_ROUND))
+      vmap[P]=add_point(pointsdb, round_vector(Vector{Float64}(p), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND))
     end
   end
 

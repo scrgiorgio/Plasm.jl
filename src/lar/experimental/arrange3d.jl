@@ -105,7 +105,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
           break
         catch TriangulateError
           println("WARNING Triangulate.triangulate failed, so perturbing the points")
-          tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(get_points(points2d))])
+          tin.pointlist=ToPoints([p + rand(2) * LAR_EXPERIMENTAL_ARRANGE_PERTURBATION for p in eachcol(get_points(points2d))])
         end
       end
     
@@ -122,7 +122,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
       unprojected=projector(tout.pointlist, inverse=true)
       for index_2d in 1:size(tout.pointlist,2)
         p3d=unprojected[:,index_2d]
-        r3d=round_vector(Vector{Float64}(p3d), digits=LAR_ARRANGE2D_ROUND)
+        r3d=round_vector(Vector{Float64}(p3d), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND)
         index_3d=add_point(points3d, r3d)
         v_index_2d_to_3d[index_2d]=index_3d
         v_index_3d_to_2d[index_3d]=index_2d
