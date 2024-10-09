@@ -43,7 +43,7 @@ function View3D(hpc::Hpc)
   lar=ARRANGE3D(lar)
   lar=INNERS(lar)
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="Inner atoms")
-  VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.4,1.4,1.4], title="Inner atoms")
+  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="Inner atoms")
 end
 
 # //////////////////////////////////////////////
@@ -65,7 +65,7 @@ begin
   #lar=LAR(hpc)
   #lar=ARRANGE3D(lar, debug_mode=true)
   #lar=INNERS(lar)
-  #VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.2,1.2,1.2])
+  #VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2])
 
 end
 

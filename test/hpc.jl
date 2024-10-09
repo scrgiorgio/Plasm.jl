@@ -168,8 +168,8 @@ function TestHpcInternal()
   @test length(obj.points) == 8
   @test length(obj.hulls) == 6
 
-  # simplex
-  obj = Simplex(3)
+  # HpcSimplex
+  obj = HpcSimplex(3)
   @test dim(obj) == 3
   @test box(obj) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
   v = toList(obj)
@@ -578,9 +578,9 @@ function TestPermutahedron()
 end
 
 function TestSchegel3d()
-  VIEW(SCHLEGEL3D(0.2)((T([1, 2, 3, 4])([-1.0 / 3.0, -1.0 / 3.0, -1, +1])(SIMPLEX(4)))), title="TestSchegel3d-1")
+  VIEW(SCHLEGEL3D(0.2)((T([1, 2, 3, 4])([-1.0 / 3.0, -1.0 / 3.0, -1, +1])(HPCSIMPLEX(4)))), title="TestSchegel3d-1")
   VIEW(SCHLEGEL3D(0.2)((T([1, 2, 3, 4])([-1, -1, -1, 1])(CUBOID([2, 2, 2, 2])))), title="TestSchegel3d-2")
-  VIEW(SCHLEGEL3D(0.2)((T([1, 2, 3, 4])([-1.0 / 3.0, -1.0 / 3.0, -1, +1])(Power(SIMPLEX(2), SIMPLEX(2))))), title="TestSchegel3d-3")
+  VIEW(SCHLEGEL3D(0.2)((T([1, 2, 3, 4])([-1.0 / 3.0, -1.0 / 3.0, -1, +1])(Power(HPCSIMPLEX(2), HPCSIMPLEX(2))))), title="TestSchegel3d-3")
 end
 
 function TestCubicSpline()
@@ -925,7 +925,7 @@ function TestFenvs()
     @assert box(GRID([-1, 1, -1, 1])) == BoxNd([1.0], [4.0])
     @assert box(INTERVALS(10.0)(8)) == BoxNd([0.0], [10.0])
     @assert box(CUBOID([1, 2, 3])) == BoxNd([0.0, 0.0, 0.0], [1.0, 2.0, 3.0])
-    @assert box(SIMPLEX(3)) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+    @assert box(HPCSIMPLEX(3)) == BoxNd([0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
     @assert RN(Cube(2)) == 2
     @assert DIM(Cube(2)) == 2
     @assert box(MKPOL([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]], [[1, 2, 3, 4]])) == BoxNd([0.0, 0.0], [1.0, 1.0])
@@ -1073,9 +1073,9 @@ function TestFenvs()
   begin
 
     obj = Struct([
-      Translate(Simplex(1), [0.0, 0.0, 0.0]),
-      Translate(Simplex(2), [1.0, 0.0, 0.0]),
-      Translate(Simplex(3), [2.0, 0.0, 0.0]),
+      Translate(HpcSimplex(1), [0.0, 0.0, 0.0]),
+      Translate(HpcSimplex(2), [1.0, 0.0, 0.0]),
+      Translate(HpcSimplex(3), [2.0, 0.0, 0.0]),
       Translate(Cube(1), [0.0, 1.0, 0.0]),
       Translate(Cube(2), [1.0, 1.0, 0.0]),
       Translate(Cube(3), [2.0, 1.0, 0.0]),

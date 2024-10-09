@@ -964,7 +964,7 @@ end
 export Cube
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function Simplex(dim::Int)
+function HpcSimplex(dim::Int)
 
 	if dim == 0
 		return MkPol0()
@@ -978,7 +978,7 @@ function Simplex(dim::Int)
 	end
 	return MkPol(points)
 end
-export Simplex
+export HpcSimplex
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Join(pols::Vector{Hpc})

@@ -85,9 +85,9 @@ using Combinatorics
     begin
       hpc1 = STRUCT(
         T(1)(0.1), T(2)(0.1), T(3)(0.1),
-        T(1)(0.0), Simplex(1),
-        T(1)(1.1), Simplex(2),
-        T(1)(1.1), Simplex(3),
+        T(1)(0.0), HpcSimplex(1),
+        T(1)(1.1), HpcSimplex(2),
+        T(1)(1.1), HpcSimplex(3),
         T(1)(1.1), Cube(1),
         T(1)(1.1), Cube(2),
         T(1)(1.1), Cube(3),
@@ -113,7 +113,7 @@ using Combinatorics
 
 
   @testset "struct Lar" begin
-    obj = SIMPLEX(3)
+    obj = HPCSIMPLEX(3)
     larobj = LAR(obj)
     @test typeof(larobj) == Lar
     @test typeof(larobj.V) == Matrix{Float64}

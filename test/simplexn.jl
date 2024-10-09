@@ -1,22 +1,13 @@
 using Test, Plasm, LinearAlgebra
-import Plasm.SIMPLEXFACETS, Plasm.EXTRUDESIMPLICES, Plasm.SIMPLEXGRID
 
 @testset "simplexn" begin
 
-   @testset "simplex" begin
-      @test simplex(1) == ([0.0 1.0], [[1, 2]])
-      @test simplex(3) == ([0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], [[1, 2, 3, 4]])
-      @test length(simplex(5)[2]) == 1
-      @test length(simplex(5)[2][1])==6
+   @testset "LARSIMPLEX" begin
+      @test LARSIMPLEX(1) == ([0.0 1.0], [[1, 2]])
+      @test LARSIMPLEX(3) == ([0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], [[1, 2, 3, 4]])
+      @test length(LARSIMPLEX(5)[2]) == 1
+      @test length(LARSIMPLEX(5)[2][1])==6
    end
-   
-#   @testset "SIMPLEX" begin
-#      @test SIMPLEX(1).T==MatrixNd(2)
-#      @test SIMPLEX(1,boundary=true)==([0.0 1.0], [[[1], [2]], [[1, 2]]])
-#      @test SIMPLEX(3).T==MatrixNd(4)
-#      @test SIMPLEX(2,boundary=true)[1]==[0.0 1.0 0.0; 0.0 0.0 1.0]
-#      @test SIMPLEX(2,boundary=true)[2]==[[[1], [2], [3]], [[1, 2], [1, 3], [2, 3]], [[1, 2, 3]]]
-#   end
 
    @testset "SIMPLEXFACETS" begin
       @test SIMPLEXFACETS([[1,2,3], [2,4,3], [1,3,5]])==[[1, 2], [1, 3], [1, 5], [2, 3], [2, 4], [3, 5], [4, 3]]

@@ -66,6 +66,13 @@ function OUTERS(lar::Lar)::Lar
 	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_outers(lar) : arrange3d_v1_outers(lar)
 end
 
+
+function SPLIT(lar::Lar)::Lar
+	inners=INNERS(lar)
+	outers =OUTERS(lar)
+	@assert(length(outers)==1) # backward compatibility for alberto
+	return inners,outer[1] 
+
 export LAR_ARRANGE_VERSION
 export ARRANGE2D
 export ARRANGE3D

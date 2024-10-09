@@ -12,7 +12,7 @@ export SQRT, PI, COS, LEN, AND, OR, ToFloat64, C, ATAN2, MOD, ADD, MEANPOINT, SK
 	VECTNORM, INNERPROD, SCALARVECTPROD, MIXEDPROD, UNITVECT, DIRPROJECT, ORTHOPROJECT, FACT,
 	ISREALVECT, ISFUNVECT, ISVECT, ISPOINT, CHOOSE, TRACE, MATHOM, SCALARMATPROD, MATDOTPROD, ORTHO, SUBSEQ,
 	VECT2MAT, VECT2DTOANGLE, CART, POWERSET, ARC, ISPOL, PRINTPOL, PRINT, VIEW,
-	GRID, QUOTE, INTERVALS, CUBOID, CUBE, HEXAHEDRON, SIMPLEX, RN, DIM, ISPOLDIM, MKPOL, MKPOLS,
+	GRID, QUOTE, INTERVALS, CUBOID, CUBE, HEXAHEDRON, HPCSIMPLEX, RN, DIM, ISPOLDIM, MKPOL, MKPOLS,
 	MK, UKPOL, UK, OPTIMIZE, TRANSLATE, T, SCALE, S, ROTATE, R, SHEARING, H,
 	MAT, EMBED, STRUCT, HOLLOWCYL, SOLIDCYL,
 	UNION, INTERSECTION, DIFFERENCE, XOR, CONVEXHULL,
@@ -930,26 +930,26 @@ end
 
 # /////////////////////////////////////////////////////////////////
 """
-		SIMPLEX(dim::Int)::Hpc
-Generator of the standard `Hpc` simplex object of dimension `dim`.
+HPCSIMPLEX(dim::Int)::Hpc
 
-Simplex object of `Hpc` type with arbitrary dimension `dim ≥ 1`. 
+
+HpcSimplex object of `Hpc` type with arbitrary dimension `dim ≥ 1`. 
 It is the convex combination of ``d+1`` affinely independent points.
 
 # Examples
 ```
-julia> SIMPLEX(1)
+julia> HPCSIMPLEX(1)
 Hpc(MatrixNd(2), Geometry[Geometry([[0.0], [1.0]], hulls=[[1, 2]])])
 
-julia> SIMPLEX(2)
+julia> HPCSIMPLEX(2)
 Hpc(MatrixNd(3), Geometry[Geometry([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], hulls=[[1, 2, 3]])])
 
-julia> SIMPLEX(3)
+julia> HPCSIMPLEX(3)
 Hpc(MatrixNd(4), Geometry[Geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], hulls=[[1, 2, 3, 4]])])
 ```
 """
-function SIMPLEX(dim)
-	return Simplex(dim)
+function HPCSIMPLEX(dim)
+	return HpcSimplex(dim)
 end
 
 RN(pol) = dim(pol)
@@ -1848,7 +1848,7 @@ function CONE(args)
 	radius, height = args
 	function CONE0(N)
 		basis = CIRCLE(radius)([N, 1])
-		apex = T(3)(height)(SIMPLEX(0))
+		apex = T(3)(height)(HPCSIMPLEX(0))
 		return JOIN([basis, apex])
 	end
 	return CONE0
@@ -2471,7 +2471,7 @@ function FRACTALSIMPLEX(D)
 		end
 		expand = COMP([COMP([AA(COMPONENT), DISTR]), CONS([COMP([INTSTO, LEN]), ID])])
 		splitting = COMP([COMP, DIESIS(N)])(COMP([CAT, AA(expand)]))
-		return COMP([COMP([COMP([COMP([mkpols, splitting]), CONS([S1])])])])(UKPOL(SIMPLEX(D)))
+		return COMP([COMP([COMP([COMP([mkpols, splitting]), CONS([S1])])])])(UKPOL(HPCSIMPLEX(D)))
 	end
 	return FRACTALSIMPLEX0
 end

@@ -49,7 +49,7 @@ end
 # ////////////////////////////////////////////////////////
 function View3D(lar)
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
-  VIEWCOMPLEX(lar, show=["FV","atom"], explode=[1.4,1.4,1.4])
+  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4])
 end
 
 

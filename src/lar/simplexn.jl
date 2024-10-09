@@ -1,22 +1,15 @@
-#export SIMPLEX  x Giorgio:  sostituisci in fenvs.jl
-export simplex, EXTRUDESIMPLICES,SIMPLEXGRID,QUADS2TRIANGLES
-
-
 #///////////////////////////////////////////////////////////////////////////////
 """
-	simplex(n::Int; boundary=false::Bool)
+	SIMPLEX(n::Int; boundary=false::Bool)
 
 Return a `LAR` model of the *`n`-dimensional simplex* in *`n`-space*.
 When `fullmodel==true` return a `LARmodel`, including the faces, from dimension `1` to `n`.
 # Example
 ```
-model = SIMPLEX(2)
-#Plasm.view( Lar.simplex(2) )
-hpc = SIMPLEX(3)
-V, cells = SIMPLEX(3,boundary=true)
+V, cells = LARSIMPLEX(3,boundary=true)
 ```
 """
-function simplex(n; boundary=false)
+function LARSIMPLEX(n; boundary=false)
 	eye(n) = LinearAlgebra.Matrix{Int}(I,n,n)
 	V = [zeros(n,1) eye(n)]
 	CV = [collect(1:n+1)]
@@ -33,16 +26,11 @@ function simplex(n; boundary=false)
 	end
 end
 
-#function SIMPLEX(n; boundary=false)
-#	eye(n) = LinearAlgebra.Matrix{Int}(I,n,n)
-#	V = [zeros(n,1) eye(n)]
-#	CV = [collect(1:n+1)]
-#	if boundary == false
-#		return MKPOL(V,CV)
-#	else
-#		return simplex(n; boundary)
-#	end
-#end
+export LARSIMPLEX
+
+SIMPLEX=LARSIMPLEX
+export SIMPLEX
+
 
 #///////////////////////////////////////////////////////////////////////////////
 """
@@ -90,6 +78,8 @@ function EXTRUDESIMPLICES(model, pattern)
     hcat(outVertices...), cellGroups
 end
 
+export EXTRUDESIMPLICES
+
 #///////////////////////////////////////////////////////////////////////////////
 """
 	SIMPLEXGRID(shape::Array)::LAR
@@ -115,6 +105,8 @@ function SIMPLEXGRID(shape)
     CV = convert(Vector{Vector{Int}}, CV)
     return V, CV
 end
+
+export SIMPLEXGRID
 
 
 #///////////////////////////////////////////////////////////////////////////////
@@ -149,6 +141,7 @@ function SIMPLEXFACETS(simplices)
 	return sort(collect(Set(out)))
 end
 
+export SIMPLEXFACETS
 
 #///////////////////////////////////////////////////////////////////////////////
 """
@@ -173,4 +166,4 @@ function QUADS2TRIANGLES(quads::Plasm.Cells)::Plasm.Cells
 	return CAT(pairs)
 end
 
-#///////////////////////////////////////////////////////////////////////////////
+export QUADS2TRIANGLES

@@ -272,7 +272,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
 
   # show atoms
   if debug_mode
-    VIEWCOMPLEX(dst, show=["FV","atom"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
+    VIEWCOMPLEX(dst, show=["CV"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
   end
 
   return dst

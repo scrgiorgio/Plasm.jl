@@ -371,6 +371,28 @@ function compute_FV(lar::Lar)::Cells
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+function compute_CF(lar::Lar; is_convex=false)::Cells
+	@assert(is_convex)
+	@assert(haskey(lar.C,:CV))
+	@assert(haskey(lar.C,:FV))
+
+	ret=Cells()
+	for (C,cv) in enumerate(lar.C[:CV])
+		cf=Cell()
+		s_cv=Set(cv)
+		for (F,fv) in enumerate(lar.C[:FV])
+			s_fv=Set(fv)
+			if intersect(s_fv, s_cv)==s_fv # face must be completely in the hull
+				push!(cf,F)
+			end
+		end
+		push!(ret, cf)
+	end
+	return simplify_cells(ret)
+
+end
+
+# //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
 function LAR(obj::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)::Lar
 	geo = ToGeometry(obj, precision=precision)
@@ -379,7 +401,8 @@ function LAR(obj::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)::Lar
 	ret.C[:EV] = geo.edges
 	ret.C[:FV] = geo.faces
 	ret.C[:CV] = geo.hulls
-	ret.C[:FE] = compute_FE(ret, is_convex=true)  # I need FE for display
+	ret.C[:FE] = compute_FE(ret, is_convex=true) # I need for display
+	ret.C[:CF] = compute_CF(ret, is_convex=true) #  I need for display
 	return ret
 end
 export LAR
@@ -417,46 +440,6 @@ function CUBOIDGRID(shape::Vector{Int})::Lar
 	end
 end
 export CUBOIDGRID
-
-
-# ////////////////////////////////////////////////////////////////
-""" create LAR_SIMPLEX
-
-see also fenv SIMPLEX function
-"""
-function LAR_SIMPLEX(d; complex=false)
-
-	function simplexfacets(simplices)
-		@assert hcat(simplices...) isa Matrix
-		out = Array{Int64,1}[]
-		for it in simplices
-			for v in it
-				facet = setdiff(it, v)
-				push!(out, facet)
-			end
-		end
-		# remove duplicate faces
-		return sort(union(out))
-	end
-
-	V = [zeros(d, 1) I]
-	CV = [collect(1:d+1)]
-	C = Dict(Symbol("C$(d)V") => CV)
-	if complex == false
-		return Lar(V, C)
-	else
-		cells = CV
-		for k = d:-1:1
-			cells = simplexfacets(cells)
-			key = Symbol("C$(k-1)V")
-			push!(C, (key => cells))
-		end
-		return Lar(V, C)
-	end
-end
-export LAR_SIMPLEX
-
-
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -649,56 +632,65 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		end
 	end
 
-	# ____________________________________________
-  if "FV" in show && haskey(lar.C,:FV) && length(lar.C[:FV])>0
+	EV=haskey(lar.C, :EV) && length(lar.C[:EV])>0 ? lar.C[:EV] : nothing
+	FE=haskey(lar.C, :FE) && length(lar.C[:FE])>0 ? lar.C[:FE] : nothing
+	FV=haskey(lar.C, :FV) && length(lar.C[:FV])>0 ? lar.C[:FV] : nothing
+	CF=haskey(lar.C, :CF) && length(lar.C[:CF])>0 ? lar.C[:CF] : nothing
 
-		# explode by cell
-		if "atom" in show && haskey(lar.C, :CF)
-			for (C,cf) in enumerate(lar.C[:CF])
-				v_indices=[]
-				for F in cf 
-					append!(v_indices,lar.C[:FV][F]) 
-				end
-				v_indices=remove_duplicates(v_indices)
-				vt=get_explosion_vt(lar.V[:, v_indices], explode)
-				atom_face_color = isnothing(face_color) ? RandomColor() : face_color
-				for F in cf
-					render_face(viewer, lar, F, vt=vt, face_color=atom_face_color, show=show)
-				end
+	# show atoms exploding by cell centroid
+	if "CV" in show && !isnothing(CF) && !isnothing(FV) 
+
+		for (C,cf) in enumerate(CF)
+			v_indices=[]
+			for F in cf 
+				append!(v_indices,FV[F]) 
 			end
-		# expode by single face
-		else
-			for (F, fv) in enumerate(lar.C[:FV])
-				vt=get_explosion_vt(lar.V[:, fv], explode)
-				# sometimes getting LoadError: StackOverflowError
-				try
-					render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show)
-				catch
-					println("ERROR in render_face, what is going on???")
-				end
+			v_indices=remove_duplicates(v_indices)
+			vt=get_explosion_vt(lar.V[:, v_indices], explode)
+			atom_face_color = isnothing(face_color) ? RandomColor() : face_color
+			for F in cf
+				render_face(viewer, lar, F, vt=vt, face_color=atom_face_color, show=show)
 			end
 		end
 
-	# show lines
-  elseif "EV" in show && haskey(lar.C,:EV) && length(lar.C[:EV])>0
+	end
 
-		# explode by polygon
-		if "atom" in show && haskey(lar.C, :FV) && haskey(lar.C, :FE)
-			for (F,fv) in enumerate(lar.C[:FV])
+	# show faces expoding by face centroid
+	if "FV" in show && !isnothing(FV)
+
+		for (F, fv) in enumerate(FV)
+			vt=get_explosion_vt(lar.V[:, fv], explode)
+			# sometimes getting StackOverflowError
+			try
+				render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show)
+			catch
+				println("ERROR in render_face, what is going on???")
+			end
+		end
+	end
+
+	# show edges
+	if "EV" in show
+		
+		# exploding by face centroid
+		if !isnothing(FV) !isnothing(FE) 
+			for (F,fv) in enumerate(FV)
 				vt=get_explosion_vt(lar.V[:, fv], explode)
 				line_color = RandomColor()
-				for E in lar.C[:FE][F]
+				for E in FE[F]
 					render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show)
 				end
 			end
-		# explode by single edge
-		else
-			for (E,ev) in enumerate(lar.C[:EV])
+			
+		# exploded by edge centroid
+		elseif !isnothing(EV)
+			for (E,ev) in enumerate(EV)
 				vt=get_explosion_vt(lar.V[:, ev], explode)
 				line_color = RandomColor()
 				render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show)
 			end
 		end
+
 	end
 
 end

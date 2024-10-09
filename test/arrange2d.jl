@@ -13,9 +13,9 @@ end
 
 # ////////////////////////////////////////////////
 function View2D(lar::Lar; explode=[1.0,1.0,1.0])
-  #VIEWCOMPLEX(lar, show=["V","EV"],         explode=[1.5,1.5,1.5])
-  #VIEWCOMPLEX(lar, show=["V","EV", "atom"], explode=[1.5,1.5,1.5])
-  VIEWCOMPLEX(lar, show=["V","FV"],          explode=explode)
+  #VIEWCOMPLEX(lar, show=["EV"],         explode=[1.5,1.5,1.5])
+  #VIEWCOMPLEX(lar, show=["CV"], explode=[1.5,1.5,1.5])
+  VIEWCOMPLEX(lar, show=["FV"],          explode=explode)
 end
 
 # ////////////////////////////////////////////////
