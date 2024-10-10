@@ -47,16 +47,15 @@ A `model` is a LAR model, i.e. a pair (vertices,cells) to be extruded, whereas p
 julia> V = [[0.,0] [1,0] [2,0] [0,1] [1,1] [2,1] [0,2] [1,2] [2,2]];
 julia> FV = [[1,2,4],[2,3,5],[3,5,6],[4,5,7],[5,7,8],[6,8,9]];
 julia> pattern = repeat([1,.2,-2],outer=4);
-julia> model = MKPOL(V,FV);
+julia> model = (V,FV);
 julia> W,FW = EXTRUDESIMPLICES(model, pattern);
 julia> VIEW(W,FW))
 julia> VIEWCOMPLEX(LAR(MKPOL(W,FW)))
 ```
 """
-function EXTRUDESIMPLICES(hpc::Hpc, pattern::Vector{Int})::Hpc
-	 V = TOPOS(hpc)[1].childs[1].points
-	 #V = hcat(V...)
-    FV = TOPOS(hpc)[1].childs[1].hulls
+function EXTRUDESIMPLICES(model, pattern)
+	 V = [model[1][:,k] for k=1:size(model[1],2)]
+    FV = model[2]
     d, m = length(FV[1]), length(pattern)
     coords = collect(cumsum(append!([0.], abs.(pattern))))
     offset, outcells, rangelimit, i = length(V), [], d*m, 0
