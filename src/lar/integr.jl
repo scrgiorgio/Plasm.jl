@@ -3,6 +3,8 @@
 
 using Plasm, LinearAlgebra
 
+export SURFACE, VOLUME, FIRSTMOMENT, SECONDMOMENT, INERTIAPRODUCT, CENTROID, INERTIAMOMENT, M, TTT, II, III
+
 #///////////////////////////////////////////////////////////////
 function M(alpha::Int, beta::Int)::Float64
     a = 0
@@ -14,7 +16,7 @@ end
 
 #///////////////////////////////////////////////////////////////
 """ The main integration routine """
-function TT(
+function TTT(
 tau::Array{Float64,2}, 
 alpha::Int, beta::Int, gamma::Int, 
 signedInt::Bool=false)
@@ -43,17 +45,17 @@ signedInt::Bool=false)
 			end
 		end
 	end
-	c = cross(a,b)
+	c = LinearAlgebra.cross(a,b)
 	if signedInt == true
-		return s1 * norm(c) * sign(c[3])
+		return s1 * LinearAlgebra.norm(c) * sign(c[3])
 	else
-		return s1 * norm(c)
+		return s1 * LinearAlgebra.norm(c)
 	end	
 end
 
 #///////////////////////////////////////////////////////////////
 """ 
-	II(P::Lar.LAR, alpha::Int, beta::Int, gamma::Int, signedInt=false)
+	II(P, alpha::Int, beta::Int, gamma::Int, signedInt=false)
 
 Basic integration function on 2D plane.
 
@@ -72,12 +74,12 @@ julia> FV = [[1,2,3]]
 julia> P = V,FV
 ([0.0 1.0 0.0; 0.0 0.0 1.0; 0.0 0.0 0.0], Array{Int64,1}[[1, 2, 3]])
 
-julia> Lar.II(P, 0,0,0)
+julia> II(P, 0,0,0)
 0.5
 ```
 """
 function II(
-P::Pair, 
+P, 
 alpha::Int, beta::Int, gamma::Int, 
 signedInt=false)::Float64
     w = 0
@@ -88,7 +90,7 @@ signedInt=false)::Float64
     for i=1:length(FV)
         tau = hcat([V[:,v] for v in FV[i]]...)
         if size(tau,2) == 3
-        	term = TT(tau, alpha, beta, gamma, signedInt)
+        	term = TTT(tau, alpha, beta, gamma, signedInt)
         	if signedInt
         		w += term
         	else
@@ -128,11 +130,11 @@ julia> P = V,FV
 ([0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], 
 Array{Int64,1}[[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]])
 
-julia> Lar.III(P, 0,0,0)
+julia> III(P, 0,0,0)
 0.16666666666666674
 ```
 """
-function III(P::Pair, alpha::Int, beta::Int, gamma::Int)::Float64
+function III(P, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P
     for i=1:length(FV)
@@ -140,8 +142,8 @@ function III(P::Pair, alpha::Int, beta::Int, gamma::Int)::Float64
         vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
         a = va - vo
         b = vb - vo
-        c = cross(a,b)
-        w += c[1]/norm(c) * TT(tau, alpha+1, beta, gamma)
+        c = LinearAlgebra.cross(a,b)
+        w += c[1]/LinearAlgebra.norm(c) * TTT(tau, alpha+1, beta, gamma)
     end
     return w/(alpha + 1)
 end
@@ -151,34 +153,24 @@ end
 
 #///////////////////////////////////////////////////////////////
 """
-	surface(P::Lar.LAR, signedInt::Bool=false)::Float64
+	SURFACE(P, signedInt::Bool=false)::Float64
 
-`surface` integral on polyhedron `P`.
+`SURFACE` integral on polyhedron `P`.
 
-# Example # unit 3D tetrahedron
+# Example # unit cube
 ```julia
-julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0]
-3×4 Array{Float64,2}:
- 0.0  1.0  0.0  0.0
- 0.0  0.0  1.0  0.0
- 0.0  0.0  0.0  1.0
+julia> V = [0.0 1.0 0.0 0.0 1.0 1.0 0.0 1.0; 0.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0; 0.0 0.0 0.0 1.0 0.0 1.0 1.0 1.0]
 
-julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]]
-4-element Array{Array{Int64,1},1}:
- [1, 2, 4]
- [1, 3, 2]
- [4, 3, 1]
- [2, 3, 4]
+julia> FV = [[1,2,6],[6,4,1],[1,3,5],[5,2,1],[4,7,3],[3,1,4],[2,5,8], [8,6,2],[3,7,8],[8,5,3],[4,6,8],[8,7,4]]
 
 julia> P = V,FV
-([0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], 
-Array{Int64,1}[[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]])
+([0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]])
 
-julia> Lar.volume(P)
-0.16666666666666674
+julia> SURFACE(P)
+6,0
 ```
 """
-function surface(P::Pair, signedInt::Bool=false)::Float64
+function SURFACE(P, signedInt::Bool=false)::Float64
     return II(P, 0, 0, 0, signedInt)
 end
 
@@ -186,34 +178,28 @@ end
 
 #///////////////////////////////////////////////////////////////
 """
-	volume(P::Pair)::Float64
+	VOLUME(P)::Float64
 
-`volume` integral on polyhedron `P`.
+`VOLUME` integral on polyhedron `P`.
 
-# Example # unit 3D tetrahedron
+# Example 1 # standard unit 3D tetrahedron
 ```julia
-julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0]
-3×4 Array{Float64,2}:
- 0.0  1.0  0.0  0.0
- 0.0  0.0  1.0  0.0
- 0.0  0.0  0.0  1.0
-
-julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]]
-4-element Array{Array{Int64,1},1}:
- [1, 2, 4]
- [1, 3, 2]
- [4, 3, 1]
- [2, 3, 4]
-
+julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0];
+julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]];
 julia> P = V,FV
-([0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], 
-Array{Int64,1}[[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]])
-
-julia> Lar.volume(P)
-0.16666666666666674
+([0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0], [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]])
+julia> VOLUME(P)
+0.16666666666666666
 ```
+# Example 1 # standard unit cube
+```julia
+V = [0.0 1.0 0.0 0.0 1.0 1.0 0.0 1.0; 0.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0; 0.0 0.0 0.0 1.0 0.0 1.0 1.0 1.0]
+FV= [[1,2,6],[6,4,1],[1,3,5],[5,2,1],[4,7,3],[3,1,4],[2,5,8],
+[8,6,2],[3,7,8],[8,5,3],[4,6,8],[8,7,4]]
+cube = V,FV
+VOLUME(cube) # => 1.0```
 """
-function volume(P::Pair)::Float64
+function VOLUME(P)::Float64
     return III(P, 0, 0, 0)
 end
 
@@ -223,7 +209,7 @@ end
 #EV = hcat([Array{Int64,1}(ev[k,:]+1) for k=1:size(ev,1)]...)
 #model1 = Any[V,FV,EV]
 #P = V,[FV[:,k] for k=1:size(FV,2)]
-#surface(P,false)
+#SURFACE(P,false)
 #
 #
 #""" Surface integration """
@@ -246,7 +232,7 @@ end
 #		row = [faceVertPairs[face][1] for k=1:length(FE[face])]
 #		push!(triangles, vcat(faceVertPairs[face],row'))
 #        P = V,triangles[face]
-#        area = surface(P,false) 
+#        area = SURFACE(P,false) 
 #        push!(cochain,area)
 #    end
 #    return cochain
@@ -268,26 +254,35 @@ end
 
 #///////////////////////////////////////////////////////////////
 """ 
-	firstMoment(P::Lar.LAR)::Array{Float64,1}
+	FIRSTMOMENT(P)::Array{Float64,1}
 
 First moments as terms of the Euler tensor. Remember that the integration algorithm is a boundary integration. Hence the model must be a boundary model. In this case, a 2-complex of triangles. 
 
 # Example # unit 3D tetrahedron
 ```julia
 julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0];
-
 julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]];
-
 julia> P = V,FV;
-
-julia> Lar.firstMoment(P)
-3-element Array{Float64,1}:
- 0.0416667
- 0.0416667
- 0.0416667
+julia> FIRSTMOMENT(P)
+3-element Vector{Float64}:
+ 0.04166666666666663
+ 0.041666666666666664
+ 0.041666666666666685
+```
+# Example 2 # standard unit cube
+```julia
+V = [0.0 1.0 0.0 0.0 1.0 1.0 0.0 1.0; 0.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0; 0.0 0.0 0.0 1.0 0.0 1.0 1.0 1.0]
+FV= [[1,2,6],[6,4,1],[1,3,5],[5,2,1],[4,7,3],[3,1,4],[2,5,8],
+[8,6,2],[3,7,8],[8,5,3],[4,6,8],[8,7,4]]
+cube = V,FV
+FIRSTMOMENT(cube)
+3-element Vector{Float64}:
+ 0.5
+ 0.5
+ 0.5
 ```
 """
-function firstMoment(P::Pair)::Array{Float64,1}
+function FIRSTMOMENT(P)::Array{Float64,1}
     out = zeros(3)
     out[1] = III(P, 1, 0, 0)
     out[2] = III(P, 0, 1, 0)
@@ -299,7 +294,7 @@ end
 
 #///////////////////////////////////////////////////////////////
 """ 
-	secondMoment(P::Lar.LAR)::Array{Float64,1}
+	SECONDMOMENT(P)::Array{Float64,1}
 
 Second moments as terms of the Euler tensor.
 
@@ -311,14 +306,26 @@ julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]];
 
 julia> P = V,FV;
 
-julia> Lar.secondMoment(P)
-3-element Array{Float64,1}:
- 0.0166667
- 0.0166667
- 0.0166667
+julia> SECONDMOMENT(P)
+3-element Vector{Float64}:
+ 0.01666666666666668
+ 0.016666666666666663
+ 0.016666666666666663
+```
+# Example 2 # standard unit cube
+```julia
+V = [0.0 1.0 0.0 0.0 1.0 1.0 0.0 1.0; 0.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0; 0.0 0.0 0.0 1.0 0.0 1.0 1.0 1.0]
+FV= [[1,2,6],[6,4,1],[1,3,5],[5,2,1],[4,7,3],[3,1,4],[2,5,8],
+[8,6,2],[3,7,8],[8,5,3],[4,6,8],[8,7,4]]
+cube = V,FV
+SECONDMOMENT(cube)
+3-element Vector{Float64}:
+ 0.3333333333333333
+ 0.33333333333333326
+ 0.33333333333333326
 ```
 """
-function secondMoment(P::Pair)::Array{Float64,1}
+function SECONDMOMENT(P)::Array{Float64,1}
     out = zeros(3)
     out[1] = III(P, 2, 0, 0)
     out[2] = III(P, 0, 2, 0)
@@ -330,26 +337,35 @@ end
 
 #///////////////////////////////////////////////////////////////
 """ 
-	inertiaProduct(P::Lar.LAR)::Array{Float64,1}
+	INERTIAPRODUCT(P)::Array{Float64,1}
 
 Inertia products as terms of the Euler tensor.
 
 # Example # unit 3D tetrahedron
 ```julia
 julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0];
-
 julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]];
-
 julia> P = V,FV;
-
-julia> Lar.inertiaProduct(P)
-3-element Array{Float64,1}:
- 0.00833333
- 0.00833333
- 0.00833333
+julia> INERTIAPRODUCT(P)
+3-element Vector{Float64}:
+ 0.008333333333333361
+ 0.008333333333333331
+ 0.008333333333333325
+```
+# Example 2 # standard unit cube
+```julia
+V = [0.0 1.0 0.0 0.0 1.0 1.0 0.0 1.0; 0.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0; 0.0 0.0 0.0 1.0 0.0 1.0 1.0 1.0]
+FV= [[1,2,6],[6,4,1],[1,3,5],[5,2,1],[4,7,3],[3,1,4],[2,5,8],
+[8,6,2],[3,7,8],[8,5,3],[4,6,8],[8,7,4]]
+cube = V,FV
+INERTIAPRODUCT(cube)
+3-element Vector{Float64}:
+ 0.24999999999999994
+ 0.25
+ 0.25
 ```
 """
-function inertiaProduct(P::Pair)::Array{Float64,1}
+function INERTIAPRODUCT(P)::Array{Float64,1}
     out = zeros(3)
     out[1] = III(P, 0, 1, 1)
     out[2] = III(P, 1, 0, 1)
@@ -361,55 +377,73 @@ end
 
 #///////////////////////////////////////////////////////////////
 """ 
-	centroid(P::Lar.LAR)::Array{Float64,1}
+	CENTROID(P)::Array{Float64,1}
 
-Barycenter or `centroid` of polyhedron `P`.
+Barycenter or `CENTROID` of polyhedron `P`.
 
 # Example # unit 3D tetrahedron
 ```julia
 julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0];
-
 julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]];
-
 julia> P = V,FV;
-
-julia> Lar.centroid(P)
-3-element Array{Float64,1}:
+julia> CENTROID(P)
+3-element Vector{Float64}:
+ 0.24999999999999978
  0.25
- 0.25
- 0.25
+ 0.2500000000000001
+```
+# Example 2 # standard unit cube
+```julia
+V = [0.0 1.0 0.0 0.0 1.0 1.0 0.0 1.0; 0.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0; 0.0 0.0 0.0 1.0 0.0 1.0 1.0 1.0]
+FV= [[1,2,6],[6,4,1],[1,3,5],[5,2,1],[4,7,3],[3,1,4],[2,5,8],
+[8,6,2],[3,7,8],[8,5,3],[4,6,8],[8,7,4]]
+cube = V,FV
+CENTROID(cube)
+3-element Vector{Float64}:
+ 0.5
+ 0.5
+ 0.5
 ```
 """
-function centroid(P::Pair)::Array{Float64,1}
-	return firstMoment(P)./volume(P)
+function CENTROID(P)::Array{Float64,1}
+	return FIRSTMOMENT(P)./VOLUME(P)
 end
 
 
 
 #///////////////////////////////////////////////////////////////
 """ 
-	inertiaMoment(P::Lar.LAR)::Array{Float64,1}
+	INERTIAMOMENT(P)::Array{Float64,1}
 
 Inertia moments  of polyhedron `P`.
 
 # Example # unit 3D tetrahedron
 ```julia
 julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0];
-
 julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]];
-
 julia> P = V,FV;
-
-julia> Lar.inertiaMoment(P)
-3-element Array{Float64,1}:
- 0.0333333
- 0.0333333
- 0.0333333
+julia> INERTIAMOMENT(P)
+3-element Vector{Float64}:
+ 0.033333333333333326
+ 0.03333333333333334
+ 0.03333333333333334
+```
+# Example 2 # standard unit cube
+```julia
+V = [0.0 1.0 0.0 0.0 1.0 1.0 0.0 1.0; 0.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0; 0.0 0.0 0.0 1.0 0.0 1.0 1.0 1.0]
+FV= [[1,2,6],[6,4,1],[1,3,5],[5,2,1],[4,7,3],[3,1,4],[2,5,8],
+[8,6,2],[3,7,8],[8,5,3],[4,6,8],[8,7,4]]
+cube = V,FV
+INERTIAMOMENT(cube)
+3-element Vector{Float64}:
+ 0.6666666666666665
+ 0.6666666666666665
+ 0.6666666666666665
 ```
 """
-function inertiaMoment(P::Pair)::Array{Float64,1}
+function INERTIAMOMENT(P)::Array{Float64,1}
     out = zeros(3)
-    result = secondMoment(P)
+    result = SECONDMOMENT(P)
     out[1] = result[2] + result[3]
     out[2] = result[3] + result[1]
     out[3] = result[1] + result[2]
@@ -423,7 +457,6 @@ function chainAreas(V::Array{Float64,2},EV::Array{Int64,2},chains::Array{Int64,2
 	FE = [chains[:,f] for f=1:size(chains,2)]
 	return chainAreas(V,EV,FE)
 end
-
 
 #///////////////////////////////////////////////////////////////
 """ Implementation using integr.jl """

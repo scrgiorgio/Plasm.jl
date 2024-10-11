@@ -49,7 +49,7 @@ julia> FV = [[1,2,4],[2,3,5],[3,5,6],[4,5,7],[5,7,8],[6,8,9]];
 julia> pattern = repeat([1,.2,-2],outer=4);
 julia> model = (V,FV);
 julia> W,FW = EXTRUDESIMPLICES(model, pattern);
-julia> VIEW(W,FW))
+julia> VIEW(MKPOL(W,FW))
 julia> VIEWCOMPLEX(LAR(MKPOL(W,FW)))
 ```
 """
