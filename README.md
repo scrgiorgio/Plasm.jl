@@ -2,18 +2,9 @@
 
 [![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
-Per alberto:
 
-```bash
-
-# book
-git checkout main
-git pull
-
-# Boolean operation
-git checkout fixing-bool
-git pull
-```
+This repo:
+- https://github.com/scrgiorgio/Plasm.jl
 
 ## Run tests
 
