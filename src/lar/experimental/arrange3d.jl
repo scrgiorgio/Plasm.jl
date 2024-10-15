@@ -1,5 +1,5 @@
 # //////////////////////////////////////////////////////////////
-function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothing)
+function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=nothing)
 
   dst=Lar()
   dst.C[:EV]=Cells()
@@ -29,7 +29,6 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
       F1_box_2d        = bbox_create(get_points(points2d))
       F1_points_2d_row = BYROW(get_points(points2d))
       F1_is_inside = p -> (classify_point(p, F1_points_2d_row, F1_segments)  != "p_out")
-      # println("  F1_segments=$(F1_segments)")
     end
 
     # F2s
@@ -77,7 +76,6 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
             if bbox_intersect(F1_box_2d, bbox_create([a,b])) 
               A=add_point(points2d, a)
               B=add_point(points2d, b)
-              # println("  F2=$(F2) $(A) $(B)")
               push!(F2_segments, [A,B]) 
             end
           end
@@ -107,23 +105,27 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
           break
         catch TriangulateError
           println("WARNING Triangulate.triangulate failed, so perturbing the points")
-          tin.pointlist=ToPoints([p + rand(2) * LAR_ARRANGE2D_PERTURBATION for p in eachcol(get_points(points2d))])
+          tin.pointlist=ToPoints([p + rand(2) * LAR_EXPERIMENTAL_ARRANGE_PERTURBATION for p in eachcol(get_points(points2d))])
         end
       end
     
       if debug_face==F1 || debug_face==:all
-        VIEWTRIANGLES(tout.pointlist, tout.trianglelist, title="arrange3d / 2d triangulate output face=$(F1)")
+        VIEWEDGES(tout.pointlist, tout.segmentlist, title="arrange3d / 2d triangulate output face=$(F1)", explode=[1.2,1.2,1.2])
+        #VIEWEDGES(tout.pointlist, tout.trianglelist, title="arrange3d / 2d triangulate output face=$(F1)")
       end
     end
 
     # round vertices so that faces can glue together)
     begin
-      vmap=Dict()
+      v_index_2d_to_3d=Dict()
+      v_index_3d_to_2d=Dict()
       unprojected=projector(tout.pointlist, inverse=true)
-      for P in 1:size(tout.pointlist,2)
-        p3d=unprojected[:,P]
-        r3d=round_vector(Vector{Float64}(p3d), digits=LAR_ARRANGE2D_ROUND)
-        vmap[P]=add_point(points3d, r3d)
+      for index_2d in 1:size(tout.pointlist,2)
+        p3d=unprojected[:,index_2d]
+        r3d=round_vector(Vector{Float64}(p3d), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND)
+        index_3d=add_point(points3d, r3d)
+        v_index_2d_to_3d[index_2d]=index_3d
+        v_index_3d_to_2d[index_3d]=index_2d
       end
       dst.V=get_points(points3d)
     end
@@ -133,18 +135,29 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
       cycles=Cycles()
 
       V             = tout.pointlist
-      segments      = Set(simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)]))
-      triangles     =     simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
+      segments      = simplify_cells([Cell([a,b])   for (a,b  ) in eachcol(tout.segmentlist)])
+      triangles     = simplify_cells([Cell([a,b,c]) for (a,b,c) in eachcol(tout.trianglelist)])
+      #VIEWTRIANGLES(V, triangles, title="triangle F=$(F1)", explode=[2.2,2.2,2.2])
 
-      @show(segments)
-      @show(triangles)
 
-      if F1==5
-        VIEWTRIANGLES(V, triangles, title="triangle F=$(F1)", explode=[2.2,2.2,2.2])
+      # do the rounding, need to do here because no one can guarantee I have cycles above
+      # (instead we are hoping cycles will be correct in the rounded space)
+      begin
+
+        triangles = [[v_index_3d_to_2d[v_index_2d_to_3d[index]] for index in it]  for it in triangles ]
+        segments  = [[v_index_3d_to_2d[v_index_2d_to_3d[index]] for index in it]  for it in segments  ]
+          
+        # remove degenerate due to the rounding
+        triangles = [it for it in simplify_cells(triangles) if length(it)==3] 
+        segments = Set([it for it in simplify_cells(segments) if length(it)==2])
       end
 
-      adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
-      groups=find_groups_of_cells(adjacent_triangles)
+      # if something anything could go wrong here, and not sure what to do
+      # i am betting that the rounding keeps some topological persistency
+      begin
+        adjacent_triangles=find_adjacents_cells(triangles, 2, segments)
+        groups=find_groups_of_cells(adjacent_triangles)
+      end
 
       for (A, triangle_ids) in enumerate(groups)
 
@@ -155,7 +168,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
         for triangle_id in triangle_ids 
           u,v,w = triangles[triangle_id]
 
-          # need to exclude triangles outside F1
+          # need to exclude outside F1
           centroid=(V[:,u] + V[:,v] + V[:,w])/3.0
           area=GetTriangleArea(V[:,u],V[:,v], V[:,w])
           if F1_is_inside(centroid) 
@@ -177,9 +190,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
         #  VIEWTRIANGLES(V, Cells([triangles[tt] for tt in triangle_ids]), title="triangle group $(F1)")
         #end
 
-        println("   inside_area=$(inside_area) outside_area=$(outside_area)")
-        
-        # println("inside_area=$(inside_area) outside_area=$(outside_area)")
+        # println("   inside_area=$(inside_area) outside_area=$(outside_area)")
         if inside_area>0 
 
           if outside_area>0
@@ -189,14 +200,12 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=5, debug_edge=nothin
 
           if inside_area> outside_area
             complex_face=simplify_cells(complex_face)
-
-            @show(complex_face)
-
             for cycle in find_vcycles(complex_face)
-              cycle=normalize_cycle( [[vmap[a],vmap[b]] for (a,b) in cycle]) # go to the rounded world, so something can get filtered
+
+              # go to the rounded world, so something can get filtered
+              cycle=normalize_cycle( [[v_index_2d_to_3d[a],v_index_2d_to_3d[b]] for (a,b) in cycle]) 
               if length(cycle)>=3
                 push!(cycles, cycle)
-                println("  Cycle $(cycle)")
               end
             end
           end

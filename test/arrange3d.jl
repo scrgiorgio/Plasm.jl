@@ -59,8 +59,8 @@ begin
   #Plasm.LAR_ARRANGE_VERSION=2
   #hpc=TwoCubes()
   # hpc=RandomCubes(2)
-  #hpc=RandomCubes(6)
-  # hpc=PieceCylinder()
+  # hpc=RandomCubes(6)
+  #hpc=PieceCylinder()
   # hpc=PieceTube()
   #lar=LAR(hpc)
   #lar=ARRANGE3D(lar, debug_mode=true)

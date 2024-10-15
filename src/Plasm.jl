@@ -34,10 +34,9 @@ export LAR_DEFAULT_ERR
 LAR_ARRANGE_VERSION=1
 export LAR_ARRANGE_VERSION
 
-LAR_ARRANGE2D_ROUND         = 4
-LAR_ARRANGE2D_PERTURBATION  = 1e-4 * 0.01
-LAR_ARRANGE2D_SMALL_TRIANGLES_ERR    = 1e-4
-LAR_ARRANGE3D_UNPROJECT_ROUND_DIGITS = 4
+# make them match 
+LAR_EXPERIMENTAL_ARRANGE_ROUND            =    4
+LAR_EXPERIMENTAL_ARRANGE_PERTURBATION     = 1e-4 * 0.1 
 
 include("./lar/lar.jl")
 include("./lar/simplexn.jl")
@@ -71,9 +70,8 @@ export OUTERS
 
 function SPLIT(lar::Lar)::Lar
 	inners=INNERS(lar)
-	outers =OUTERS(lar)
-	@assert(length(outers)==1) # backward compatibility for alberto
-	return inners,outer[1] 
+	outer =OUTERS(lar)
+	return inners,outer # assuming outer is 1 atom
 end
 export SPLIT
 
