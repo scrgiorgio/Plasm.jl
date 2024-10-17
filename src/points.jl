@@ -4,8 +4,8 @@
 const Points = Matrix{Float64}
 export Points
 
-function ToPoints(v::PointsNd)::Matrix{Float64}
-	return hcat(v...) 
+function ToPoints(v::AbstractPointsNd)::Matrix{Float64}
+	return hcat(to_concrete(v)...) 
 end
 export ToPoints
 
@@ -89,7 +89,7 @@ end
 export bbox_create
 
 # ///////////////////////////////////////////////////////////////////
-function bbox_create(v::PointsNd)
+function bbox_create(v::AbstractPointsNd)
   return bbox_create(ToPoints(v))
 end
 

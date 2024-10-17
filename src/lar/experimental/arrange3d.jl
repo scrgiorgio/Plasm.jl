@@ -292,7 +292,7 @@ export arrange3d_v2
 
 # ///////////////////////////////////////////////////////////////////////////
 # Newell's method, works for concave too and it is oriented
-function compute_oriented_newell_normal(loop::PointsNd)::PointNd
+function compute_oriented_newell_normal(loop::AbstractPointsNd)::PointNd
     n = [0.0, 0.0, 0.0]
     for (I, (x1, y1, z1)) in enumerate(loop)
         x2, y2, z2 = loop[mod1(I+1, length(loop))]

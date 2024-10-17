@@ -6,10 +6,33 @@ import Base: *
 import Base.:-
 import Base.:+
 
+const ConcretePointNd  = Vector{Float64}
+const ConcretePointsNd = Vector{ConcretePointNd}
 
-const PointNd = Vector{Float64}
-const PointsNd = Vector{PointNd}
+const AbstractPointNd  = Vector{<:Number}
+const AbstractPointsNd = Vector{<:AbstractPointNd}
 
+const PointNd  = ConcretePointNd
+const PointsNd = ConcretePointsNd
+
+function to_concrete(value::ConcretePointNd)::ConcretePointNd
+	return value
+end
+
+function to_concrete(value::ConcretePointsNd)::ConcretePointsNd
+	return value
+end
+
+function to_concrete(value::AbstractPointNd)::ConcretePointNd
+	return PointNd([convert(Float64,it) for it in value])
+end
+
+function to_concrete(value::AbstractPointsNd)::ConcretePointsNd
+	return PointsNd([to_concrete(it) for it in value])
+end
+
+export AbstractPointNd
+export AbstractPointsNd
 export PointNd
 export PointsNd
 

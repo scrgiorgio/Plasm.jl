@@ -95,7 +95,7 @@ function CAT(args)
 	return reduce(vcat, args)
 end
 
-function ISMAT(v::PointsNd)
+function ISMAT(v::AbstractPointsNd)
 	return true
 end
 
@@ -112,8 +112,8 @@ function INV(T::MatrixNd)
 	return invert(T)
 end
 
-function INV(T::PointsNd)
-	return invert(MatrixNd(T))
+function INV(T::AbstractPointsNd)
+	return invert(MatrixNd(to_concrete(T)))
 end
 
 # /////////////////////////////////////////////////////////////////
@@ -967,8 +967,8 @@ function ISPOLDIM(dims)
 end
 
 # /////////////////////////////////////////////////////////////////
-function MKPOL(points::PointsNd, hulls::Cells, __pols=Nothing)
-	return MkPol(points, hulls)
+function MKPOL(points::AbstractPointsNd, hulls::Cells, __pols=Nothing)
+	return MkPol(to_concrete(points), hulls)
 end
 
 function MKPOL(V::Matrix{Float64}, hulls::Cells, __pols=Nothing)
@@ -990,8 +990,8 @@ function CONVEXHULL(points)
 end
 
 # /////////////////////////////////////////////////////////////////
-function MKPOLS(V::PointsNd, hulls::Cells)::Hpc
-	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls))))
+function MKPOLS(V::AbstractPointsNd, hulls::Cells)::Hpc
+	out = STRUCT(AA(MKPOL)(DISTL(to_concrete(V), AA(LIST)(hulls))))
 	return out
 end
 

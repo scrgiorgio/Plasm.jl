@@ -275,8 +275,8 @@ mutable struct MatrixNd
 		new(copy(T))
 	end
 
-	function MatrixNd(arg::PointsNd)
-		T = reduce(vcat, arg')
+	function MatrixNd(arg::AbstractPointsNd)
+		T = reduce(vcat, to_concrete(arg)')
 		new(T)
 	end
 
@@ -425,17 +425,17 @@ end
 export addPoint
 
 
-function addPoints(self::Geometry, points::PointsNd)::Vector{Int64}
+function addPoints(self::Geometry, points::AbstractPointsNd)::Vector{Int64}
 	N = length(points)
 	ret = Vector{Int64}(undef, N)
-	for P in 1:N
-		ret[P] = addPoint(self, points[P])
+	for (P,p) in enumerate(points)
+		ret[P] = addPoint(self, p)
 	end
 	return ret
 end
 export addPoints
 
-function addHull(self::Geometry, points::PointsNd)
+function addHull(self::Geometry, points::AbstractPointsNd)
 	push!(self.hulls, [addPoint(self, p) for p in points])
 end
 
@@ -815,7 +815,7 @@ end
 export box
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-function CreateGeometry(points::PointsNd, hulls::Cells=Cells())
+function CreateGeometry(points::AbstractPointsNd, hulls::Cells=Cells())
 
 	# edge case: all empty
 	if isempty(points)
@@ -849,7 +849,7 @@ function CreateGeometry(points::PointsNd, hulls::Cells=Cells())
 end
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-function BuildMkPol(points::PointsNd, hulls::Cells=Cells())
+function BuildMkPol(points::AbstractPointsNd, hulls::Cells=Cells())
 
 	ret = Geometry()
 
@@ -884,7 +884,7 @@ function BuildMkPol(points::PointsNd, hulls::Cells=Cells())
 
 			if length(hull)==1
 				# add the single point (which is a single hull)
-				addHull(ret,PointsNd([points[hull[1]]]))
+				addHull(ret,[ points[hull[1]] ])
 			else
 				# add the bounding box
 				@assert length(hull) >= 2
@@ -912,8 +912,8 @@ function BuildMkPol(points::PointsNd, hulls::Cells=Cells())
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function MkPol(points::PointsNd, hulls::Cells=Cells())
-	obj = BuildMkPol(points, hulls)
+function MkPol(points::AbstractPointsNd, hulls::Cells=Cells())
+	obj = BuildMkPol(to_concrete(points), hulls)
 	return Hpc(MatrixNd(), [obj])
 end
 export MkPol

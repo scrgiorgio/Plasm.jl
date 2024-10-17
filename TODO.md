@@ -9,7 +9,8 @@ Quando vuoi, ti spiego cosa fare con Hpc standard (hulls fully-dimensional) e  q
 
 ### (16-08-24) Va in errore ...
 
-julia> function CROSSPOLYTOPE(D)
+```julia
+function CROSSPOLYTOPE(D)
                points = Vector{Number}[]
                for i in 1:D
 
@@ -23,23 +24,22 @@ julia> function CROSSPOLYTOPE(D)
                pols = [[1]]
                return MKPOL(points, cells, pols)
        end
-CROSSPOLYTOPE (generic function with 1 method)
 
-julia> CROSSPOLYTOPE(2)
-ERROR: MethodError: no method matching MKPOL(::Vector{Vector{Number}}, ::Vector{Vector{Int64}}, ::Vector{Vector{Int64}})
+CROSSPOLYTOPE(2)
+```
 
 
 
 ### (14-08-24) Va in errore ...
 
-julia> X = GRID([2.4,4.5,-3,4.5,2.4])
-julia> Y = GRID([7,5]); Z = GRID([3,3]);
-julia> building = X * Y * Z
-julia> lar = ARRANGE3D(LAR(building));
+```julia
+X = GRID([2.4,4.5,-3,4.5,2.4])
+Y = GRID([7,5]); Z = GRID([3,3]);
+building = X * Y * Z
+lar = ARRANGE3D(LAR(building));
+atoms,outer = SPLIT(lar)  
 
-julia> atoms,outer = SPLIT(lar)  # io l'avrei fatto solo per CF ... 
-
-ma ho seguito il tuo esempio di SPLIT (non capisco perché sta nel modulo Plasm.jl)
+```
 
 
 ### (11-08-24) Numerare in VIEWCOMPLEX facce, spigoli vertici
