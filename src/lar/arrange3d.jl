@@ -543,7 +543,7 @@ end
 
 
 # ////////////////////////////////////////////////////////////////
-function arrange3d_split(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
+function arrange3d_v1_split(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
   # scrgiorgio: I do not think this is correct, because it could be there is an outer cell with the exact 
   #             same bounding box of an inner cell
   atoms=ATOMS(lar, debug_mode=debug_mode)
@@ -556,14 +556,14 @@ end
 
 # ////////////////////////////////////////////////////////////////
 function arrange3d_v1_inners(lar::Lar)::Lar
-  outers,inners=arrange3d_split(lar)
+  outers,inners=arrange3d_v1_split(lar)
   return inners
 end
 export INNERS
 
 # ////////////////////////////////////////////////////////////////
 function arrange3d_v1_outers(lar::Lar)::Lar
-  outers,inners=arrange3d_split(lar)
+  outers,inners=arrange3d_v1_split(lar)
   return outers
 end
 export OUTERS
