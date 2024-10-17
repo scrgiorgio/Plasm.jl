@@ -17,7 +17,7 @@ end
 export random_dir
 
 # //////////////////////////////////////////////////////////////////////////////
-function ray_face_intersection(ray_origin::Vector{Float64}, ray_dir::Vector{Float64}, lar::Lar, F::Int)
+function ray_face_intersection(ray_origin::PointNd, ray_dir::PointNd, lar::Lar, F::Int)
 
   face          = lar.C[:FV][F]
   face_points3d = lar.V[:,face]
@@ -52,7 +52,7 @@ export ray_face_intersection
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function is_internal_point(lar::Lar, ray_origin::Vector{Float64}, ray_dir::Vector{Float64})
+function is_internal_point(lar::Lar, ray_origin::PointNd, ray_dir::PointNd)
   num_intersections=0
   for F in 1:length(lar.C[:FV])
     hit,t=ray_face_intersection(ray_origin, ray_dir, lar, F)
@@ -92,7 +92,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
 
     #@show("Trying", external_point, ray_dir)
 
-    distances=Vector{Float64}()
+    distances=PointNd()
     for F in 1:length(lar.C[:FV])
       hit,distance=ray_face_intersection(external_point, ray_dir, lar, F)
       if !isnothing(hit)

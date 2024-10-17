@@ -32,7 +32,7 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
     vmap=Dict()
     pointsdb=PointsDB() 
     for (P,p) in enumerate(eachcol(tout.pointlist))
-      vmap[P]=add_point(pointsdb, round_vector(Vector{Float64}(p), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND))
+      vmap[P]=add_point(pointsdb, round_vector(PointNd(p), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND))
     end
   end
 

@@ -2,18 +2,9 @@
 
 [![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
-Per alberto:
 
-```bash
-
-# book
-git checkout main
-git pull
-
-# Boolean operation
-git checkout fixing-bool
-git pull
-```
+This repo:
+- https://github.com/scrgiorgio/Plasm.jl
 
 ## Run tests
 
@@ -27,14 +18,13 @@ julia --project=. test/structural_frames.jl
 
 # lar
 julia --project=. test/lar.jl
-julia --project=. test/arrange2d.jl
-julia --project=. test/arrange3d.jl
-julia --project=. test/boolean.jl
-
-
 julia --project=. test/random-tetgen.jl
 julia --project=. test/simplexn.jl
 julia --project=. test/idea-building.jl
+
+julia --project=. test/arrange2d.jl
+julia --project=. test/arrange3d.jl
+julia --project=. test/boolean.jl
 ```
 
 ## Developing Plasm.jl

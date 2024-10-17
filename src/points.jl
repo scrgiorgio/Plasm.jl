@@ -4,25 +4,25 @@
 const Points = Matrix{Float64}
 export Points
 
-function ToPoints(v::Vector{Vector{Float64}})::Matrix{Float64}
-	return hcat(v...) 
+function ToPoints(v::AbstractPointsNd)::Matrix{Float64}
+	return hcat(to_concrete(v)...) 
 end
 export ToPoints
 
 
 # /////////////////////////////////////////////////////////////
-PointsDB=Dict{Vector{Float64},Int}
+PointsDB=Dict{PointNd,Int}
 export PointsDB
 
 # ///////////////////////////////////////////////////////////////////
-function round_vector(v::Vector{Float64}; digits::Int)::Vector{Float64}
+function round_vector(v::PointNd; digits::Int)::PointNd
   if digits==0 return v end
   return [round(value, digits=digits) for value in v]
 end
 export round_vector
 
 # ///////////////////////////////////////////////////////////////////
-function add_point(db::PointsDB, p::Vector{Float64})::Int
+function add_point(db::PointsDB, p::PointNd)::Int
 
   p=[abs(it)==0.0 ? 0.0 : it for it in p]
 
@@ -35,7 +35,7 @@ export add_point
 
 # ///////////////////////////////////////////////////////////////////
 function get_points(db::PointsDB)::Points
-	v=[Vector{Float64}() for I in 1:length(db)]
+	v=[PointNd() for I in 1:length(db)]
 	for (pos,idx) in db
 		v[idx]=pos
 	end
@@ -89,7 +89,7 @@ end
 export bbox_create
 
 # ///////////////////////////////////////////////////////////////////
-function bbox_create(v::Vector{Vector{Float64}})
+function bbox_create(v::AbstractPointsNd)
   return bbox_create(ToPoints(v))
 end
 

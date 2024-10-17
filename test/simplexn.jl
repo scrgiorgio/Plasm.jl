@@ -23,10 +23,10 @@ using Test, Plasm, LinearAlgebra
 		pattern = repeat([1,2,-3],outer=4);		
 		W,FW = EXTRUDESIMPLICES(model, pattern);
 		@test typeof(EXTRUDESIMPLICES(model, pattern))==
-			Tuple{Matrix{Float64},Vector{Vector{Int64}}}
+			Tuple{Matrix{Float64},Cells}
 		@test typeof(W)==Matrix{Float64}
 		@test size(W)==(3,117)
-		@test typeof(FW)==Vector{Vector{Int64}}
+		@test typeof(FW)==Cells
 		@test length(FW)==144
 	end
 

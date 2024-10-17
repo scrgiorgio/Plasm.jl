@@ -95,7 +95,7 @@ function CAT(args)
 	return reduce(vcat, args)
 end
 
-function ISMAT(v::Vector{Vector{Float64}})
+function ISMAT(v::AbstractPointsNd)
 	return true
 end
 
@@ -112,8 +112,8 @@ function INV(T::MatrixNd)
 	return invert(T)
 end
 
-function INV(T::Vector{Vector{Float64}})
-	return invert(MatrixNd(T))
+function INV(T::AbstractPointsNd)
+	return invert(MatrixNd(to_concrete(T)))
 end
 
 # /////////////////////////////////////////////////////////////////
@@ -967,8 +967,8 @@ function ISPOLDIM(dims)
 end
 
 # /////////////////////////////////////////////////////////////////
-function MKPOL(points::Vector{Vector{Float64}}, hulls::Cells, __pols=Nothing)
-	return MkPol(points, hulls)
+function MKPOL(points::AbstractPointsNd, hulls::Cells, __pols=Nothing)
+	return MkPol(to_concrete(points), hulls)
 end
 
 function MKPOL(V::Matrix{Float64}, hulls::Cells, __pols=Nothing)
@@ -990,8 +990,8 @@ function CONVEXHULL(points)
 end
 
 # /////////////////////////////////////////////////////////////////
-function MKPOLS(V::Vector{Vector{Float64}}, hulls::Cells)::Hpc
-	out = STRUCT(AA(MKPOL)(DISTL(V, AA(LIST)(hulls))))
+function MKPOLS(V::AbstractPointsNd, hulls::Cells)::Hpc
+	out = STRUCT(AA(MKPOL)(DISTL(to_concrete(V), AA(LIST)(hulls))))
 	return out
 end
 
@@ -1000,7 +1000,7 @@ function MKPOLS(V::Matrix{Float64}, hulls::Cells)
 	return MKPOLS(W, hulls)
 end
 
-function MKPOLS(V::Union{Vector{Vector{Float64}},Matrix{Float64}}, cells::Dict{Symbol,AbstractArray})
+function MKPOLS(V::Union{PointsNd,Matrix{Float64}}, cells::Dict{Symbol,AbstractArray})
 	v = []
 	for (__symbol, hulls) in cells
 		push!(v, MKPOLS(V, hulls))
@@ -1224,7 +1224,7 @@ function Shear(column, vh)
 end
 
 
-function Shear(self::Hpc, column, vh::Vector{Float64})
+function Shear(self::Hpc, column, vh::PointNd)
 	return Hpc(Shear(column, vh), [self])
 end
 
@@ -1314,8 +1314,8 @@ end
 
 # /////////////////////////////////////////////////////////////////////////////
 struct BspFace
-	vertices::Vector{Vector{Float64}}
-	plane::Vector{Float64}
+	vertices::PointsNd
+	plane::PointNd
 
 	function BspFace(vertices, plane=nothing)
 
@@ -1342,7 +1342,7 @@ struct BspFace
 end
 
 
-function splitEdge(plane::Vector{Float64}, vi::Vector{Float64}, vj::Vector{Float64})
+function splitEdge(plane::PointNd, vi::PointNd, vj::PointNd)
 	dim = length(vi)
 	valuev1 = abs(plane[end] + sum([plane[i] * vi[i] for i in 1:dim]))
 	valuev2 = abs(plane[end] + sum([plane[i] * vj[i] for i in 1:dim]))
@@ -1352,7 +1352,7 @@ function splitEdge(plane::Vector{Float64}, vi::Vector{Float64}, vj::Vector{Float
 	return [alpha * vi[i] + beta * vj[i] for i in 1:dim]
 end
 
-function splitFace(self::BspFace, plane::Vector{Float64}, EPSILON::Float64=1e-5)
+function splitFace(self::BspFace, plane::PointNd, EPSILON::Float64=1e-5)
 	dim = length(plane) - 1
 	COPLANAR, ABOVE, BELOW, SPANNING = 0, 1, 2, 3
 	ptype, types = COPLANAR, []
@@ -1432,7 +1432,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////////////
 struct Bsp
 
-	plane::Vector{Float64}
+	plane::PointNd
 	faces::Vector{BspFace}
 	below::Bsp
 	above::Bsp
@@ -1783,7 +1783,7 @@ function NGON(N)
 end
 
 # ///////////////////////////////////////////////////////////
-function RING(radius::Vector{Float64})
+function RING(radius::PointNd)
 	R1, R2 = radius
 	function RING0(subds)
 		N, M = subds
@@ -1795,7 +1795,7 @@ function RING(radius::Vector{Float64})
 end
 
 # ///////////////////////////////////////////////////////////
-function TUBE(args::Vector{Float64})
+function TUBE(args::PointNd)
 	r1, r2, height = args
 	function TUBE0(N)
 		return Power(RING([r1, r2])([N, 1]), QUOTE([height]))
@@ -1832,7 +1832,7 @@ function SOLIDCYL(rmax=2.0, angle=2 * pi, height=2 * rmax)
 end
 
 # ///////////////////////////////////////////////////////////
-function MY_CYLINDER(args::Vector{Float64})
+function MY_CYLINDER(args::PointNd)
 	R, H = args
 	function MY_CYLINDER0(N)
 		points = CIRCLE_POINTS(R, N)
@@ -2701,7 +2701,7 @@ function RATIONALBEZIER(controlpoints_fn)
 end
 
 # //////////////////////////////////////////////////////////////
-function ELLIPSE(args::Vector{Float64})
+function ELLIPSE(args::PointNd)
 	A, B = args
 	function ELLIPSE0(N::Int)
 		C = 0.5 * sqrt(2)

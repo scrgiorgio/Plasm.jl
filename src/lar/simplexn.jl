@@ -74,7 +74,7 @@ function EXTRUDESIMPLICES(model, pattern)
     end
     outVertices = [vcat(v, [z]) for z in coords for v in V]
     cellGroups = convert(Array{Array{Int, 1}, 1}, cellGroups)
-    outModel = convert(Vector{Vector{Float64}},outVertices), cellGroups
+    outModel = convert(PointsNd,outVertices), cellGroups
     hcat(outVertices...), cellGroups
 end
 
@@ -102,7 +102,7 @@ function SIMPLEXGRID(shape)
     end
     V, CV = model
     V = convert(Matrix{Float64}, V)
-    CV = convert(Vector{Vector{Int}}, CV)
+    CV = convert(Cells, CV)
     return V, CV
 end
 

@@ -21,7 +21,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
       F1_segments = Cells()
       for E in src.C[:FE][F1]
         a,b=src.C[:EV][E]
-        p1,p2=[Vector{Float64}(it) for it in eachcol(projector(src.V[:,[a,b]]))]
+        p1,p2=[PointNd(it) for it in eachcol(projector(src.V[:,[a,b]]))]
         a=add_point(points2d, p1)
         b=add_point(points2d, p2)
         push!(F1_segments, [a, b])
@@ -49,10 +49,10 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
 
         # find intersection on the main face
         begin
-          hits=Vector{Vector{Float64}}()
+          hits=PointsNd()
           for E2 in src.C[:FE][F2]
             a,b = src.C[:EV][E2]
-            p1,p2=[Vector{Float64}(it) for it in eachcol(src.V[:,[a,b]])]
+            p1,p2=[PointNd(it) for it in eachcol(src.V[:,[a,b]])]
             hit, t = plane_ray_intersection(p1, normalized(p2-p1), plane)
             if isnothing(hit) continue end
             @assert(t>0) # must cross the plane (be on opposite sides of the plane)
@@ -122,7 +122,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
       unprojected=projector(tout.pointlist, inverse=true)
       for index_2d in 1:size(tout.pointlist,2)
         p3d=unprojected[:,index_2d]
-        r3d=round_vector(Vector{Float64}(p3d), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND)
+        r3d=round_vector(PointNd(p3d), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND)
         index_3d=add_point(points3d, r3d)
         v_index_2d_to_3d[index_2d]=index_3d
         v_index_3d_to_2d[index_3d]=index_2d
@@ -292,7 +292,7 @@ export arrange3d_v2
 
 # ///////////////////////////////////////////////////////////////////////////
 # Newell's method, works for concave too and it is oriented
-function compute_oriented_newell_normal(loop::Vector{Vector{Float64}})::Vector{Float64}
+function compute_oriented_newell_normal(loop::AbstractPointsNd)::PointNd
     n = [0.0, 0.0, 0.0]
     for (I, (x1, y1, z1)) in enumerate(loop)
         x2, y2, z2 = loop[mod1(I+1, length(loop))]
@@ -305,7 +305,7 @@ end
 
 # ///////////////////////////////////////////////////////////////////////////
 # tgw angle computation
-function compute_oriented_angle(a::Vector{Float64}, b::Vector{Float64}, c::Vector{Float64})::Float64
+function compute_oriented_angle(a::PointNd, b::PointNd, c::PointNd)::Float64
     a = a / LinearAlgebra.norm(a)
     b = b / LinearAlgebra.norm(b)
     angle = atan(dot(cross(a, b), c), dot(a, b))
@@ -350,7 +350,7 @@ end
 
 
 # ////////////////////////////////////////////////////////////////////////
-function lar_connected_components(seeds::Vector{Int}, get_connected::Function)::Vector{Vector{Int}}
+function lar_connected_components(seeds::Cell, get_connected::Function)::Cells
   ret = []
   assigned = Set()
 
@@ -456,7 +456,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
 
   # find best connections by angles (TGW)
   begin
-    best_connections=Dict{Int, Vector{Int}}()
+    best_connections=Dict{Int, Cell}()
     for (A,  adjacent_per_edge) in connections
       best_connections[A]=remove_duplicates([adjacents[1].face for (ev, adjacents) in adjacent_per_edge])
     end
@@ -518,7 +518,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Vector{Int}
+function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Cell
   for attempt in 1:max_attempts
     b1,b2=lar_bounding_box(lar; only_used_vertices=true)
     move_out = 3*LinearAlgebra.norm(b2 - b1)   
@@ -548,7 +548,7 @@ end
 
 # ////////////////////////////////////////////////////////////////
 function compute_atom_bbox(lar::Lar, atom::Cell)
-  points=Vector{Vector{Float64}}()
+  points=PointsNd()
   for F in atom
     fv=lar.C[:FV][F]
     append!(points,[p for p in eachcol(lar.V[:,fv])])
