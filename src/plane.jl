@@ -5,14 +5,14 @@ export orthogonal_axis
 
 # ////////////////////////////////////////////////////////////////////////
 """ needed for normals """
-function normalized(value::Vector{Float64})::Vector{Float64}
+function normalized(value::PointNd)::PointNd
   return value/LinearAlgebra.norm(value)
 end
 export normalized
 
 # ////////////////////////////////////////////////////////////////////////
 """ create plane """
-function plane_create(normal::Vector{Float64}, point::Vector{Float64})::Vector{Float64}
+function plane_create(normal::PointNd, point::PointNd)::PointNd
   A,B,C=normalized(normal)
   D=-dot(normal,point)
   return [A,B,C,D]
@@ -21,7 +21,7 @@ export plane_create
 
 
 # ////////////////////////////////////////////////////////////////////////
-function plane_create(V::Points) ::Vector{Float64}
+function plane_create(V::Points) ::PointNd
   center = compute_centroid(V) 
   V=stack([point-center for point in eachcol(V)],dims=2)
   __,__,normal=[normalize(it) for it in eachrow(svd(BYROW(V)).Vt)]
@@ -29,7 +29,7 @@ function plane_create(V::Points) ::Vector{Float64}
 end
 
 # ////////////////////////////////////////////////////////////////////////
-function plane_get_normal(plane::Vector{Float64})
+function plane_get_normal(plane::PointNd)
   A,B,C,D=plane
   return [A,B,C]
 end
@@ -37,7 +37,7 @@ export plane_get_normal
 
 # ////////////////////////////////////////////////////////////////////////
 """ note: plane normal should be normalized """
-function plane_point_distance(plane::Vector{Float64},point::Vector{Float64})
+function plane_point_distance(plane::PointNd,point::PointNd)
   A,B,C,D=plane
   x,y,z=point
   return A*x+B*y+C*z+D
@@ -46,7 +46,7 @@ export plane_point_distance
 
 # ////////////////////////////////////////////////////////////
 """ get ray and plane intersection """
-function plane_ray_intersection(ray_origin::Vector{Float64}, ray_dir::Vector{Float64}, plane::Vector{Float64})
+function plane_ray_intersection(ray_origin::PointNd, ray_dir::PointNd, plane::PointNd)
 
   ray_dir=normalized(ray_dir)
 
@@ -71,7 +71,7 @@ export plane_ray_intersection
 
 # ////////////////////////////////////////////////////////////////////////
 """ generate random points on plane """
-function plane_random_points(plane::Vector{Float64}; num_vertices::Int)
+function plane_random_points(plane::PointNd; num_vertices::Int)
   normal=[plane[1],plane[2],plane[3]]
   points=[]
   for I in 1:num_vertices

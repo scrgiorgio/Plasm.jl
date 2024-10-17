@@ -68,10 +68,8 @@ function OUTERS(lar::Lar)::Lar
 end
 export OUTERS
 
-function SPLIT(lar::Lar)::Lar
-	inners=INNERS(lar)
-	outer =OUTERS(lar)
-	return inners,outer # assuming outer is 1 atom
+function SPLIT(lar::Lar)::Tuple{Lar,Lar}
+	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_split(lar) : arrange3d_v1_split(lar)
 end
 export SPLIT
 

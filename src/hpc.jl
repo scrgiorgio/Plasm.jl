@@ -10,14 +10,14 @@ import Base.size
 import Base.transpose
 
 
-const Cell = Vector{Int}
+const Cell = Vector{Int64}
 export Cell
 
 const Cells = Vector{Cell}
 export Cells
 
 # ///////////////////////////////////////////////////////////////////
-const Cycle=Vector{Vector{Int}} # e.g. [[a,b],[b,c],[c,d]]
+const Cycle=Vector{Vector{Int64}} # e.g. [[a,b],[b,c],[c,d]]
 const Cycles=Vector{Cycle}
 
 function reverse_cycle(value::Cycle)::Cycle
@@ -108,7 +108,7 @@ function find_groups_of_cells(adjacent::Dict{Int,Set{Int}})
 end
 
 # /////////////////////////////////////////////////////////////
-function ComputeTriangleNormal(p0::Vector{Float64}, p1::Vector{Float64}, p2::Vector{Float64})
+function ComputeTriangleNormal(p0::PointNd, p1::PointNd, p2::PointNd)
 	p0 = vcat(p0, zeros(3 - length(p0)))
 	p1 = vcat(p1, zeros(3 - length(p1)))
 	p2 = vcat(p2, zeros(3 - length(p2)))
@@ -161,7 +161,7 @@ end
 
 
 # /////////////////////////////////////////////////////////////
-function GoodTetOrientation(v0::Vector{Float64}, v1::Vector{Float64}, v2::Vector{Float64}, v3::Vector{Float64})
+function GoodTetOrientation(v0::PointNd, v1::PointNd, v2::PointNd, v3::PointNd)
 	v0 = vcat(v0, zeros(3 - length(v0)))
 	v1 = vcat(v1, zeros(3 - length(v1)))
 	v2 = vcat(v2, zeros(3 - length(v2)))
@@ -176,8 +176,8 @@ export GoodTetOrientation
 
 # /////////////////////////////////////////////////////////////
 mutable struct BoxNd
-	p1::Vector{Float64}
-	p2::Vector{Float64}
+	p1::PointNd
+	p2::PointNd
 
 	function BoxNd(dim::Int)
 		p1 = [+floatmax(Float64) for I in 1:dim]
@@ -185,7 +185,7 @@ mutable struct BoxNd
 		new(p1, p2)
 	end
 
-	function BoxNd(p1::Vector{Float64}, p2::Vector{Float64})
+	function BoxNd(p1::PointNd, p2::PointNd)
 		@assert length(p1) == length(p2)
 		p1 = copy(p1)
 		p2 = copy(p2)
@@ -238,7 +238,7 @@ function center(self::BoxNd)
 end
 export center
 
-function addPoint(self::BoxNd, point::Vector{Float64})
+function addPoint(self::BoxNd, point::PointNd)
 	for i in 1:dim(self)
 		self.p1[i] = min(self.p1[i], point[i])
 		self.p2[i] = max(self.p2[i], point[i])
@@ -275,12 +275,12 @@ mutable struct MatrixNd
 		new(copy(T))
 	end
 
-	function MatrixNd(arg::Vector{Vector{Float64}})
-		T = reduce(vcat, arg')
+	function MatrixNd(arg::AbstractPointsNd)
+		T = reduce(vcat, to_concrete(arg)')
 		new(T)
 	end
 
-	function MatrixNd(arg::Vector{Vector{Int64}})
+	function MatrixNd(arg::Vector{Vector})
 		T = reduce(vcat, arg')
 		new(T)
 	end
@@ -352,7 +352,7 @@ function *(matrix1::MatrixNd, matrix2::MatrixNd)
 	return MatrixNd(matrix1.T * matrix2.T)
 end
 
-function transformPoint(self::MatrixNd, point::Vector{Float64})
+function transformPoint(self::MatrixNd, point::PointNd)
 	point = self.T * [1.0; point; zeros(dim(self) - length(point) - 1)]
 	return [point[i, 1] / point[1, 1] for i in 2:dim(self)]
 end
@@ -391,8 +391,8 @@ export rotate
 # /////////////////////////////////////////////////////////////
 mutable struct Geometry
 
-	db::Dict{Vector{Float64},Int}
-	points::Vector{Vector{Float64}}
+	db::Dict{PointNd,Int}
+	points::PointsNd
 	edges::Cells
 	faces::Cells
 	hulls::Cells
@@ -400,8 +400,8 @@ mutable struct Geometry
 	# constructor
 	function Geometry()
 		self = new(
-			Dict{Vector{Float64},Int}(),
-			Vector{Vector{Float64}}(),
+			Dict{PointNd,Int}(),
+			PointsNd(),
 			Cells(),
 			Cells(),
 			Cells(),
@@ -411,7 +411,7 @@ mutable struct Geometry
 end
 export Geometry
 
-function addPoint(self::Geometry, p::Vector{Float64})::Int
+function addPoint(self::Geometry, p::PointNd)::Int
 	idx = get(self.db, p, 0)
 	if idx >= 1
 		return idx
@@ -425,17 +425,12 @@ end
 export addPoint
 
 
-function addPoints(self::Geometry, points::Vector{Vector{Float64}})::Vector{Int64}
-	N = length(points)
-	ret = Vector{Int64}(undef, N)
-	for P in 1:N
-		ret[P] = addPoint(self, points[P])
-	end
-	return ret
+function addPoints(self::Geometry, points::AbstractPointsNd)::Cell
+	return [addPoint(self, p) for p in points] 
 end
 export addPoints
 
-function addHull(self::Geometry, points::Vector{Vector{Float64}})
+function addHull(self::Geometry, points::AbstractPointsNd)
 	push!(self.hulls, [addPoint(self, p) for p in points])
 end
 
@@ -488,7 +483,7 @@ function ToSimplicialForm(self::Geometry)
 		try
 			d = Delaunay([self.points[idx] for idx in hull])
 			for simplex in [d.simplices[R, :] for R in 1:size(d.simplices, 1)]
-				simplex_points = [Vector{Float64}(d.points[idx+1, :]) for idx in simplex]
+				simplex_points = [PointNd(d.points[idx+1, :]) for idx in simplex]
 				addHull(ret, simplex_points)
 			end
 			continue
@@ -570,11 +565,11 @@ function ToVector3(value)
 	N = length(value)
 
 	if N == 1
-		return Vector{Float64}([value[1], 0.0, 0.0])
+		return PointNd([value[1], 0.0, 0.0])
 	elseif N == 2
-		return Vector{Float64}([value[1], value[2], 0.0])
+		return PointNd([value[1], value[2], 0.0])
 	elseif N == 3
-		return Vector{Float64}([value[1], value[2], value[3]])
+		return PointNd([value[1], value[2], value[3]])
 	else
 		throw("Cannot handle geometry with dim > 3")
 	end
@@ -815,7 +810,7 @@ end
 export box
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
+function CreateGeometry(points::AbstractPointsNd, hulls::Cells=Cells())
 
 	# edge case: all empty
 	if isempty(points)
@@ -826,7 +821,7 @@ function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 	pdim = length(points[1])
 	if pdim == 0
 		ret = Geometry()
-		ret.points = Vector{Vector{Float64}}()
+		ret.points = PointsNd()
 		push!(ret.points, []) # an 'empty' point
 		ret.hulls = [[1]]
 		return ret
@@ -849,7 +844,7 @@ function CreateGeometry(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 end
 
 # ////////////////////////////////////////////////////////////////////////////////////////
-function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
+function BuildMkPol(points::AbstractPointsNd, hulls::Cells=Cells())
 
 	ret = Geometry()
 
@@ -868,7 +863,7 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 
 	# special case in zero-dimension
 	if pdim == 0
-		ret.points = Vector{Vector{Float64}}()
+		ret.points = PointsNd()
 		push!(ret.points, []) # an 'empty' point
 		ret.hulls = [[1]]
 		return ret
@@ -884,7 +879,7 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 
 			if length(hull)==1
 				# add the single point (which is a single hull)
-				addHull(ret,Vector{Vector{Float64}}([points[hull[1]]]))
+				addHull(ret,[ points[hull[1]] ])
 			else
 				# add the bounding box
 				@assert length(hull) >= 2
@@ -892,7 +887,7 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 				for idx in hull
 					box = addPoint(box, points[idx])
 				end
-				addHull(ret, Vector{Vector{Float64}}([box.p1, box.p2]))
+				addHull(ret, PointsNd([box.p1, box.p2]))
 			end
 		else
 			hull_points = [points[idx] for idx in hull]
@@ -900,7 +895,7 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 			ConvexHull = __spatial.ConvexHull
 			try
 				h = ConvexHull([points[idx] for idx in hull])
-				hull_points = [Vector{Float64}(h.points[idx+1, :]) for idx in h.vertices]
+				hull_points = [PointNd(h.points[idx+1, :]) for idx in h.vertices]
 			catch
 			end
 			addHull(ret, hull_points)
@@ -912,30 +907,22 @@ function BuildMkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function MkPol(points::Vector{Vector{Float64}}, hulls::Cells=Cells())
-	obj = BuildMkPol(points, hulls)
+function MkPol(points::AbstractPointsNd, hulls::Cells=Cells())
+	obj = BuildMkPol(to_concrete(points), hulls)
 	return Hpc(MatrixNd(), [obj])
 end
 export MkPol
 
-function MkPol(points::Vector{Vector{Int64}}, hulls::Cells=Cells())
-	return MkPol(Vector{Vector{Float64}}(points), hulls)
-end
-
-
 function MkPol(points::Vector{Vector}, hulls::Cells=Cells())
-	return MkPol(Vector{Vector{Float64}}(points), hulls)
+	return MkPol(AbstractPointsNd(points), hulls)
 end
 
-
-function MkPol(points::Matrix{Float64}, hulls::Cells=Cells())
-	W = [V[:, k] for k = 1:size(V)[2]]
-	return MkPol(W, hulls)
+function MkPol(points::Matrix, hulls::Cells=Cells())
+	return MkPol(ToPoints(points), hulls)
 end
-
 
 function MkPol0()
-	points = Vector{Vector{Float64}}()
+	points = PointsNd()
 	push!(points, [])
 	return MkPol(points, [[1]])
 end
@@ -982,7 +969,7 @@ export HpcSimplex
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function Join(pols::Vector{Hpc})
-	points = Vector{Vector{Float64}}()
+	points = PointsNd()
 	for (T, properties, obj) in toList(Hpc(MatrixNd(), pols))
 		append!(points, [transformPoint(T, p) for p in obj.points])
 	end
@@ -991,7 +978,7 @@ end
 export Join
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function Quote(sequence::Vector{Float64})
+function Quote(sequence::PointNd)
 	pos = 0.0
 	points = [[pos]]
 	hulls = Cells()
@@ -1013,12 +1000,12 @@ function Transform(self::Hpc, T::MatrixNd)
 end
 export Transform
 
-function Translate(self::Hpc, vt::Vector{Float64})
+function Translate(self::Hpc, vt::PointNd)
 	return Hpc(translate(vt), [self])
 end
 export Translate
 
-function Scale(self::Hpc, vs::Vector{Float64})
+function Scale(self::Hpc, vs::PointNd)
 	return Hpc(scale(vs), [self])
 end
 export Scale
@@ -1035,7 +1022,7 @@ function Power(a::Hpc, b::Hpc)
 		for (T1, properties1, obj1) in toList(a)
 
 			# combine points
-			points = Vector{Vector{Float64}}()
+			points = PointsNd()
 			for py in obj2.points
 				for px in obj1.points
 					push!(points, [px; py])
@@ -1079,7 +1066,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function UkPol(self::Hpc)
-	points = Vector{Vector{Float64}}()
+	points = PointsNd()
 	hulls = Cells()
 	for (T, properties, obj) in toList(self)
 		O = length(points)
@@ -1170,8 +1157,8 @@ export MapFn
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function ToBoundaryForm(self::Hpc)
-	DB = Dict{Vector{Float64},Int64}()
-	POINTS = Vector{Vector{Float64}}()
+	DB = Dict{PointNd,Int64}()
+	POINTS = PointsNd()
 	FACES = Cells()
 
 	for (T, properties, obj) in toList(self)
@@ -1183,7 +1170,7 @@ function ToBoundaryForm(self::Hpc)
 
 		for P in 1:length(points)
 			point = points[P]
-			@assert point isa Vector{Float64}
+			@assert point isa PointNd
 			idx = get(DB, point, 0)
 			if idx == 0
 				push!(POINTS, point)
@@ -1216,7 +1203,7 @@ function ToBoundaryForm(self::Hpc)
 		end
 	end
 
-	num_occurrence = Dict{Vector{Int64},Int}()
+	num_occurrence = Dict{Cell,Int}()
 	for face in FACES
 		Key = sort(face)
 		num_occurrence[Key] = get(num_occurrence, Key, 0) + 1
@@ -1410,17 +1397,17 @@ export ComputeCentroid
 
 
 # ///////////////////////////////////////////////////////////////////
-function ConvertFacets(value)
+function ConvertFacets(value)::Cells
 	if value isa Matrix{Int64}
 		nrows, ncols = size(value)
-		ret = Vector{Vector{Int64}}()
+		ret = Cells()
 		for R in 1:nrows
 			push!(ret, value[R, :])
 		end
 	else
 		ret = value
 	end
-	@assert ret isa Vector{Vector{Int64}}
+
 	return ret
 end
 
@@ -1430,14 +1417,14 @@ end
 function ConvertPoints(value)
 	if value isa Matrix{Float64}
 		nrows, ncols = size(value)
-		ret = Vector{Vector{Float64}}()
+		ret = PointsNd()
 		for R in 1:nrows
 			push!(ret, value[R, :])
 		end
 	else
 		ret = value
 	end
-	@assert ret isa Vector{Vector{Float64}}
+	@assert ret isa PointsNd
 	return ret
 end
 

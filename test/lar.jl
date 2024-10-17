@@ -274,9 +274,9 @@ using Combinatorics
         grid = CUBOIDGRID([2,2,1])
         V,FV,EV = grid.V, grid.C[:FV], grid.C[:EV]
         copFV, copEV = lar2cop(FV), lar2cop(EV)
-        @test typeof(findnz(copFV)) == Tuple{Vector{Int64},Vector{Int64}, 
+        @test typeof(findnz(copFV)) == Tuple{Cell,Cell, 
         Vector{Int8}}
-        @test typeof(findnz(copEV)) == Tuple{Vector{Int64}, Vector{Int64}, 
+        @test typeof(findnz(copEV)) == Tuple{Cell, Cell, 
         Vector{Int8}}
         @test simplify_cells(cop2lar(copFV)) == simplify_cells([[1, 2, 3, 4], [3, 4, 5, 6], [1, 3, 5, 7], [2, 4, 6, 8], [1, 2, 7, 8], [5, 6, 7, 8], [1, 3, 9, 10], [3, 5, 10, 11], [9, 10, 11, 12], [1, 7, 9, 12], [5, 7, 11, 12], [1, 2, 13, 14], [1, 7, 13, 15], [2, 8, 14, 16], [13, 14, 15, 16], [7, 8, 15, 16], [1, 9, 13, 17], [9, 12, 17, 18], [13, 15, 17, 18], [7, 12, 15, 18]])
         @test length(cop2lar(copFV)) == 20

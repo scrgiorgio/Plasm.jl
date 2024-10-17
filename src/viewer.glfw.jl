@@ -102,7 +102,7 @@ mutable struct GLFWViewer  <: Viewer
 	use_ortho::Bool
 	exitNow::Bool
 	show_lines::Bool
-	background_color::Vector{Float64}
+	background_color::PointNd
 	title::String
 	lighting_enabled::Bool
 end
