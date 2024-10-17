@@ -3,7 +3,15 @@
 
 ### (16-08-24) Fare _bene_ SKELETON multidimensionale
 
-Non è difficile. Mi sono accorto chè sbagliato per celle convesse 4D facendo SCHLEGEL3D ...  Quando vuoi, ti spiego cosa fare con Hpc standard (hulls fully-dimensional) e  qhull
+Io eviterei di triangolare (nel Viewer) le facce non triangolari. Ad esempio: 
+VIEW(sphere = SPHERE(1)([8,16]))
+
+Se guardi l'Hpc, vedi che "hulls="[] è fatto tutto di vettori di 4 punti (che sono sempre complanari)
+
+
+### (16-08-24) Fare _bene_ SKELETON multidimensionale
+
+Non è difficile. Mi sono accorto chè sbagliato per celle convesse 4D facendo SCHLEGEL3D ...  Quando vuoi, ti spiego cosa fare con Hpc standard (hulls fully-dimensional) e  qhull 
 
 
 
