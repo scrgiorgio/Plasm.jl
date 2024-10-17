@@ -3,9 +3,9 @@
 
 ### (16-08-24) Fare _bene_ SKELETON multidimensionale
 
-Non è difficile. Mi sono accorto chè sbagliato per celle convesse 4D facendo SCHLEGEL3D ...  Quando vuoi, ti spiego cosa fare con Hpc standard (hulls fully-dimensional) e  qhull
-
-
+Non è difficile. 
+Mi sono accorto chè sbagliato per celle convesse 4D facendo SCHLEGEL3D ...  
+Quando vuoi, ti spiego cosa fare con Hpc standard (hulls fully-dimensional) e  qhull
 
 ### (16-08-24) Va in errore ...
 

@@ -7,7 +7,11 @@ import Base.:-
 import Base.:+
 
 
+const PointNd = Vector{Float64}
+const PointsNd = Vector{PointNd}
 
+export PointNd
+export PointsNd
 
 # //////////////////////////////////////////////////////////////////////////////
 const Point3d = MVector{3,Float64}
@@ -177,7 +181,7 @@ Matrix4d(
 	a12::Float64, a13::Float64, a14::Float64, a15::Float64) = Matrix4d([a0 a1 a2 a3; a4 a5 a6 a7; a8 a9 a10 a11; a12 a13 a14 a15])
 
 
-function Matrix4d(v::Vector{Float64})
+function Matrix4d(v::PointNd)
 	@assert length(v) == 16
 	return Matrix4d(v...)
 end

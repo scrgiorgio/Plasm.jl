@@ -327,7 +327,7 @@ function Manhattan3D()
   ManhattanH = [1, 3, 1, 11, 1, 2, 1, 1, 1, 8, 15, 1, 1, 1, 1, 8, 1, 15, 8, 1, 2, 2, 2, 2, 5, 9, 1, 1, 1] .* 3
   # 29-element Vector{Int64}:
   storeys = CONS(AA(DIESIS)(ManhattanH))(0.5)
-  # 29-element Vector{Vector{Float64}}:
+  # 29-element PointsNd:
   pols1D = AA(QUOTE)(storeys)
   # 29-element Vector{Hpc}:
   pols2D = [MKPOL(verts, [cell]) for cell in cells]
