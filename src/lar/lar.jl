@@ -240,7 +240,7 @@ function SELECT(lar::Lar, sel::Cell)::Lar
 
 	FV=haskey(lar.C,:FV) ? lar.C[:FV] : compute_FV(lar)
 
-	fmap=Set{Vector{Int}}() # from (a,b,c,d,...) 
+	fmap=Set{Cell}() # from (a,b,c,d,...) 
 	emap=Dict{Cell,Int}() # from (a,b) to new edge index
 	for Fold in sel
 
@@ -429,7 +429,7 @@ end
 export HPC
 
 # //////////////////////////////////////////////////////////////////////////////
-function CUBOIDGRID(shape::Vector{Int})::Lar
+function CUBOIDGRID(shape::Vector)::Lar
 	obj = INSL(POWER)(AA(GRID1)(shape))
 	if RN(obj) == 2
 		geo = ToGeometry(obj)

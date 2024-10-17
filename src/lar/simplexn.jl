@@ -102,7 +102,7 @@ function SIMPLEXGRID(shape)
     end
     V, CV = model
     V = convert(Matrix{Float64}, V)
-    CV = convert(Vector{Vector{Int}}, CV)
+    CV = convert(Cells, CV)
     return V, CV
 end
 

@@ -350,7 +350,7 @@ end
 
 
 # ////////////////////////////////////////////////////////////////////////
-function lar_connected_components(seeds::Vector{Int}, get_connected::Function)::Vector{Vector{Int}}
+function lar_connected_components(seeds::Cell, get_connected::Function)::Cells
   ret = []
   assigned = Set()
 
@@ -456,7 +456,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
 
   # find best connections by angles (TGW)
   begin
-    best_connections=Dict{Int, Vector{Int}}()
+    best_connections=Dict{Int, Cell}()
     for (A,  adjacent_per_edge) in connections
       best_connections[A]=remove_duplicates([adjacents[1].face for (ev, adjacents) in adjacent_per_edge])
     end
@@ -518,7 +518,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Vector{Int}
+function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Cell
   for attempt in 1:max_attempts
     b1,b2=lar_bounding_box(lar; only_used_vertices=true)
     move_out = 3*LinearAlgebra.norm(b2 - b1)   

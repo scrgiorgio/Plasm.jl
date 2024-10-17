@@ -81,7 +81,7 @@ tets=[
   8 6 7 4]
 
 
-hpc = MKPOLS([PointNd(p) for p in eachrow(pointlist)],[Vector{Int}(tet) for tet in eachrow(tets)])
+hpc = MKPOLS([PointNd(p) for p in eachrow(pointlist)],[Cell(tet) for tet in eachrow(tets)])
 # VIEW(hpc) 
 
 lar = LAR(hpc)

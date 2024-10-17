@@ -10,14 +10,14 @@ import Base.size
 import Base.transpose
 
 
-const Cell = Vector{Int}
+const Cell = Vector{Int64}
 export Cell
 
 const Cells = Vector{Cell}
 export Cells
 
 # ///////////////////////////////////////////////////////////////////
-const Cycle=Vector{Vector{Int}} # e.g. [[a,b],[b,c],[c,d]]
+const Cycle=Vector{Vector{Int64}} # e.g. [[a,b],[b,c],[c,d]]
 const Cycles=Vector{Cycle}
 
 function reverse_cycle(value::Cycle)::Cycle
@@ -280,7 +280,7 @@ mutable struct MatrixNd
 		new(T)
 	end
 
-	function MatrixNd(arg::Vector{Vector{Int64}})
+	function MatrixNd(arg::Vector{Vector})
 		T = reduce(vcat, arg')
 		new(T)
 	end
@@ -425,13 +425,8 @@ end
 export addPoint
 
 
-function addPoints(self::Geometry, points::AbstractPointsNd)::Vector{Int64}
-	N = length(points)
-	ret = Vector{Int64}(undef, N)
-	for (P,p) in enumerate(points)
-		ret[P] = addPoint(self, p)
-	end
-	return ret
+function addPoints(self::Geometry, points::AbstractPointsNd)::Cell
+	return [addPoint(self, p) for p in points] 
 end
 export addPoints
 
@@ -918,21 +913,13 @@ function MkPol(points::AbstractPointsNd, hulls::Cells=Cells())
 end
 export MkPol
 
-function MkPol(points::Vector{Vector{Int64}}, hulls::Cells=Cells())
-	return MkPol(PointsNd(points), hulls)
-end
-
-
 function MkPol(points::Vector{Vector}, hulls::Cells=Cells())
-	return MkPol(PointsNd(points), hulls)
+	return MkPol(AbstractPointsNd(points), hulls)
 end
 
-
-function MkPol(points::Matrix{Float64}, hulls::Cells=Cells())
-	W = [V[:, k] for k = 1:size(V)[2]]
-	return MkPol(W, hulls)
+function MkPol(points::Matrix, hulls::Cells=Cells())
+	return MkPol(ToPoints(points), hulls)
 end
-
 
 function MkPol0()
 	points = PointsNd()
@@ -1216,7 +1203,7 @@ function ToBoundaryForm(self::Hpc)
 		end
 	end
 
-	num_occurrence = Dict{Vector{Int64},Int}()
+	num_occurrence = Dict{Cell,Int}()
 	for face in FACES
 		Key = sort(face)
 		num_occurrence[Key] = get(num_occurrence, Key, 0) + 1
@@ -1410,17 +1397,17 @@ export ComputeCentroid
 
 
 # ///////////////////////////////////////////////////////////////////
-function ConvertFacets(value)
+function ConvertFacets(value)::Cells
 	if value isa Matrix{Int64}
 		nrows, ncols = size(value)
-		ret = Vector{Vector{Int64}}()
+		ret = Cells()
 		for R in 1:nrows
 			push!(ret, value[R, :])
 		end
 	else
 		ret = value
 	end
-	@assert ret isa Vector{Vector{Int64}}
+
 	return ret
 end
 
