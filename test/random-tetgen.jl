@@ -50,3 +50,4 @@ V, (EV,FV,CV,CF) = lar.V, lar.C[:EV], lar.C[:FV], lar.C[:CV], lar.C[:CF]
 VIEWCOMPLEX( lar, show=["EV"], explode=[1,1,1] )  # show edges
 VIEWCOMPLEX( lar, show=["FV"], explode=[2,2,2] )  # show faces
 VIEWCOMPLEX( lar, show=["CV"], explode=[2,2,2] )  # show full-dim cells
+VIEWCOMPLEX( lar, show=["CV"], explode=[1,1,1] )  # show 

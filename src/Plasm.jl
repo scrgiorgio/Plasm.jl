@@ -40,6 +40,7 @@ LAR_EXPERIMENTAL_ARRANGE_PERTURBATION     = 1e-4 * 0.1
 
 include("./lar/lar.jl")
 include("./lar/simplexn.jl")
+include("./lar/integr.jl")
 include("./lar/classify.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
