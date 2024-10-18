@@ -31,12 +31,11 @@ include("./fenvs.jl")
 LAR_DEFAULT_ERR=1e-8
 export LAR_DEFAULT_ERR
 
-LAR_ARRANGE_VERSION=1
-export LAR_ARRANGE_VERSION
-
 # make them match 
 LAR_EXPERIMENTAL_ARRANGE_ROUND            =    4
 LAR_EXPERIMENTAL_ARRANGE_PERTURBATION     = 1e-4 * 0.1 
+
+# use new TGW and SPLIT code (cannot be sure it's more sbable, need testing)
 LAR_ARRANGE3D_USE_EXPERIMENTAL = true
 
 include("./lar/lar.jl")

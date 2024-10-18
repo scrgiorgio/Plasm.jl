@@ -549,9 +549,8 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 		VIEWCOMPLEX(ret, show=["CV"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
 	end
 
-	# I need to keep two identical atoms in CF for splitting
 	ret=SIMPLIFY(ret)
-	@show(ret)
+	# @show(ret)
 	return ret
 end
 export ARRANGE3D

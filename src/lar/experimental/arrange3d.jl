@@ -567,9 +567,9 @@ function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
 
   # connected atoms
   begin
-    for (A,atom) in enumerate(atoms)
-      println("Atom ",A," ",atom)
-    end
+    #for (A,atom) in enumerate(atoms)
+    #  println("Atom ",A," ",atom)
+    #end
     components=lar_connected_components(collect(eachindex(atoms)), A -> [B for B in eachindex(atoms) if A!=B && length(intersect(Set(atoms[A]),Set(atoms[B])))>0 ])
     components=[ [atoms[jt] for jt in it] for it in components]
 
@@ -582,9 +582,9 @@ function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
       end
     end
 
-    for (C,component) in enumerate(components)
-      println("Component ",C," ",component)
-    end
+    #for (C,component) in enumerate(components)
+    #  println("Component ",C," ",component)
+    #end
   end
 
   lar_outers=lar_copy(lar);lar_outers.C[:CF]=[]
@@ -594,8 +594,8 @@ function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
 
     faces=remove_duplicates(vcat(component...))
     num_atoms=length(component)
-    println("# components ",C, " num_atoms=", num_atoms, " faces=",faces)
-    println(component)
+    #println("# components ",C, " num_atoms=", num_atoms, " faces=",faces)
+    #println(component)
 
     # there should be at least the internal and the external
     @assert(length(component)>=2) 

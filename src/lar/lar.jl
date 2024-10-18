@@ -219,7 +219,7 @@ function CHECK(lar::Lar)
       @assert(length(fe)>=3)
       # and should be able to find face cycles
       cell_ev=[lar.C[:EV][E] for E in fe]
-			println("F ",F," fe ",fe, " ",  cell_ev)
+			#println("F ",F," fe ",fe, " ",  cell_ev)
       find_vcycles(cell_ev)
     end
   end

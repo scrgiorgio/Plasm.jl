@@ -854,6 +854,6 @@ function ARRANGE2D(lar::Lar)
 	return SIMPLIFY(ret)
 
 end
-
+export ARRANGE2D
 
 

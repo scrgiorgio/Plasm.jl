@@ -71,7 +71,6 @@ function Building()
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
   # VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) # TODO inside boolean, SELECT does not produce CF
 
-
 end
 
 TwoCubes()
