@@ -175,8 +175,7 @@ export ATOMS
 # ////////////////////////////////////////////////////////////////
 function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
   
-  # if you want to see atoms set debug_mode=true
-  atoms=ATOMS(arrangement, debug_mode=false)
+  atoms=ATOMS(arrangement, debug_mode=debug_mode)
 
   internal_points=[find_internal_point(atom) for atom in atoms] 
   
@@ -216,8 +215,9 @@ function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)
         render_lines(viewer, lines,  colors=colors, line_width=DEFAULT_LINE_WIDTH)
       end
 
-      explanation=join([string(it) for it in bool_matrix[A,:]], " ")
-      VIEWCOMPLEX(viewer, atom, show=["V", "EV"], explode=[1.0,1.0,1.0], title="Atom $(A) " * explanation)
+      render_text(viewer, join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)
+
+      VIEWCOMPLEX(viewer, atom, show=["V", "EV"], explode=[1.0,1.0,1.0])
     end
   end
   

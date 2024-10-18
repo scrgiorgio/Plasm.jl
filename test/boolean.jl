@@ -63,7 +63,6 @@ function Building()
 
   lar=LAR(assembly)
   input_args=[LAR(it) for it in TOPOS(assembly)]
-  println(length(input_args))
 
   lar=ARRANGE3D(lar)
   lar=INNERS(lar)
