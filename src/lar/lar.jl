@@ -100,38 +100,38 @@ export lar_bounding_box
 
 
 # ////////////////////////////////////////////////////////
-function lar_simplify_internal(dst::Lar, src::Lar, key)
+function lar_simplify_internal(dst::Lar, src::Lar, symbol::Symbol; allow_duplicates=false)
 
-  if !haskey(src.C, key)
+  if !haskey(src.C, symbol)
     return
   end
 
-  @assert(!haskey(dst.C, key))
-  dst.C[key] = Cells()
+  @assert(!haskey(dst.C, symbol))
+  dst.C[symbol] = Cells()
 
-  if key == :EV
+  if symbol == :EV
     @assert(!haskey(src.mapping, :E)) # otherwise I would need mapping of mapping
     dst.mapping[:E] = Dict{Int,Int}()
     Dmap = dst.mapping[:E]
     Smap = nothing
 
-  elseif key == :FV
+  elseif symbol == :FV
     @assert(!haskey(src.mapping, :F)) # otherwise I would need mapping of mapping
     dst.mapping[:F] = Dict{Int,Int}()
     Dmap = dst.mapping[:F]
     Smap = nothing
 
-  elseif key == :FE
+  elseif symbol == :FE
     @assert(haskey(dst.mapping,:E))
     Dmap = nothing
     Smap = dst.mapping[:E]
 
-  elseif key == :CF
+  elseif symbol == :CF
     @assert(haskey(dst.mapping,:F))
     Dmap = nothing
     Smap = dst.mapping[:F]
 
-  elseif key == :CV
+  elseif symbol == :CV
     Dmap = nothing
     Smap = nothing
 
@@ -140,19 +140,20 @@ function lar_simplify_internal(dst::Lar, src::Lar, key)
 
   end
 
-  already_added = Dict()
-  for (old_id, cell) in enumerate(src.C[key])
+  added = Dict()
+  for (old_id, cell) in enumerate(src.C[symbol])
     cell = Cell([isnothing(Smap) ? it : Smap[it] for it in cell])
-    simplified = normalize_cell(cell)
+		simplified = normalize_cell(cell)
 
-    if !haskey(already_added, simplified)
-      push!(dst.C[key], simplified)
-      already_added[simplified] = length(dst.C[key])
-    end
+		if allow_duplicates || !haskey(added, simplified)
+			push!(dst.C[symbol], simplified)
+			added[simplified] = length(dst.C[symbol])
+		end
 
-    if !isnothing(Dmap)
-      Dmap[old_id] = already_added[simplified]
-    end
+		if !isnothing(Dmap)
+			Dmap[old_id] = added[simplified]
+		end
+
   end
 
 end
@@ -166,11 +167,11 @@ function SIMPLIFY(src::Lar)
   @assert(all([key in [:CV, :EV, :FV, :FE, :CF] for key in keys(src.C)]))
 
   # important the order (so that E mapping comes before :FE and F mapping comes before :CF)
-  lar_simplify_internal(dst, src, :EV)
-  lar_simplify_internal(dst, src, :FV)
-  lar_simplify_internal(dst, src, :CV)
-  lar_simplify_internal(dst, src, :FE)
-  lar_simplify_internal(dst, src, :CF)
+	lar_simplify_internal(dst, src, :EV, allow_duplicates=false) 
+	lar_simplify_internal(dst, src, :FV, allow_duplicates=false) 
+	lar_simplify_internal(dst, src, :CV, allow_duplicates=false) 
+	lar_simplify_internal(dst, src, :FE, allow_duplicates=false) 
+	lar_simplify_internal(dst, src, :CF, allow_duplicates=true)  # i need to keep duplicates for inside/outside
 
 	# do not need to keep the mapping here
 	dst.mapping=Dict{Symbol, Dict{Int,Int}}()
@@ -200,7 +201,7 @@ function CHECK(lar::Lar)
     @assert(length(ev)==2)
   end
 
-  # each edge should be have 1 or 2 faces
+  # each edge should have at least one face
   begin
     count_faces=Dict{Int,Set{Int}}()
     for (F,fe) in enumerate(lar.C[:FE])
@@ -209,22 +210,51 @@ function CHECK(lar::Lar)
         push!(count_faces[E],F)
       end
     end
-    @assert(all([length(it) in [1,2] for it in values(count_faces)]))
+    @assert(all([length(it)>=1 for it in values(count_faces)]))
   end
 
   # one face should have at least 3 edges
   begin
     for (F,fe) in enumerate(lar.C[:FE])
       @assert(length(fe)>=3)
-
       # and should be able to find face cycles
       cell_ev=[lar.C[:EV][E] for E in fe]
+			#println("F ",F," fe ",fe, " ",  cell_ev)
       find_vcycles(cell_ev)
     end
   end
 
 end
 
+# //////////////////////////////////////////////////////////////////////
+function explode_cycles(lar::Lar)::Tuple{Lar,Cycles}
+	# e.g. if a face has two cycles, I want to two cycles to be two faces
+	ret=Lar(lar.V, Dict{Symbol,Any}( :EV => Cells(), :FE => Cells()))
+
+	for (F,fe) in enumerate(lar.C[:FE])
+		multi_cycle=find_vcycles(Cells([lar.C[:EV][E] for E in fe]))
+		for cycle in multi_cycle
+			fe=Cell()
+			for (a,b) in cycle
+				push!(ret.C[:EV], [a,b])
+				push!(fe, length(ret.C[:EV]))
+			end
+			push!(ret.C[:FE], fe)
+		end
+	end
+
+	ret=SIMPLIFY(ret)
+
+	cycles=Cycles()
+	for (F,fe) in enumerate(ret.C[:FE])
+		multi_cycle=find_vcycles(Cells([ret.C[:EV][E] for E in fe]))
+		@assert(length(multi_cycle)==1) # NOW each face is one cycle
+		append!(cycles, multi_cycle)
+	end
+
+	CHECK(ret)
+	return ret, cycles
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 """can be used also to simplify
@@ -390,6 +420,22 @@ function compute_CF(lar::Lar; is_convex=false)::Cells
 	end
 	return simplify_cells(ret)
 
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function compute_CV(lar::Lar; is_convex=false)::Cells
+	@assert(is_convex)
+	@assert(haskey(lar.C,:CF))
+	@assert(haskey(lar.C,:FV))
+	ret=Cells()
+	for (C,cf) in enumerate(lar.C[:CF])
+		cv=Cell()
+		for (F, fv) in enumerate(lar.C[:FV][C])
+			append!(cv, fv)
+		end
+		push!(ret,cv)
+	end
+	return simplify_cells(ret)
 end
 
 # //////////////////////////////////////////////////////////////////////////////

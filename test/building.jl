@@ -18,14 +18,22 @@ dy = SIZE(2)(building1_011)
 building1_011 = (R(2,3)(-π/2))(building1_011)
 building1_011 = (T(3)(dy))(building1_011)
 
-floors = OFFSET([.2,.2,.2])(building110)
-framex = OFFSET([.2,.2,.2])(building1_011)
-framey = OFFSET([.2,.2,-.4])(building1_101)
+floors = OFFSET([ .2, .2, .2])(building110)
+framex = OFFSET([ .2, .2, .2])(building1_011)
+framey = OFFSET([ .2, .2,-.4])(building1_101)
 framexy = STRUCT(framex, framey)
 framexyz = STRUCT(framex, framey, floors)
-VIEWCOMPLEX(LAR(framexyz))
 
-VIEWCOMPLEX(LAR(SK(1)(idea)))
+lar=LAR(framexyz)
+VIEWCOMPLEX(lar)
+
+# works (!)
+lar=ARRANGE3D(lar)
+VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2])
+
+# if you want to see the skeleton 1d
+#lar=LAR(SK(1)(idea))
+#VIEWCOMPLEX(lar)
 
 
 

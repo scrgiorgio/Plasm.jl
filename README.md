@@ -20,11 +20,12 @@ julia --project=. test/structural_frames.jl
 julia --project=. test/lar.jl
 julia --project=. test/random-tetgen.jl
 julia --project=. test/simplexn.jl
-julia --project=. test/idea-building.jl
 
 julia --project=. test/arrange2d.jl
 julia --project=. test/arrange3d.jl
 julia --project=. test/boolean.jl
+
+julia --project=. test/idea-building.jl
 ```
 
 ## Developing Plasm.jl
