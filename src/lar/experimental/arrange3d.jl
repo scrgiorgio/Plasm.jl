@@ -567,16 +567,23 @@ function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
 
   # connected atoms
   begin
-    # @show(atoms)
+    for (A,atom) in enumerate(atoms)
+      println("Atom ",A," ",atom)
+    end
     components=lar_connected_components(collect(eachindex(atoms)), A -> [B for B in eachindex(atoms) if A!=B && length(intersect(Set(atoms[A]),Set(atoms[B])))>0 ])
-    components=[ remove_duplicates([ atoms[idx] for idx in component]) for component in components]
-    # NOTE: components are normalized (no repetition and sorted)
-  end
+    components=[ [atoms[jt] for jt in it] for it in components]
 
-  # topology check on components
-  begin
-    for component in components
-      @assert(length(remove_duplicates(component))==length(component))
+    for (C,component) in enumerate(components)
+      # not 100% sure about it
+      if length(component)>2
+        components[C]=remove_duplicates(component)
+      else
+        components[C]=[normalize_cell(it) for it in component]
+      end
+    end
+
+    for (C,component) in enumerate(components)
+      println("Component ",C," ",component)
     end
   end
 
@@ -587,15 +594,18 @@ function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
 
     faces=remove_duplicates(vcat(component...))
     num_atoms=length(component)
-    # println("# components ",C, " num_atoms=", num_atoms, " faces=",faces)
-    # println(component)
-    @assert(length(component)>=2)
+    println("# components ",C, " num_atoms=", num_atoms, " faces=",faces)
+    println(component)
 
-    outer,inners=nothing,[]
+    # there should be at least the internal and the external
+    @assert(length(component)>=2) 
+
+    outer, inners=nothing,[]
 
     # there is one outer cell, and one inner cell and they must be the same
     if num_atoms==2
       @assert(component[1]==component[2])
+      println("length is 2, one outer, one inner")
       outer,inners=component[1],[component[2]]
 
     else

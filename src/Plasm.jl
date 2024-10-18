@@ -49,30 +49,6 @@ include("./lar/experimental/arrange2d.jl")
 include("./lar/experimental/arrange3d.jl")
 include("./lar/boolean.jl")
 
-function ARRANGE2D(lar::Lar; debug_mode=false)::Lar
-	return LAR_ARRANGE_VERSION==2 ? arrange2d_v2(lar) : arrange2d_v1(lar)
-end
-export ARRANGE2D
-
-function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
-	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2(lar,debug_mode=debug_mode) : arrange3d_v1(lar)
-end
-export ARRANGE3D
-
-function INNERS(lar::Lar)::Lar
-	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_inners(lar) : arrange3d_v1_inners(lar)
-end
-export INNERS
-
-function OUTERS(lar::Lar)::Lar
-	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_outers(lar) : arrange3d_v1_outers(lar)
-end
-export OUTERS
-
-function SPLIT(lar::Lar)::Tuple{Lar,Lar}
-	return LAR_ARRANGE_VERSION==2 ? arrange3d_v2_split(lar) : arrange3d_v1_split(lar)
-end
-export SPLIT
 
 function __init__()
 	InitPythonHullCode()

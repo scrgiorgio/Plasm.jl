@@ -48,6 +48,9 @@ function PieceCylinder()
   input_args=[LAR(it) for it in TOPOS(assembly)]
   lar=ARRANGE3D(lar)
   lar=INNERS(lar)
+
+  VIEWCOMPLEX(lar)
+
   lar=BOOL3D(lar, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
 
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])

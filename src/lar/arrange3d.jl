@@ -512,9 +512,9 @@ function fragment_all_faces(lar::Lar)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Main function of arrangement pipeline """
-function arrange3d_v1(lar::Lar; debug_mode=false)::Lar
 
+function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
+	""" Main function of arrangement pipeline """
 	rV, rcopEV, rcopFE=fragment_all_faces(lar)
 
   EV = cop2lar(rcopEV)
@@ -536,48 +536,57 @@ function arrange3d_v1(lar::Lar; debug_mode=false)::Lar
 		ret, cycles=explode_cycles(ret)
 		ret.C[:FV]=compute_FV(ret)
 		ret.C[:CF]=lar_find_atoms(ret.V, cycles, debug_mode=debug_mode)
+
 		# ret.C[:CV]=compute_CV(ret,is_convex=true) dont think this is needed
 		CHECK(ret)
 	else
 		# broken, fails to find atoms in case of disconnected components
 		rcopCF = tgw_build_copCF(rV, rcopEV, rcopFE)
-		CF = cop2lar(convert(ChainOp,rcopCF))
-		ret.C[:CF]=CF
+		ret.C[:CF]=cop2lar(convert(ChainOp,rcopCF))
 	end
 
 	if debug_mode
 		VIEWCOMPLEX(ret, show=["CV"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
 	end
 
+	# I need to keep two identical atoms in CF for splitting
+	ret=SIMPLIFY(ret)
 	@show(ret)
-	return SIMPLIFY(ret)
+	return ret
 end
+export ARRANGE3D
 
 # ////////////////////////////////////////////////////////////////
-function arrange3d_v1_split(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
-  # scrgiorgio: I do not think this is correct, because it could be there is an outer cell with the exact 
-  #             same bounding box of an inner cell
-  atoms=ATOMS(lar, debug_mode=debug_mode)
-  diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
-  max_diag = maximum(diags)
-  outers=lar_copy(lar); outers.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
-  inners=lar_copy(lar); inners.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
-  return outers,inners
+function SPLIT(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
+	if LAR_ARRANGE3D_USE_EXPERIMENTAL
+		return arrange3d_v2_split(lar)
+	else
+
+		# scrgiorgio: I do not think this is correct, because it could be there is an outer cell with the exact 
+		#             same bounding box of an inner cell
+		atoms=ATOMS(lar, debug_mode=debug_mode)
+		diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
+		max_diag = maximum(diags)
+		outers=lar_copy(lar); outers.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
+		inners=lar_copy(lar); inners.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
+		return outers,inners
+	end
 end
+export SPLIT
 
 # ////////////////////////////////////////////////////////////////
-function arrange3d_v1_inners(lar::Lar)::Lar
-  outers,inners=arrange3d_v1_split(lar)
-  return inners
+function OUTERS(lar::Lar)::Lar
+  return SPLIT(lar)[1]
+end
+export OUTERS
+
+# ////////////////////////////////////////////////////////////////
+function INNERS(lar::Lar)::Lar
+  return SPLIT(lar)[2]
 end
 export INNERS
 
-# ////////////////////////////////////////////////////////////////
-function arrange3d_v1_outers(lar::Lar)::Lar
-  outers,inners=arrange3d_v1_split(lar)
-  return outers
-end
-export OUTERS
+
 
 
 
