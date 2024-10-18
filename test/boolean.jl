@@ -19,11 +19,8 @@ function TwoCubes()
   lar=INNERS(lar)
   lar= BOOL3D(lar, bool_op=Difference, input_args=input_args, debug_mode=false)
   @show(lar)
-
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
-
-  # TODO inside boolean, SELECT does not produce CF
-  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4])
+  # VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) # TODO inside boolean, SELECT does not produce CF
 
 end
 
@@ -52,11 +49,31 @@ function PieceCylinder()
   VIEWCOMPLEX(lar)
 
   lar=BOOL3D(lar, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
-
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
-  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4])
+  # VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) # TODO inside boolean, SELECT does not produce CF
+
+end
+
+# ///////////////////////////////////////////
+function Building()
+  X = GRID([2.4,4.5,-3,4.5,2.4])
+  Y = GRID([7,5])
+  Z = GRID([3,3])
+  assembly=  STRUCT(X * Y * Z)
+
+  lar=LAR(assembly)
+  input_args=[LAR(it) for it in TOPOS(assembly)]
+  lar=ARRANGE3D(lar)
+  lar=INNERS(lar)
+  VIEWCOMPLEX(lar)
+  lar= BOOL3D(lar, bool_op=Difference, input_args=input_args, debug_mode=false)
+  @show(lar)
+  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
+  # VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) # TODO inside boolean, SELECT does not produce CF
+
 
 end
 
 TwoCubes()
 PieceCylinder()
+# Building()
