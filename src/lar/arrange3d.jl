@@ -3,8 +3,8 @@
 
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Triangle containment test of checkpoint into `f`; used in TGW algorithm """
-function interior_to_f(triangle, f, V, FV, EV, FE)::Bool
+function tgw_containment_test(triangle, f, V, FV, EV, FE)::Bool
+	""" Triangle containment test of checkpoint into `f`; used in TGW algorithm """
 	# affine mapping computation to z=0 plane
 	v1, v2, v3 = triangle
 	u = V[:, v2] - V[:, v1]
@@ -37,8 +37,8 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Correct ordering of triangles (hence faces) about each boundary edge """
-function ordering(triangles, V)
+function tgw_triangle_ordering(triangles, V)
+	""" Correct ordering of triangles (hence faces) about each boundary edge """
 	normals = []
 	v1, v2, v3 = triangles[1]
 	if v1 > v2
@@ -68,9 +68,9 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
-function ord(hinge::Int, bd1, V::Points, FV::Cells, EV::Cells, FE::Cells)
+function tgw_compute_ordered_fan(hinge::Int, bd1, V::Points, FV::Cells, EV::Cells, FE::Cells)
 
+	""" Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
 	cells = SparseArrays.findnz(bd1)[1]
 	triangles = []
 
@@ -88,7 +88,7 @@ function ord(hinge::Int, bd1, V::Points, FV::Cells, EV::Cells, FE::Cells)
 
 		# test if [v1,v2,v3] interior to f
 		while true
-			if interior_to_f([v1, v2, v3], f, V, FV, EV, FE)
+			if tgw_containment_test([v1, v2, v3], f, V, FV, EV, FE)
 				push!(triangles, [v1, v2, v3])
 				break
 			else
@@ -97,14 +97,15 @@ function ord(hinge::Int, bd1, V::Points, FV::Cells, EV::Cells, FE::Cells)
 			end
 		end
 	end
-	order = ordering(triangles, V)
+	order = tgw_triangle_ordering(triangles, V)
 	return [cells[index] for index in order]
 end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Utility function for TGW in 3D """
-function mynext(cycle, pivot, marks)
+function tgw_next(cycle, pivot, marks)
+	
+	""" Utility function for TGW in 3D """
 	len = length(cycle)
 	ind = findfirst(x -> x == pivot, cycle)[1]
 	nextIndex = ind == len ? 1 : ind + 1
@@ -115,20 +116,18 @@ function mynext(cycle, pivot, marks)
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Utility function for TGW in 3D """
-function myprev(cycle, pivot, marks)
+function tgw_prev(cycle, pivot, marks)
+	""" Utility function for TGW in 3D """
 	len = length(cycle)
 	ind = findfirst(x -> x == pivot, cycle)[1] #  ind is address of pivot in cycle
 	nextIndex = ind == 1 ? len : ind - 1
-	#if marks[nextIndex]==2
-	#  nextIndex = ind==len ? 1 : ind+1
-	#end
 	return cycle[nextIndex][1]
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-""" TGW algorithm implementation (pao) """
-function build_copFC(V_row, rcopEV, rcopFE)
+function tgw_build_copCF(V_row, rcopEV, rcopFE)
+	
+	""" TGW algorithm implementation (pao) """
 
 	# G&F -> Pao data structures
 	V = BYCOL(V_row)
@@ -181,11 +180,11 @@ function build_copFC(V_row, rcopEV, rcopFE)
 					error("no pivot")
 				end
 				# compute the new adj cell
-				fan = ord(abs(τ), bd1, V, FV, EV, FE) # ord(pivot,bd1)
+				fan = tgw_compute_ordered_fan(abs(τ), bd1, V, FV, EV, FE) 
 				if τ > 0
-					adj = mynext(fan, pivot, marks)
+					adj = tgw_next(fan, pivot, marks)
 				elseif τ < 0
-					adj = myprev(fan, pivot, marks)
+					adj = tgw_prev(fan, pivot, marks)
 				end
 				# orient adj
 				if copEF[abs(τ), adj] ≠ copEF[abs(τ), pivot]
@@ -220,9 +219,9 @@ end
 
 
 #//////////////////////////////////////////////////////////////////////////////
-""" Compute the map from vs (at least three) to z=0 """
 # REMARK: will not work when vs[:,1:3] are aligned !!!!  TODO: fix 
-function submanifold_mapping(vs)
+function fragment_submanifold_mapping(vs)
+	""" Compute the map from vs (at least three) to z=0 """
 	u1 = vs[2, :] - vs[1, :]
 	u2 = vs[3, :] - vs[1, :]
 	u3 = LinearAlgebra.cross(u1, u2)
@@ -235,7 +234,7 @@ end
 
 
 #//////////////////////////////////////////////////////////////////////////////
-function face_int(V::Points, EV::ChainOp, face::Chain; err=LAR_DEFAULT_ERR)
+function fragment_face_intersection(V::Points, EV::ChainOp, face::Chain; err=LAR_DEFAULT_ERR)
 	vs = buildFV(EV, face)     # EV::ChainOp, face::Chain
 	retV = Points(undef, 0, 3)
 	visited_verts = []
@@ -274,8 +273,8 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-""" Task to iteratively add new local components to the global 2-skeleton """
-function merge_vertices_3d(V::Points, EV::ChainOp, FE::ChainOp; err=LAR_DEFAULT_ERR)
+function fragment_merge_vertices(V::Points, EV::ChainOp, FE::ChainOp; err=LAR_DEFAULT_ERR)
+	""" Task to iteratively add new local components to the global 2-skeleton """
 	vertsnum = size(V, 1)
 	edgenum = size(EV, 1)
 	facenum = size(FE, 1)
@@ -352,18 +351,18 @@ function merge_vertices_3d(V::Points, EV::ChainOp, FE::ChainOp; err=LAR_DEFAULT_
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
+function fragment_single_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
 	vs_num = size(V, 1)
 	# 2D transformation of `sigma` face
 	sigmavs = (abs.(FE[sigma:sigma, :])*abs.(EV))[1, :].nzind # sigma vertex indices
 	sV = V[sigmavs, :]
 	sEV = EV[FE[sigma, :].nzind, sigmavs]
-	M = submanifold_mapping(sV)
+	M = fragment_submanifold_mapping(sV)
 	tV = ([V ones(vs_num)]*M)[:, 1:3]  # folle convertire *tutti* i vertici
 	sV = tV[sigmavs, :]
 	# `sigma` face intersection with faces in `sp_idx[sigma]`, i.e., in `bigpi`
 	for i in sp_idx[sigma]
-		tmpV, tmpEV = face_int(tV, EV, FE[i, :]) # va in loop qui dentro
+		tmpV, tmpEV = fragment_face_intersection(tV, EV, FE[i, :]) # va in loop qui dentro
 		sV, sEV = skel_merge(sV, sEV, tmpV, tmpEV)
 	end
 	# computation of 2D arrangement of sigma face
@@ -376,88 +375,10 @@ function frag_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
 	return nV, nEV, nFE
 end
 
-# //////////////////////////////////////////////////////////////////////////////
-""" Main function of arrangement pipeline """
-function arrange3d_v1(lar::Lar; debug_mode=false)::Lar
-
-	V=lar.V
-	EV=lar.C[:EV]
-	FV=lar.C[:FV]
-
-	# scrgiorgio: if I use here simply `lar2cop` it does not work
-	# the cop_XXX function do some magic with orientation
-	if true
-		copEV = cop_coboundary_0(EV)
-		copFE = cop_coboundary_1(V, FV, EV)
-	else
-		copEV = lar2cop(EV)
-		copFV = lar2cop(FV)
-		copFE = (copFV * copEV') .÷ Int8(2)
-	end
-	
-	# historically arrangement works internally by using by-row vertices
-	V_row = BYROW(V)
-	fs_num = size(copFE, 1)
-	# strange but necessary cycle of computations to get FV::Cells algebraically
-	FV = (abs.(copFE) * abs.(copEV)) .÷ 2
-	FV = convert(ChainOp, FV)
-	sp_idx = spaceindex(V_row, cop2lar(FV))
-	rV = Points(undef, 0, 3)
-	rEV = SparseArrays.spzeros(Int8, 0, 0)
-	rFE = SparseArrays.spzeros(Int8, 0, 0)
-	depot_V = Array{Array{Float64,2},1}(undef, fs_num)
-	depot_EV = Array{ChainOp,1}(undef, fs_num)
-	depot_FE = Array{ChainOp,1}(undef, fs_num)
-	for sigma in 1:fs_num
-		print(sigma, "/", fs_num, "\r")
-		nV, nEV, nFE = frag_face(V_row, copEV, copFE, sp_idx, sigma)
-		depot_V[sigma] = nV
-		depot_EV[sigma] = nEV
-		depot_FE[sigma] = nFE
-	end
-	rV = vcat(depot_V...)
-	rEV = SparseArrays.blockdiag(depot_EV...)
-	rFE = SparseArrays.blockdiag(depot_FE...)
-	rV, rcopEV, rcopFE = merge_vertices_3d(rV, rEV, rFE)
-
-  EV = cop2lar(rcopEV)
-  FE = cop2lar(rcopFE) 
-  FV = [union(CAT([EV[E] for E in fe])) for fe in FE]
-
-  ret = Lar(BYCOL(rV),Dict(
-		:EV => EV, 
-		:FE => FE, 
-		:FV => FV
-	))
-
-	if debug_mode
-		VIEWCOMPLEX(ret, explode=[1.0,1.0,1.0], show=["V","EV","Vtext"], title="arrange3d / 3d ALL faces")
-	end  
-
-	if LAR_ARRANGE3D_USE_EXPERIMENTAL
-		ret=SIMPLIFY(ret) # not sure this is needed
-		ret, cycles=explode_cycles(ret)
-		ret.C[:FV]=compute_FV(ret)
-		ret.C[:CF]=lar_find_atoms(ret.V, cycles, debug_mode=debug_mode)
-		# ret.C[:CV]=compute_CV(ret,is_convex=true) dont think this is needed
-		CHECK(ret)
-	else
-		rcopCF = build_copFC(rV, rcopEV, rcopFE)
-		CF = cop2lar(convert(ChainOp,rcopCF))
-		ret.C[:CF]=CF
-	end
-
-	if debug_mode
-		VIEWCOMPLEX(ret, show=["CV"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
-	end
-
-	@show(ret)
-	return SIMPLIFY(ret)
-end
-
 
 # //////////////////////////////////////////////////////////////////////////////
-function u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex=true::Bool)::ChainOp
+function fragment_compute_copFE(V::Points, copFV::ChainOp, copEV::ChainOp; convex=true::Bool, exterior=false::Bool)::ChainOp
+
 	temp = copFV * copEV'
 	I, J, Val = Int64[], Int64[], Int8[]
 	for j = 1:size(temp, 2)
@@ -473,19 +394,7 @@ function u_coboundary_1(copFV::ChainOp, copEV::ChainOp, convex=true::Bool)::Chai
 	if !convex
 		copFE = fix_redundancy(copFE, copFV, copEV)
 	end
-	return copFE
-end
 
-# //////////////////////////////////////////////////////////////////////////////
-function u_coboundary_1(FV::Cells, EV::Cells, convex=true::Bool)::ChainOp
-	return u_coboundary_1(lar2cop(FV), lar2cop(EV), convex)
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-export cop_coboundary_1
-function cop_coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true::Bool, exterior=false::Bool)::ChainOp
-
-	copFE = u_coboundary_1(copFV, copEV, convex)
 	EV = [findnz(copEV[k, :])[1] for k = 1:size(copEV, 1)]
 	copEV = sparse(cop_coboundary_0(EV))
 	for f = 1:size(copFE, 1)
@@ -556,10 +465,93 @@ function cop_coboundary_1(V::Points, copFV::ChainOp, copEV::ChainOp, convex=true
 	end
 end
 
-function cop_coboundary_1(V::Points, FV::Cells, EV::Cells; convex=true::Bool, exterior=false::Bool)::ChainOp
-	return cop_coboundary_1(V, lar2cop(FV), lar2cop(EV), convex, exterior)
+
+# ///////////////////////////////////////////////////////////
+function fragment_all_faces(lar::Lar)
+
+	V=lar.V
+	EV=lar.C[:EV]
+	FV=lar.C[:FV]
+
+	# scrgiorgio: if I use here simply `lar2cop` it does not work
+	# the cop_XXX function do some magic with orientation
+	if true
+		copEV = cop_coboundary_0(EV)
+		copFE = fragment_compute_copFE(V, lar2cop(FV), lar2cop(EV), convex=true, exterior=false)
+	else
+		copEV = lar2cop(EV)
+		copFV = lar2cop(FV)
+		copFE = (copFV * copEV') .÷ Int8(2)
+	end
+	
+	# historically arrangement works internally by using by-row vertices
+	V_row = BYROW(V)
+	fs_num = size(copFE, 1)
+	# strange but necessary cycle of computations to get FV::Cells algebraically
+	FV = (abs.(copFE) * abs.(copEV)) .÷ 2
+	FV = convert(ChainOp, FV)
+	sp_idx = spaceindex(V_row, cop2lar(FV))
+	rV = Points(undef, 0, 3)
+	rEV = SparseArrays.spzeros(Int8, 0, 0)
+	rFE = SparseArrays.spzeros(Int8, 0, 0)
+	depot_V = Array{Array{Float64,2},1}(undef, fs_num)
+	depot_EV = Array{ChainOp,1}(undef, fs_num)
+	depot_FE = Array{ChainOp,1}(undef, fs_num)
+	for sigma in 1:fs_num
+		print(sigma, "/", fs_num, "\r")
+		nV, nEV, nFE = fragment_single_face(V_row, copEV, copFE, sp_idx, sigma)
+		depot_V[sigma] = nV
+		depot_EV[sigma] = nEV
+		depot_FE[sigma] = nFE
+	end
+	rV = vcat(depot_V...)
+	rEV = SparseArrays.blockdiag(depot_EV...)
+	rFE = SparseArrays.blockdiag(depot_FE...)
+	rV, rcopEV, rcopFE = fragment_merge_vertices(rV, rEV, rFE)
+	return rV, rcopEV, rcopFE
 end
 
+# //////////////////////////////////////////////////////////////////////////////
+""" Main function of arrangement pipeline """
+function arrange3d_v1(lar::Lar; debug_mode=false)::Lar
+
+	rV, rcopEV, rcopFE=fragment_all_faces(lar)
+
+  EV = cop2lar(rcopEV)
+  FE = cop2lar(rcopFE) 
+  FV = [union(CAT([EV[E] for E in fe])) for fe in FE]
+
+  ret = Lar(BYCOL(rV),Dict(
+		:EV => EV, 
+		:FE => FE, 
+		:FV => FV
+	))
+
+	if debug_mode
+		VIEWCOMPLEX(ret, explode=[1.0,1.0,1.0], show=["V","EV","Vtext"], title="arrange3d / 3d ALL faces")
+	end  
+
+	if LAR_ARRANGE3D_USE_EXPERIMENTAL
+		ret=SIMPLIFY(ret) # not sure this is needed
+		ret, cycles=explode_cycles(ret)
+		ret.C[:FV]=compute_FV(ret)
+		ret.C[:CF]=lar_find_atoms(ret.V, cycles, debug_mode=debug_mode)
+		# ret.C[:CV]=compute_CV(ret,is_convex=true) dont think this is needed
+		CHECK(ret)
+	else
+		# broken, fails to find atoms in case of disconnected components
+		rcopCF = tgw_build_copCF(rV, rcopEV, rcopFE)
+		CF = cop2lar(convert(ChainOp,rcopCF))
+		ret.C[:CF]=CF
+	end
+
+	if debug_mode
+		VIEWCOMPLEX(ret, show=["CV"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
+	end
+
+	@show(ret)
+	return SIMPLIFY(ret)
+end
 
 # ////////////////////////////////////////////////////////////////
 function arrange3d_v1_split(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
