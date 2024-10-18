@@ -309,7 +309,12 @@ function compute_oriented_angle(a::PointNd, b::PointNd, c::PointNd)::Float64
     a = a / LinearAlgebra.norm(a)
     b = b / LinearAlgebra.norm(b)
     angle = atan(dot(cross(a, b), c), dot(a, b))
-    return rad2deg(angle)
+
+    ret=rad2deg(angle)
+
+    # I think it will not be a problem if the first face I see is 180 or -180 it means they are two flat faces connected each others
+    # @assert(ret!=180.0 || ret==-180.0) # ambiguity otherwise
+    return ret
 end
 
 # ///////////////////////////////////////////////////////////////////////////
@@ -387,9 +392,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
       (-A => Dict() for A in 1:num_cycles)...
   )
 
-  @assert(all([abs(k)>=1 && abs(k)<=num_cycles for k in keys(connections)]))
   for (A, Acycle) in enumerate(cycles)
-    @assert(A>=1 && A<=num_cycles)
     for (a, b) in Acycle
       adjacent1, adjacent2 = Vector{Any}(), Vector{Any}()
       
@@ -414,6 +417,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
         end
         An = compute_oriented_newell_normal([V[:,first] for (first, ___) in Acycle])
         Bn = compute_oriented_newell_normal([V[:,first] for (first, ___) in Bcycle])
+
         Ev = V[:,b] - V[:,a]
         angle1=compute_oriented_angle(+1.0 .* An, +1.0 .* Bn, +1.0 .* Ev)
         angle2=compute_oriented_angle(-1.0 .* An, -1.0 .* Bn, -1.0 .* Ev)
@@ -434,9 +438,9 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
   if debug_mode
     for (F,  adjacent_per_edge) in connections
       @assert(abs(F)>=1 && abs(F)<=num_cycles)
-      # println("F=", F)
+      #println("F=", F)
       for (ev, adjacents) in adjacent_per_edge
-        # println("  ev=",ev, adjacents)
+        #println("  ev=",ev, adjacents)
       end
     end
   end

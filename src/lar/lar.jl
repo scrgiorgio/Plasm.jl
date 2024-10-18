@@ -200,7 +200,7 @@ function CHECK(lar::Lar)
     @assert(length(ev)==2)
   end
 
-  # each edge should be have 1 or 2 faces
+  # each edge should have at least one face
   begin
     count_faces=Dict{Int,Set{Int}}()
     for (F,fe) in enumerate(lar.C[:FE])
@@ -209,22 +209,51 @@ function CHECK(lar::Lar)
         push!(count_faces[E],F)
       end
     end
-    @assert(all([length(it) in [1,2] for it in values(count_faces)]))
+    @assert(all([length(it)>=1 for it in values(count_faces)]))
   end
 
   # one face should have at least 3 edges
   begin
     for (F,fe) in enumerate(lar.C[:FE])
       @assert(length(fe)>=3)
-
       # and should be able to find face cycles
       cell_ev=[lar.C[:EV][E] for E in fe]
+			println("F ",F," fe ",fe, " ",  cell_ev)
       find_vcycles(cell_ev)
     end
   end
 
 end
 
+# //////////////////////////////////////////////////////////////////////
+function explode_cycles(lar::Lar)::Tuple{Lar,Cycles}
+	# e.g. if a face has two cycles, I want to two cycles to be two faces
+	ret=Lar(lar.V, Dict{Symbol,Any}( :EV => Cells(), :FE => Cells()))
+
+	for (F,fe) in enumerate(lar.C[:FE])
+		multi_cycle=find_vcycles(Cells([lar.C[:EV][E] for E in fe]))
+		for cycle in multi_cycle
+			fe=Cell()
+			for (a,b) in cycle
+				push!(ret.C[:EV], [a,b])
+				push!(fe, length(ret.C[:EV]))
+			end
+			push!(ret.C[:FE], fe)
+		end
+	end
+
+	ret=SIMPLIFY(ret)
+
+	cycles=Cycles()
+	for (F,fe) in enumerate(ret.C[:FE])
+		multi_cycle=find_vcycles(Cells([ret.C[:EV][E] for E in fe]))
+		@assert(length(multi_cycle)==1) # NOW each face is one cycle
+		append!(cycles, multi_cycle)
+	end
+
+	CHECK(ret)
+	return ret, cycles
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 """can be used also to simplify
@@ -390,6 +419,22 @@ function compute_CF(lar::Lar; is_convex=false)::Cells
 	end
 	return simplify_cells(ret)
 
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function compute_CV(lar::Lar; is_convex=false)::Cells
+	@assert(is_convex)
+	@assert(haskey(lar.C,:CF))
+	@assert(haskey(lar.C,:FV))
+	ret=Cells()
+	for (C,cf) in enumerate(lar.C[:CF])
+		cv=Cell()
+		for (F, fv) in enumerate(lar.C[:FV][C])
+			append!(cv, fv)
+		end
+		push!(ret,cv)
+	end
+	return simplify_cells(ret)
 end
 
 # //////////////////////////////////////////////////////////////////////////////

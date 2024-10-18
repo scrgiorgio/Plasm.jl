@@ -38,6 +38,14 @@ function PieceTube(num_subdivisions::Int=4)
 end
 
 # ///////////////////////////////////////////
+function Building()
+  X = GRID([2.4,4.5,-3,4.5,2.4])
+  Y = GRID([7,5])
+  Z = GRID([3,3])
+  return  X * Y * Z
+end
+
+# ///////////////////////////////////////////
 function View3D(hpc::Hpc)
   lar=LAR(hpc)
   lar=ARRANGE3D(lar)
@@ -52,6 +60,7 @@ begin
 
   Plasm.LAR_ARRANGE_VERSION=1
   View3D(TwoCubes())
+  View3D(Building())
   View3D(RandomCubes())
   View3D(PieceCylinder())
   View3D(PieceTube())

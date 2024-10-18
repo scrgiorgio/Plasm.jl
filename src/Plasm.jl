@@ -37,6 +37,7 @@ export LAR_ARRANGE_VERSION
 # make them match 
 LAR_EXPERIMENTAL_ARRANGE_ROUND            =    4
 LAR_EXPERIMENTAL_ARRANGE_PERTURBATION     = 1e-4 * 0.1 
+LAR_ARRANGE3D_USE_EXPERIMENTAL = true
 
 include("./lar/lar.jl")
 include("./lar/simplexn.jl")

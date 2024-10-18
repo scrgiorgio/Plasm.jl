@@ -378,7 +378,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """ Main function of arrangement pipeline """
-function arrange3d_v1(lar::Lar)::Lar
+function arrange3d_v1(lar::Lar; debug_mode=false)::Lar
 
 	V=lar.V
 	EV=lar.C[:EV]
@@ -419,20 +419,39 @@ function arrange3d_v1(lar::Lar)::Lar
 	rEV = SparseArrays.blockdiag(depot_EV...)
 	rFE = SparseArrays.blockdiag(depot_FE...)
 	rV, rcopEV, rcopFE = merge_vertices_3d(rV, rEV, rFE)
-	rcopCF = build_copFC(rV, rcopEV, rcopFE)
 
   EV = cop2lar(rcopEV)
   FE = cop2lar(rcopFE) 
   FV = [union(CAT([EV[E] for E in fe])) for fe in FE]
-  CF = cop2lar(convert(ChainOp,rcopCF))
 
   ret = Lar(BYCOL(rV),Dict(
 		:EV => EV, 
 		:FE => FE, 
-		:FV => FV, 
-		:CF => CF
+		:FV => FV
 	))
 
+	if debug_mode
+		VIEWCOMPLEX(ret, explode=[1.0,1.0,1.0], show=["V","EV","Vtext"], title="arrange3d / 3d ALL faces")
+	end  
+
+	if LAR_ARRANGE3D_USE_EXPERIMENTAL
+		ret=SIMPLIFY(ret) # not sure this is needed
+		ret, cycles=explode_cycles(ret)
+		ret.C[:FV]=compute_FV(ret)
+		ret.C[:CF]=lar_find_atoms(ret.V, cycles, debug_mode=debug_mode)
+		# ret.C[:CV]=compute_CV(ret,is_convex=true) dont think this is needed
+		CHECK(ret)
+	else
+		rcopCF = build_copFC(rV, rcopEV, rcopFE)
+		CF = cop2lar(convert(ChainOp,rcopCF))
+		ret.C[:CF]=CF
+	end
+
+	if debug_mode
+		VIEWCOMPLEX(ret, show=["CV"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
+	end
+
+	@show(ret)
 	return SIMPLIFY(ret)
 end
 
