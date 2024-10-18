@@ -173,9 +173,10 @@ export ATOMS
 
 
 # ////////////////////////////////////////////////////////////////
-function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=true)::Lar
+function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false)::Lar
   
-  atoms=ATOMS(arrangement, debug_mode=debug_mode)
+  # if you want to see atoms set debug_mode=true
+  atoms=ATOMS(arrangement, debug_mode=true)
 
   internal_points=[find_internal_point(atom) for atom in atoms] 
   
