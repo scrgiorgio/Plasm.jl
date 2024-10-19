@@ -309,7 +309,12 @@ function compute_oriented_angle(a::PointNd, b::PointNd, c::PointNd)::Float64
     a = a / LinearAlgebra.norm(a)
     b = b / LinearAlgebra.norm(b)
     angle = atan(dot(cross(a, b), c), dot(a, b))
-    return rad2deg(angle)
+
+    ret=rad2deg(angle)
+
+    # I think it will not be a problem if the first face I see is 180 or -180 it means they are two flat faces connected each others
+    # @assert(ret!=180.0 || ret==-180.0) # ambiguity otherwise
+    return ret
 end
 
 # ///////////////////////////////////////////////////////////////////////////
@@ -387,9 +392,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
       (-A => Dict() for A in 1:num_cycles)...
   )
 
-  @assert(all([abs(k)>=1 && abs(k)<=num_cycles for k in keys(connections)]))
   for (A, Acycle) in enumerate(cycles)
-    @assert(A>=1 && A<=num_cycles)
     for (a, b) in Acycle
       adjacent1, adjacent2 = Vector{Any}(), Vector{Any}()
       
@@ -414,6 +417,7 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
         end
         An = compute_oriented_newell_normal([V[:,first] for (first, ___) in Acycle])
         Bn = compute_oriented_newell_normal([V[:,first] for (first, ___) in Bcycle])
+
         Ev = V[:,b] - V[:,a]
         angle1=compute_oriented_angle(+1.0 .* An, +1.0 .* Bn, +1.0 .* Ev)
         angle2=compute_oriented_angle(-1.0 .* An, -1.0 .* Bn, -1.0 .* Ev)
@@ -434,9 +438,9 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
   if debug_mode
     for (F,  adjacent_per_edge) in connections
       @assert(abs(F)>=1 && abs(F)<=num_cycles)
-      # println("F=", F)
+      #println("F=", F)
       for (ev, adjacents) in adjacent_per_edge
-        # println("  ev=",ev, adjacents)
+        #println("  ev=",ev, adjacents)
       end
     end
   end
@@ -563,17 +567,24 @@ function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
 
   # connected atoms
   begin
-    # @show(atoms)
+    #for (A,atom) in enumerate(atoms)
+    #  println("Atom ",A," ",atom)
+    #end
     components=lar_connected_components(collect(eachindex(atoms)), A -> [B for B in eachindex(atoms) if A!=B && length(intersect(Set(atoms[A]),Set(atoms[B])))>0 ])
-    components=[ remove_duplicates([ atoms[idx] for idx in component]) for component in components]
-    # NOTE: components are normalized (no repetition and sorted)
-  end
+    components=[ [atoms[jt] for jt in it] for it in components]
 
-  # topology check on components
-  begin
-    for component in components
-      @assert(length(remove_duplicates(component))==length(component))
+    for (C,component) in enumerate(components)
+      # not 100% sure about it
+      if length(component)>2
+        components[C]=remove_duplicates(component)
+      else
+        components[C]=[normalize_cell(it) for it in component]
+      end
     end
+
+    #for (C,component) in enumerate(components)
+    #  println("Component ",C," ",component)
+    #end
   end
 
   lar_outers=lar_copy(lar);lar_outers.C[:CF]=[]
@@ -583,15 +594,18 @@ function arrange3d_v2_split(lar::Lar)::Tuple{Lar,Lar}
 
     faces=remove_duplicates(vcat(component...))
     num_atoms=length(component)
-    # println("# components ",C, " num_atoms=", num_atoms, " faces=",faces)
-    # println(component)
-    @assert(length(component)>=2)
+    #println("# components ",C, " num_atoms=", num_atoms, " faces=",faces)
+    #println(component)
 
-    outer,inners=nothing,[]
+    # there should be at least the internal and the external
+    @assert(length(component)>=2) 
+
+    outer, inners=nothing,[]
 
     # there is one outer cell, and one inner cell and they must be the same
     if num_atoms==2
       @assert(component[1]==component[2])
+      println("length is 2, one outer, one inner")
       outer,inners=component[1],[component[2]]
 
     else

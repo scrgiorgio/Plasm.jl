@@ -85,8 +85,6 @@ hpc = MKPOLS([PointNd(p) for p in eachrow(pointlist)],[Cell(tet) for tet in each
 # VIEW(hpc) 
 
 lar = LAR(hpc)
-# @show(lar)
-# V, (EV,FV,CV,CF) = lar.V, lar.C[:EV], lar.C[:FV], lar.C[:CV], lar.C[:CF]
 
 VIEWCOMPLEX( lar, show=["EV"], explode=[1,1,1] )  # show edges
 VIEWCOMPLEX( lar, show=["FV"], explode=[2,2,2] )  # show faces
