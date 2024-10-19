@@ -1832,7 +1832,7 @@ function SOLIDCYL(rmax=2.0, angle=2 * pi, height=2 * rmax)
 end
 
 # ///////////////////////////////////////////////////////////
-function MY_CYLINDER(args::PointNd)
+function CYLINDER(args::PointNd)
 	R, H = args
 	function MY_CYLINDER0(N)
 		points = CIRCLE_POINTS(R, N)
@@ -1841,7 +1841,6 @@ function MY_CYLINDER(args::PointNd)
 	end
 	return MY_CYLINDER0
 end
-CYLINDER = MY_CYLINDER
 
 # /////////////////////////////////////////////////////////////
 function CONE(args)
@@ -2182,7 +2181,7 @@ end
 
 # /////////////////////////////////////////////////////////////
 function CROSSPOLYTOPE(D)
-	points = []
+	points = Vector{PointNd}()
 	for i in 1:D
 		point_pos = [0 for x in 1:D]
 		point_pos[i] = +1
@@ -2197,7 +2196,7 @@ end
 
 # /////////////////////////////////////////////////////////////
 function OCTAHEDRON()
-	return CROSSPOLYTOPE(2)
+	return CROSSPOLYTOPE(3)
 end
 
 # /////////////////////////////////////////////////////////////

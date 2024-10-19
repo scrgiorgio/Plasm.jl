@@ -129,7 +129,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 """ TGW algorithm implementation (pao) """
 function build_copFC(V_row, rcopEV, rcopFE)
-
+@show V_row, rcopEV, rcopFE;
 	# G&F -> Pao data structures
 	V = BYCOL(V_row)
 	num_vertices=size(V, 2)
@@ -214,7 +214,7 @@ function build_copFC(V_row, rcopEV, rcopFE)
 		append!(W, vals)
 	end
 	copCF = sparse(J, I, W)
-	# @show copCF;
+@show copCF;
 	return copCF
 end
 
