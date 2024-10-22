@@ -542,14 +542,16 @@ end
 export find_vcycles
 
 # //////////////////////////////////////////////////////////////////////////////
-function run_lar_viewer(viewer::Viewer; title="LAR")
+function run_lar_viewer(viewer::Viewer; title="LAR", use_thread=false)
 	run_viewer(viewer, properties=Properties(
 		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
 		"use_ortho" => true,
 		"title" => title,
 		"show_axis" => false
 		#, "line_width" => 3
-	))
+		),
+		use_thread=use_thread
+	)
 end
 export run_lar_viewer
 
@@ -743,13 +745,13 @@ end
 export render_lar
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR")
+function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false)
 	render_lar(viewer, lar, show=show, explode=explode, face_color=face_color)
-	run_lar_viewer(viewer, title=title)
+	run_lar_viewer(viewer, title=title, use_thread=use_thread)
 end
 
-function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR")
-	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color, title=title)
+function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false)
+	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color, title=title, use_thread=use_thread)
 end
 
 export VIEWCOMPLEX

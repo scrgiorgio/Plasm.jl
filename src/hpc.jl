@@ -1112,20 +1112,20 @@ end
 
 
 # //////////////////////////////////////////////////////////
-function VIEW(viewer::Viewer, hpc::Hpc; properties::Properties=Properties(), title::String="")
+function VIEW(viewer::Viewer, hpc::Hpc; properties::Properties=Properties(), title::String="", use_thread=false)
 
 	if title!=""
 		properties["title"]=title
 	end
 
 	render_hpc(viewer, hpc)
-	return run_viewer(viewer, properties=properties)
+	return run_viewer(viewer, properties=properties,use_thread=use_thread)
 end
 
 
 # //////////////////////////////////////////////////////////
-function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="")
-	VIEW(Viewer(),hpc, properties=properties,title=title)
+function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", use_thread=false)
+	VIEW(Viewer(),hpc, properties=properties,title=title, use_thread=use_thread)
 end
 
 
