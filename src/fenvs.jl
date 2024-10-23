@@ -911,6 +911,8 @@ function INTERVALS(A)
 	return INTERVALS0
 end
 
+INTERVALS(a,b) = n -> T(1)(a)(INTERVALS(b-a)(n))
+
 # /////////////////////////////////////////////////////////////////
 function CUBOID(vs)
 	return Scale(Cube(length(vs)), [Float64(it) for it in vs])
