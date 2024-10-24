@@ -588,14 +588,14 @@ function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0
 	render_lines(viewer, lines, colors=colors, line_width=DEFAULT_LINE_WIDTH)
 
 	if "Vtext" in show
-		render_text(viewer, lar_vertex_name(lar, ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=get(properties,"font_size", DEFAULT_LAR_FONT_SIZE))
-		render_text(viewer, lar_vertex_name(lar, ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=get(properties,"font_size", DEFAULT_LAR_FONT_SIZE))
+		render_text(viewer, lar_vertex_name(lar, ev[1]), center=edge_points[:,1], color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
+		render_text(viewer, lar_vertex_name(lar, ev[2]), center=edge_points[:,2], color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
 	end
 
 
 
 	if "Etext" in show
-		render_text(viewer, lar_edge_name(lar, E), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=get(properties,"font_size", DEFAULT_LAR_FONT_SIZE))
+		render_text(viewer, lar_edge_name(lar, E), center=compute_centroid(edge_points), color=LAR_EDGE_COLOR, fontsize=get(properties,"font_size", LAR_EDGE_FONT_SIZE))
 	end
 end
 
@@ -635,7 +635,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 			if "Vtext" in show
 				perturbation= [0.0,0.0,0.0] 
 				# perturbation=rand(3)*0.01
-				render_text(viewer, lar_vertex_name(lar, v_index), center=pos + perturbation , color=DARK_GRAY, fontsize=get(properties,"font_size", DEFAULT_LAR_FONT_SIZE))
+				render_text(viewer, lar_vertex_name(lar, v_index), center=pos + perturbation , color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
 			end
 		end		
 	end
@@ -668,7 +668,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	# render text
 	begin
 		if "Ftext" in show
-			render_text(viewer, lar_face_name(lar, F), center=compute_centroid(face_points), color=DARK_GRAY, fontsize=get(properties,"font_size", DEFAULT_LAR_FONT_SIZE))
+			render_text(viewer, lar_face_name(lar, F), center=compute_centroid(face_points), color=LAR_FACE_COLOR, fontsize=get(properties,"font_size", LAR_FACE_FONT_SIZE))
 		end
 	end
 
@@ -752,13 +752,18 @@ end
 export render_lar
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false, properties=nothing)
+function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false, properties=Properties(), numbering=false)
+
+	if numbering
+		show=[show ;  ["Vtext", "Etext", "Ftext"] ]
+	end
+
 	render_lar(viewer, lar, show=show, explode=explode, face_color=face_color, properties=properties)
 	run_lar_viewer(viewer, title=title, use_thread=use_thread, properties=properties)
 end
 
-function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false, properties=nothing)
-	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color, title=title, use_thread=use_thread, properties=properties)
+function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false, properties=Properties(), numbering=false)
+	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color, title=title, use_thread=use_thread, properties=properties, numbering=numbering)
 end
 
 export VIEWCOMPLEX
