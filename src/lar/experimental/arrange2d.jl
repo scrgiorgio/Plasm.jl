@@ -31,8 +31,9 @@ function arrange2d_v2(lar::Lar; debug_mode=false)
   begin
     vmap=Dict()
     pointsdb=PointsDB() 
+    digits=get_number_of_digits(LAR_EXPERIMENTAL_ARRANGE_PERTURBATION)
     for (P,p) in enumerate(eachcol(tout.pointlist))
-      vmap[P]=add_point(pointsdb, round_vector(PointNd(p), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND))
+      vmap[P]=add_point(pointsdb, round_vector(PointNd(p), digits=digits))
     end
   end
 

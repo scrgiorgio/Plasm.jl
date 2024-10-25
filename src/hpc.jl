@@ -1130,31 +1130,6 @@ function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", u
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////////////////
-function MapFn(self::Hpc, fn)
-	childs = Vector{Hpc}()
-	for (T, properties, obj) in toList(self)
-
-		if get_config("map-convert-to-simplicial", false) # scrgiorgio: default now is false
-			sf = ToSimplicialForm(obj)
-			points = [fn(transformPoint(T, p)) for p in sf.points]
-			hulls = sf.hulls
-			# scrgiorgio: I do NOT think I need to mkpol here
-			# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
-			push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
-		else
-
-			points = [fn(transformPoint(T, p)) for p in obj.points]
-			hulls = obj.hulls
-			# scrgiorgio: I do NOT think I need to mkpol here
-			# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
-			push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
-		end
-	end
-	ret = Hpc(MatrixNd(), childs)
-	return ret
-end
-export MapFn
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function ToBoundaryForm(self::Hpc)
@@ -1432,7 +1407,7 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////
-function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
+function ToGeometry(self::Hpc; precision=TO_GEOMETRY_PRECISION)
 
 	# returning always an unique cell
 	ret = Geometry()
@@ -1459,14 +1434,9 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 
 			points = [transformPoint(T, p) for p in points]
 
-			# ex truncate
-			if precision != 0.0
-				for point in points
-					for K in 1:length(point)
-						approx = round(point[K], digits=precision)
-						point[K] = abs(approx) == 0.0 ? 0.0 : approx
-					end
-				end
+			if precision!=0
+				digits=get_number_of_digits(precision)
+				points=[round_vector(p, digits=digits) for p in points]
 			end
 
 			# add the points

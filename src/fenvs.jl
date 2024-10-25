@@ -1748,13 +1748,54 @@ function BOX(sel)
 	return BOX0
 end
 
-# ///////////////////////////////////////////////////////////
-function MAP(fn)
+# //////////////////////////////////////////////////////////////////////////////////////////
+function MAP(fn; precision=0.0)
 	function MAP0(pol::Hpc)
+
+		function ApplyMapFunction(self::Hpc, fn)
+			childs = Vector{Hpc}()
+			for (T, properties, obj) in toList(self)
+		
+				if get_config("map-convert-to-simplicial", false) # scrgiorgio: default now is false
+					sf = ToSimplicialForm(obj)
+					points = [fn(transformPoint(T, p)) for p in sf.points]
+					hulls = sf.hulls
+					# scrgiorgio: I do NOT think I need to mkpol here
+					# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+					push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
+				else
+		
+					points = [fn(transformPoint(T, p)) for p in obj.points]
+					hulls = obj.hulls
+		
+					# round
+					if precision!=0.0
+						digits=get_number_of_digits(precision)
+						vmap=Dict{Int64,Int64}()
+						db=PointsDB()
+						for (P,point) in enumerate(points)
+							vmap[P]=add_point(db, round_vector(point, digits=digits))
+						end
+						points=get_points(db)
+						hulls=Cells([[vmap[idx] for idx in cell] for cell in hulls])
+					end
+		
+					# scrgiorgio: I do NOT think I need to mkpol here
+					if false
+						push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+					else
+						push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
+					end
+				end
+			end
+			ret = Hpc(MatrixNd(), childs)
+			return ret
+		end
+
 		if isa(fn, Tuple) || isa(fn, Vector)
-			return MapFn(pol, p -> [f(p) for f in fn])
+			return ApplyMapFunction(pol, p -> [f(p) for f in fn])
 		else
-			return MapFn(pol, fn)
+			return ApplyMapFunction(pol, fn)
 		end
 	end
 	return MAP0

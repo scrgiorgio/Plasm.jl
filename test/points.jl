@@ -32,7 +32,7 @@ using Plasm
    end;
 
    @testset "fuzzy vertex" begin
-      LAR_DEFAULT_ERR = 1.0e-9
+      Plasm.LAR_DEFAULT_ERR,old_value = 1.0e-9, Plasm.LAR_DEFAULT_ERR
       v1 = v2 = rand(3)
       v1 = v2 .- 0.00000000009
       @test vertex_fuzzy_equals(v1,v2)
@@ -42,6 +42,7 @@ using Plasm
       t1 = t2 = rand(Float32,3);
       t1 = t2 .- 0.00000000009
       @test vertex_fuzzy_equals(t1,t2)
+      Plasm.LAR_DEFAULT_ERR=old_value
    end;
 
    @testset "vertex membership in vertices" begin
