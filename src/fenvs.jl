@@ -1749,7 +1749,7 @@ function BOX(sel)
 end
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function MAP(fn; precision=0.0)
+function MAP(fn; precision=MAP_PRECISION)
 	function MAP0(pol::Hpc)
 
 		function ApplyMapFunction(self::Hpc, fn)
@@ -1776,7 +1776,7 @@ function MAP(fn; precision=0.0)
 						for (P,point) in enumerate(points)
 							vmap[P]=add_point(db, round_vector(point, digits=digits))
 						end
-						points=get_points(db)
+						points=[PointNd(col) for col in eachcol(get_points(db))]
 						hulls=Cells([[vmap[idx] for idx in cell] for cell in hulls])
 					end
 		

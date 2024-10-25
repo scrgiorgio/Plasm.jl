@@ -9,8 +9,6 @@ using NearestNeighbors
 using Random
 using Statistics
 
-
-
 include("./config.jl")
 include("./utils.jl")
 include("./geometry.jl")
@@ -24,6 +22,8 @@ include("./viewer.jl")
 
 TO_GEOMETRY_PRECISION = 1e-14
 include("./hpc.jl")
+
+MAP_PRECISION=1e-8
 include("./fenvs.jl")
 
 # ///////////////////////////////////////////////
