@@ -548,9 +548,8 @@ function run_lar_viewer(viewer::Viewer; title="LAR", use_thread=false, propertie
 		properties=Properties()
 	end
 
-	properties["show_axis"]           = get(properties,"show_axis",false)
+	properties["show_axis"]           = get(properties,"show_axis", true)
 	properties["title"]               = get(properties,"title","VIEWCOMPLEX")
-	properties["show_axis"]           = get(properties,"show_axis",false)
 	properties["background_color"]    = get(properties,"background_color",Point4d([0.9,0.9,0.9,1.0]))
 
 	run_viewer(viewer, 
@@ -591,8 +590,6 @@ function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0
 		render_text(viewer, lar_vertex_name(lar, ev[1]), center=edge_points[:,1], color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
 		render_text(viewer, lar_vertex_name(lar, ev[2]), center=edge_points[:,2], color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
 	end
-
-
 
 	if "Etext" in show
 		render_text(viewer, lar_edge_name(lar, E), center=compute_centroid(edge_points), color=LAR_EDGE_COLOR, fontsize=get(properties,"font_size", LAR_EDGE_FONT_SIZE))
@@ -731,7 +728,8 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		if !isnothing(FV) !isnothing(FE) 
 			for (F,fv) in enumerate(FV)
 				vt=get_explosion_vt(lar.V[:, fv], explode)
-				line_color = RandomColor()
+				# line_color = RandomColor()
+				line_color=BLACK
 				for E in FE[F]
 					render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show, properties=properties)
 				end
@@ -741,9 +739,24 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		elseif !isnothing(EV)
 			for (E,ev) in enumerate(EV)
 				vt=get_explosion_vt(lar.V[:, ev], explode)
-				line_color = RandomColor()
+				# line_color = RandomColor()
+				line_color=BLACK
 				render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show, properties=properties)
 			end
+		end
+
+		# show Ftext if needed
+		if "Ftext" in show && !isnothing(FV)
+			for (F, fv) in enumerate(FV)
+				vt=get_explosion_vt(lar.V[:, fv], explode)
+				# sometimes getting StackOverflowError
+				try
+					render_face(viewer, lar, F, vt=vt, face_color=TRANSPARENT, show=show, properties=properties)
+				catch
+					println("ERROR in render_face, what is going on???")
+				end
+			end
+
 		end
 
 	end
