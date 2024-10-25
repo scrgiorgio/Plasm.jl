@@ -2912,7 +2912,18 @@ end
 # //////////////////////////////////////////////////////////////
 function COLOR(C)
 	function COLOR0(hpc::Hpc)
-		return PROPERTIES(hpc, Properties("face_color" => Point4d(C[1], C[2], C[3], length(C) >= 4 ? C[4] : 1.0)))
+
+		pdim=dim(hpc)
+		if pdim==1
+			pname="point_color"
+		elseif pdim==2
+			pname="line_color"
+		else
+			pname="face_color"
+		end
+
+		color=Point4d(C[1], C[2], C[3], length(C) >= 4 ? C[4] : 1.0)
+		return PROPERTIES(hpc, Properties(pname => color))
 	end
 	return COLOR0
 end

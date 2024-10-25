@@ -1104,6 +1104,7 @@ function render_hpc(viewer::Viewer, hpc::Hpc)
 			T[4, 2], T[4, 3], T[4, 4], T[4, 1],
 			T[1, 2], T[1, 3], T[1, 4], T[1, 1]
 		)
+
 		render_geometry(viewer, T, obj, properties)
 
 	end
