@@ -15,6 +15,9 @@ export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 DEFAULT_VIEWER="glfw"
 export DEFAULT_VIEWER
 
+
+DEFAULT_TEXT_LINE_WIDTH=2
+
 include("./config.jl")
 include("./utils.jl")
 include("./geometry.jl")
@@ -40,6 +43,7 @@ LAR_FACE_FONT_SIZE   = 0.07
 LAR_VERTEX_COLOR     = BLACK
 LAR_EDGE_COLOR       = BLUE
 LAR_FACE_COLOR       = MAGENTA
+
 
 
 # use new TGW and SPLIT code (cannot be sure it's more sbable, need testing)
