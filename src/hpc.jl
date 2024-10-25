@@ -411,6 +411,7 @@ mutable struct Geometry
 end
 export Geometry
 
+
 function addPoint(self::Geometry, p::PointNd)::Int
 	idx = get(self.db, p, 0)
 	if idx >= 1
@@ -433,6 +434,8 @@ export addPoints
 function addHull(self::Geometry, points::AbstractPointsNd)
 	push!(self.hulls, [addPoint(self, p) for p in points])
 end
+
+
 
 dim(self::Geometry) = isempty(self.points) ? 0 : length(self.points[1])
 
@@ -758,8 +761,6 @@ function ToMultiGeometry(T1::MatrixNd, self::Hpc)::Vector{Geometry}
 	return ret
 end
 export ToSingleGeometry
-
-
 
 # ///////////////////////////////////////////////////////
 function TOPOS(ret::Vector{Hpc}, target_dim::Int64, T::MatrixNd, properties::Properties, node::Union{Hpc,Geometry}, stop_key::String, stop_value::String, multi_geometry::Bool)

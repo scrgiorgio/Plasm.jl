@@ -1748,8 +1748,35 @@ function BOX(sel)
 	return BOX0
 end
 
+# ///////////////////////////////////////////////////////
+function GLUE(g::Geometry, precision::Float64)::Geometry
+	ret=Geometry()
+	digits=get_number_of_digits(precision)
+	vmap=Dict{Int64,Int64}()
+	for (P,point) in enumerate(g.points)
+		rounded=round_vector(point, digits=digits)
+		vmap[P]=addPoint(ret,rounded)
+	end
+
+
+	
+
+	# TODO: what happens in Geometry changes?
+	ret.edges=[ [vmap[idx] for idx in it] for it in g.edges]
+	ret.faces=[ [vmap[idx] for idx in it] for it in g.faces]
+	ret.hulls=[ [vmap[idx] for idx in it] for it in g.hulls]
+	return ret
+end
+
+function GLUE(hpc::Hpc, precision::Float64)::Hpc
+	# TODO: what happens in Geometry changes?
+	return Hpc(hpc.T, [GLUE(it, precision) for it in hpc.childs], hpc.properties)
+end
+
+export GLUE
+
 # //////////////////////////////////////////////////////////////////////////////////////////
-function MAP(fn; precision=MAP_PRECISION)
+function MAP(fn)
 	function MAP0(pol::Hpc)
 
 		function ApplyMapFunction(self::Hpc, fn)
@@ -1768,18 +1795,7 @@ function MAP(fn; precision=MAP_PRECISION)
 					points = [fn(transformPoint(T, p)) for p in obj.points]
 					hulls = obj.hulls
 		
-					# round
-					if precision!=0.0
-						digits=get_number_of_digits(precision)
-						vmap=Dict{Int64,Int64}()
-						db=PointsDB()
-						for (P,point) in enumerate(points)
-							vmap[P]=add_point(db, round_vector(point, digits=digits))
-						end
-						points=[PointNd(col) for col in eachcol(get_points(db))]
-						hulls=Cells([[vmap[idx] for idx in cell] for cell in hulls])
-					end
-		
+					
 					# scrgiorgio: I do NOT think I need to mkpol here
 					if false
 						push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
