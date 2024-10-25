@@ -442,7 +442,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
-function LAR(obj::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)::Lar
+function LAR(obj::Hpc; precision=TO_GEOMETRY_PRECISION)::Lar
 	geo = ToGeometry(obj, precision=precision)
 	ret = Lar()
 	ret.V = hcat(geo.points...)

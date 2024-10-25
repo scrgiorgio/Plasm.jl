@@ -1748,13 +1748,70 @@ function BOX(sel)
 	return BOX0
 end
 
-# ///////////////////////////////////////////////////////////
+# ///////////////////////////////////////////////////////
+function GLUE(g::Geometry, precision::Float64)::Geometry
+	ret=Geometry()
+	digits=get_number_of_digits(precision)
+	vmap=Dict{Int64,Int64}()
+	for (P,point) in enumerate(g.points)
+		rounded=round_vector(point, digits=digits)
+		vmap[P]=addPoint(ret,rounded)
+	end
+
+
+	
+
+	# TODO: what happens in Geometry changes?
+	ret.edges=[ [vmap[idx] for idx in it] for it in g.edges]
+	ret.faces=[ [vmap[idx] for idx in it] for it in g.faces]
+	ret.hulls=[ [vmap[idx] for idx in it] for it in g.hulls]
+	return ret
+end
+
+function GLUE(hpc::Hpc, precision::Float64)::Hpc
+	# TODO: what happens in Geometry changes?
+	return Hpc(hpc.T, [GLUE(it, precision) for it in hpc.childs], hpc.properties)
+end
+
+export GLUE
+
+# //////////////////////////////////////////////////////////////////////////////////////////
 function MAP(fn)
 	function MAP0(pol::Hpc)
+
+		function ApplyMapFunction(self::Hpc, fn)
+			childs = Vector{Hpc}()
+			for (T, properties, obj) in toList(self)
+		
+				if get_config("map-convert-to-simplicial", false) # scrgiorgio: default now is false
+					sf = ToSimplicialForm(obj)
+					points = [fn(transformPoint(T, p)) for p in sf.points]
+					hulls = sf.hulls
+					# scrgiorgio: I do NOT think I need to mkpol here
+					# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+					push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
+				else
+		
+					points = [fn(transformPoint(T, p)) for p in obj.points]
+					hulls = obj.hulls
+		
+					
+					# scrgiorgio: I do NOT think I need to mkpol here
+					if false
+						push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+					else
+						push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
+					end
+				end
+			end
+			ret = Hpc(MatrixNd(), childs)
+			return ret
+		end
+
 		if isa(fn, Tuple) || isa(fn, Vector)
-			return MapFn(pol, p -> [f(p) for f in fn])
+			return ApplyMapFunction(pol, p -> [f(p) for f in fn])
 		else
-			return MapFn(pol, fn)
+			return ApplyMapFunction(pol, fn)
 		end
 	end
 	return MAP0
