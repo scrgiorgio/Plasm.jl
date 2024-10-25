@@ -55,6 +55,8 @@ function lar_face_name(lar::Lar, id::Int)::String
 end 
 
 # ////////////////////////////////////////////
+# disabled: https://github.com/scrgiorgio/Plasm.jl/issues/17
+"""
 function Base.show(io::IO, lar::Lar) 
 	println(io, "Lar(")
 	println(io, "  [ # total ", size(lar.V,2))
@@ -77,7 +79,7 @@ function Base.show(io::IO, lar::Lar)
 	println(io, "  )")
 	println(io, ")")
 end
-
+"""
 
 # //////////////////////////////////////////////////////////////////////////////
 function lar_used_vertices(lar::Lar)
