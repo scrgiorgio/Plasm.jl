@@ -411,7 +411,6 @@ mutable struct Geometry
 end
 export Geometry
 
-
 function addPoint(self::Geometry, p::PointNd)::Int
 	idx = get(self.db, p, 0)
 	if idx >= 1
@@ -434,8 +433,6 @@ export addPoints
 function addHull(self::Geometry, points::AbstractPointsNd)
 	push!(self.hulls, [addPoint(self, p) for p in points])
 end
-
-
 
 dim(self::Geometry) = isempty(self.points) ? 0 : length(self.points[1])
 
@@ -761,6 +758,8 @@ function ToMultiGeometry(T1::MatrixNd, self::Hpc)::Vector{Geometry}
 	return ret
 end
 export ToSingleGeometry
+
+
 
 # ///////////////////////////////////////////////////////
 function TOPOS(ret::Vector{Hpc}, target_dim::Int64, T::MatrixNd, properties::Properties, node::Union{Hpc,Geometry}, stop_key::String, stop_value::String, multi_geometry::Bool)
@@ -1131,6 +1130,31 @@ function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", u
 end
 
 
+# //////////////////////////////////////////////////////////////////////////////////////////
+function MapFn(self::Hpc, fn)
+	childs = Vector{Hpc}()
+	for (T, properties, obj) in toList(self)
+
+		if get_config("map-convert-to-simplicial", false) # scrgiorgio: default now is false
+			sf = ToSimplicialForm(obj)
+			points = [fn(transformPoint(T, p)) for p in sf.points]
+			hulls = sf.hulls
+			# scrgiorgio: I do NOT think I need to mkpol here
+			# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+			push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
+		else
+
+			points = [fn(transformPoint(T, p)) for p in obj.points]
+			hulls = obj.hulls
+			# scrgiorgio: I do NOT think I need to mkpol here
+			# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
+			push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
+		end
+	end
+	ret = Hpc(MatrixNd(), childs)
+	return ret
+end
+export MapFn
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function ToBoundaryForm(self::Hpc)
@@ -1408,7 +1432,7 @@ end
 
 
 # ///////////////////////////////////////////////////////////////////
-function ToGeometry(self::Hpc; precision=TO_GEOMETRY_PRECISION)
+function ToGeometry(self::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)
 
 	# returning always an unique cell
 	ret = Geometry()
@@ -1435,9 +1459,14 @@ function ToGeometry(self::Hpc; precision=TO_GEOMETRY_PRECISION)
 
 			points = [transformPoint(T, p) for p in points]
 
-			if precision!=0
-				digits=get_number_of_digits(precision)
-				points=[round_vector(p, digits=digits) for p in points]
+			# ex truncate
+			if precision != 0.0
+				for point in points
+					for K in 1:length(point)
+						approx = round(point[K], digits=precision)
+						point[K] = abs(approx) == 0.0 ? 0.0 : approx
+					end
+				end
 			end
 
 			# add the points

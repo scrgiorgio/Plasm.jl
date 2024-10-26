@@ -120,11 +120,9 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
       v_index_2d_to_3d=Dict()
       v_index_3d_to_2d=Dict()
       unprojected=projector(tout.pointlist, inverse=true)
-      digits=get_number_of_digits(LAR_EXPERIMENTAL_ARRANGE_PERTURBATION)
-
       for index_2d in 1:size(tout.pointlist,2)
         p3d=unprojected[:,index_2d]
-        r3d=round_vector(PointNd(p3d), digits=digits)
+        r3d=round_vector(PointNd(p3d), digits=LAR_EXPERIMENTAL_ARRANGE_ROUND)
         index_3d=add_point(points3d, r3d)
         v_index_2d_to_3d[index_2d]=index_3d
         v_index_3d_to_2d[index_3d]=index_2d

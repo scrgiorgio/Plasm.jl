@@ -254,7 +254,7 @@ function render_text(viewer::Viewer, s::String; center=Point3d(0.0, 0.0, 0.0), a
 		end
 	end
 
-	render_lines(viewer, vertices, colors=colors, line_width=TEXT_LINE_WIDTH)
+	render_lines(viewer, vertices, colors=colors, line_width=DEFAULT_TEXT_LINE_WIDTH)
 end
 
 export render_text

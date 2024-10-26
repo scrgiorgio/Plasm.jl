@@ -985,20 +985,19 @@ function run_viewer_in_current_thread(viewer::GLFWViewer; properties::Properties
 	# GLFW.HideWindow(win)
 	GLFW.DestroyWindow(win)
 	
-	# println("Viewer destroyed")
+	println("Viewer destroyed")
 end
 
 
 # ///////////////////////////////////////////////////////////////////////
 function run_viewer(viewer::GLFWViewer; properties::Properties=Properties(), use_thread=true)
-
-	# scrgiorgio: disabled since MacOs does not seem to support it
-	#println("Creating Window use_thread=",use_thread)
-	#if use_thread
-	#	Threads.@spawn run_viewer_in_current_thread(viewer, properties=properties)
-	#else
+	println("Creating Window use_thread=",use_thread)
+	if use_thread
+		
+		Threads.@spawn run_viewer_in_current_thread(viewer, properties=properties)
+	else
 		run_viewer_in_current_thread(viewer, properties=properties)
 		GLFW.Terminate()
-	#end
+	end
 end
 export run_viewer
