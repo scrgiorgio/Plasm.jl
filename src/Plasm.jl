@@ -26,6 +26,8 @@ include("./plane.jl")
 include("./defaults.jl")
 include("./viewer.jl")
 include("./hpc.jl")
+
+MAP_GLUE=0.0
 include("./fenvs.jl")
 
 LAR_DEFAULT_ERR=1e-8

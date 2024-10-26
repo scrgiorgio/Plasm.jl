@@ -1130,31 +1130,6 @@ function VIEW(hpc::Hpc; properties::Properties=Properties(), title::String="", u
 end
 
 
-# //////////////////////////////////////////////////////////////////////////////////////////
-function MapFn(self::Hpc, fn)
-	childs = Vector{Hpc}()
-	for (T, properties, obj) in toList(self)
-
-		if get_config("map-convert-to-simplicial", false) # scrgiorgio: default now is false
-			sf = ToSimplicialForm(obj)
-			points = [fn(transformPoint(T, p)) for p in sf.points]
-			hulls = sf.hulls
-			# scrgiorgio: I do NOT think I need to mkpol here
-			# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
-			push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
-		else
-
-			points = [fn(transformPoint(T, p)) for p in obj.points]
-			hulls = obj.hulls
-			# scrgiorgio: I do NOT think I need to mkpol here
-			# push!(childs, Hpc(MatrixNd(), [BuildMkPol(points, hulls)], properties))
-			push!(childs, Hpc(MatrixNd(), [CreateGeometry(points, hulls)], properties))
-		end
-	end
-	ret = Hpc(MatrixNd(), childs)
-	return ret
-end
-export MapFn
 
 # //////////////////////////////////////////////////////////////////////////////////////////
 function ToBoundaryForm(self::Hpc)
