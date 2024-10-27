@@ -7,77 +7,81 @@ Random.seed!(0)
 # ////////////////////////////////////////////////////////
 function TwoCubes()
 
-  assembly = STRUCT(
-    CUBE(1), 
-    T(1,2,3)(.5,.5,.5), 
-    CUBE(1)
-  )
+  args=[
+    CUBOID([0.0, 0.0, 0.0],[1.0, 1.0, 1.0]),
+    CUBOID([0.5, 0.5, 0.5],[1.5, 1.5, 1.5])
+  ]
 
-  lar=LAR(assembly)
-  input_args=[LAR(it) for it in TOPOS(assembly)]
-  lar=ARRANGE3D(lar)
-  lar=INNERS(lar)
-  lar= BOOL3D(lar, bool_op=Difference, input_args=input_args, debug_mode=false)
-  @show(lar)
+  assembly=STRUCT(args)
+  lar = ARRANGE3D(LAR(assembly))
+  lar = INNERS(lar)
 
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="TwoCubes FV")
-  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="TwoCubes CV") 
+  for bool_op in [Union, Intersection, Difference, Xor]
+    lar= BOOL3D(lar, bool_op=bool_op, input_args=[LAR(it) for it in args], debug_mode=false)
+    VIEWCOMPLEX(lar, show=["FV"], explode=[1.0,1.0,1.0], title="TwoCubes FV $(bool_op)")
+    VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2], title="TwoCubes CV $(bool_op)")
+  end
 
+end
+
+
+# ////////////////////////////////////////////////////////
+function ThreeCubes()
+
+  args=[
+    CUBOID([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
+    CUBOID([0.5, 0.5, 0.0], [1.5, 1.5, 1.0]),
+    CUBOID([0.7, 0.7, 0.0], [1.7, 1.7, 1.0])]
+
+  lar=LAR(STRUCT(args))
+  lar=INNERS(ARRANGE3D(lar))
+  input_args=[LAR(arg) for arg in args]
+
+  for bool_op in [Union, Intersection, Difference, Xor]
+    lar=BOOL3D(lar, bool_op=bool_op, input_args=input_args)
+    VIEWCOMPLEX(lar, show=["FV"], explode=[1.0,1.0,1.0], title="3cubes FV $(bool_op)")
+    VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2], title="3cubes CV $(bool_op)")
+  end
+  
 end
 
 # ////////////////////////////////////////////////////////
 function PieceCylinder()
 
-  primitive=T(3)(-2)(CYLINDER([0.5,4])(8))
-  assembly=  STRUCT( 
-    STRUCT(T(1,2,3)(-1,-1,-1),CUBE(2)), 
-    primitive, R(2,3)(π/2), 
-    primitive, R(1,3)(π/2), 
-    primitive 
-  )
+  cyl=T(3)(-2)(CYLINDER([0.5,4])(8))
+  cube=CUBOID([-1,-1,-1],[+1,+1,+1])
+
+  args=[
+    cube,
+    R(1,2)(π/2)(cyl),
+    R(2,3)(π/2)(cyl),
+    R(1,3)(π/2)(cyl)
+  ]
+
+  assembly=  STRUCT(args)
 
   # any boolean expression will work
-  function my_bool_op(v)
-    c,x1,x2,x3=v
-    return Union([c,Union([x1,x2,x3])])
-  end
+  #function my_bool_op(v)
+  #  c,x1,x2,x3=v
+  #  return Union([c,Union([x1,x2,x3])])
+  #end
 
   lar = LAR(assembly)
   input_args=[LAR(it) for it in TOPOS(assembly)]
   lar=ARRANGE3D(lar)
   lar=INNERS(lar)
 
-  lar=BOOL3D(lar, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="PieceCylinder FV")
-  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="PieceCylinder CV")
+  for bool_op in [Union, Intersection, Difference, Xor]
+    lar=BOOL3D(lar, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
+    VIEWCOMPLEX(lar, show=["FV"], explode=[1.0,1.0,1.0], title="PieceCylinder FV")
+    VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2], title="PieceCylinder CV")
+  end
 
 end
 
-# ///////////////////////////////////////////
-function Building()
-  X = GRID([2.4,4.5,-3,4.5,2.4])
-  Y = GRID([7,5])
-  Z = GRID([3,3])
-  assembly=  STRUCT(X * Y * Z)
+TwoCubes()
+# ThreeCubes()
+# PieceCylinder()
 
-  lar=LAR(assembly)
-  input_args=[LAR(it) for it in TOPOS(assembly)]
-
-  lar=ARRANGE3D(lar)
-  lar=INNERS(lar)
-
-  #VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="ARRANGE3D/INNERS/FV")
-  #VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="ARRANGE3D/INNERS/CV")
-
-  lar= BOOL3D(lar, bool_op=Difference, input_args=input_args)
-  # @show(lar)
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
-  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) 
-
-end
-
-# TwoCubes()
-PieceCylinder()
-
-# does not make sense because some cells return "outside" the only input arg...
+# does not make sense because some cells return "outside" , some other "inside depending or where I am inside the grid
 # Building()

@@ -916,6 +916,15 @@ function CUBOID(vs)
 	return Scale(Cube(length(vs)), [Float64(it) for it in vs])
 end
 
+
+function CUBOID(a::AbstractPointNd, b::AbstractPointNd)::Hpc
+  @assert(length(a)==length(b))
+  size=[b-a for (a,b) in zip(a,b)]
+  return STRUCT(
+    TRANSLATE(collect(eachindex(a)))(a),
+    Plasm.CUBOID(size))
+end
+
 function CUBE(size)
 	return CUBOID([Float64(size), Float64(size), Float64(size)])
 end
