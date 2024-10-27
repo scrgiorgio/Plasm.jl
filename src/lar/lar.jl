@@ -259,32 +259,40 @@ function explode_cycles(lar::Lar)::Tuple{Lar,Cycles}
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-"""can be used also to simplify
-
-NOTE: ignoring :CF that is generally used to crate the `sel`
+"""select some faces of the Lar complex
+can be used also to simplif
 """
 function SELECT(lar::Lar, sel::Cell)::Lar
 
 	sel=normalize_cell(sel)
 
 	ret=Lar(lar.V, Dict(:EV => Cells(), :FV => Cells(), :FE => Cells() ))
+
 	ret.mapping=Dict(:F => Dict{Int,Int}(), :E => Dict{Int,Int}())
 
 	FV=haskey(lar.C,:FV) ? lar.C[:FV] : compute_FV(lar)
 
-	fmap=Set{Cell}() # from (a,b,c,d,...) 
-	emap=Dict{Cell,Int}() # from (a,b) to new edge index
+	added_fv=Dict{Cell,Int}() # from (a,b,c,d,...)
+	added_ev=Dict{Cell,Int}() # from (a,b) to new edge index
+	fmap=Dict{Int ,Int}()
+
 	for Fold in sel
 
 		fv=normalize_cell(FV[Fold])
-		if fv in fmap  continue end
+
+		if haskey(added_fv,fv)  
+			fmap[Fold]=added_fv[fv]
+			continue 
+		end
 
 		# add new face
-		push!(fmap,fv)
+		added_fv[fv]=Fold
 		push!(ret.C[:FV], [])
 		push!(ret.C[:FE], [])
 		Fnew=length(ret.C[:FV])
 		ret.mapping[:F][Fnew]=Fold
+
+		fmap[Fold]=Fnew
 
 		# add FE and FV
 		# I need FE here, because I cannot know FE from FV,EV especially for non convex-faces
@@ -296,14 +304,14 @@ function SELECT(lar::Lar, sel::Cell)::Lar
 				(a,b)=normalize_cell(lar.C[:EV][Eold])
 
 				# already added
-				if haskey(emap,[a,b])
-					Enew=emap[ [a,b] ]
+				if haskey(added_ev,[a,b])
+					Enew=added_ev[ [a,b] ]
 
 				# add edge
 				else
 					push!(ret.C[:EV], [a,b])
 					Enew=length(ret.C[:EV])
-					emap[ [a,b] ]=Enew
+					added_ev[ [a,b] ]=Enew
 					ret.mapping[:E][Enew]=Eold	
 				end
 
@@ -317,11 +325,25 @@ function SELECT(lar::Lar, sel::Cell)::Lar
 
 			ret.C[:FV][Fnew]=normalize_cell(ret.C[:FV][Fnew])
 			ret.C[:FE][Fnew]=normalize_cell(ret.C[:FE][Fnew])
-
-			@assert(ret.C[:FV][Fnew]==fv)
+			@assert(ret.C[:FV][Fnew]==fv) 
 
 		end
 
+	end
+
+	# if there are atoms which contains all selected faces
+	# they will be the new atoms
+	if haskey(lar.C, :CF)
+		ret.C[:CF]=Cells()
+		for (Cold,cf_old) in enumerate(lar.C[:CF])
+			if all([f in keys(fmap) for f in cf_old])
+				cf_new=normalize_cell(Cell([fmap[f] for f in cf_old]))
+				push!(ret.C[:CF], cf_new)
+				Cnew=length(ret.C[:CF])
+			end
+		end
+		# todo add the mapping information too?
+		ret.C[:CV]=compute_CV(ret)
 	end
 
   return ret
@@ -425,10 +447,9 @@ function compute_CF(lar::Lar; is_convex=false)::Cells
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function compute_CV(lar::Lar; is_convex=false)::Cells
-	@assert(is_convex)
+function compute_CV(lar::Lar)::Cells
 	@assert(haskey(lar.C,:CF))
-	@assert(haskey(lar.C,:FV))
+	@assert(haskey(lar.C,:FV)) # NOTE:I think using FV will work only for convex cells, but not sure
 	ret=Cells()
 	for (C,cf) in enumerate(lar.C[:CF])
 		cv=Cell()
@@ -551,7 +572,7 @@ function run_lar_viewer(viewer::Viewer; title="LAR", use_thread=false, propertie
 	end
 
 	properties["show_axis"]           = get(properties,"show_axis", true)
-	properties["title"]               = get(properties,"title","Lar Viewer")
+	properties["title"]               = get(properties,"title",title)
 	properties["background_color"]    = get(properties,"background_color",Point4d([0.9,0.9,0.9,1.0]))
 
 	run_viewer(viewer, 
@@ -692,7 +713,7 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 	CF=haskey(lar.C, :CF) && length(lar.C[:CF])>0 ? lar.C[:CF] : nothing
 
 	# show atoms exploding by cell centroid
-	if "CV" in show && !isnothing(CF) && !isnothing(FV) 
+	if ("CV" in show || "CF" in show) && !isnothing(CF) && !isnothing(FV) 
 
 		for (C,cf) in enumerate(CF)
 			v_indices=[]

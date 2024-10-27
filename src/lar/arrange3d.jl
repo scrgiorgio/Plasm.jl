@@ -537,7 +537,7 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 		ret.C[:FV]=compute_FV(ret)
 		ret.C[:CF]=lar_find_atoms(ret.V, cycles, debug_mode=debug_mode)
 
-		# ret.C[:CV]=compute_CV(ret,is_convex=true) dont think this is needed
+		# ret.C[:CV]=compute_CV(ret) dont think this is needed
 		CHECK(ret)
 	else
 		# broken, fails to find atoms in case of disconnected components
