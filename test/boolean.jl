@@ -39,7 +39,7 @@ function PieceCylinder()
   # any boolean expression will work
   function my_bool_op(v)
     c,x1,x2,x3=v
-    return Difference([c,Union([x1,x2,x3])])
+    return Union([c,Union([x1,x2,x3])])
   end
 
   lar = LAR(assembly)
@@ -76,7 +76,7 @@ function Building()
 
 end
 
-TwoCubes()
+# TwoCubes()
 PieceCylinder()
 
 # does not make sense because some cells return "outside" the only input arg...
