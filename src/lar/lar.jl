@@ -551,7 +551,7 @@ function run_lar_viewer(viewer::Viewer; title="LAR", use_thread=false, propertie
 	end
 
 	properties["show_axis"]           = get(properties,"show_axis", true)
-	properties["title"]               = get(properties,"title","VIEWCOMPLEX")
+	properties["title"]               = get(properties,"title","Lar Viewer")
 	properties["background_color"]    = get(properties,"background_color",Point4d([0.9,0.9,0.9,1.0]))
 
 	run_viewer(viewer, 

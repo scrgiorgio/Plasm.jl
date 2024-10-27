@@ -1132,7 +1132,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////
-function ToBoundaryForm(self::Hpc)
+function hpc_get_boundary(self::Hpc)
 	DB = Dict{PointNd,Int64}()
 	POINTS = PointsNd()
 	FACES = Cells()
@@ -1142,7 +1142,6 @@ function ToBoundaryForm(self::Hpc)
 		points, hulls = [transformPoint(T, p) for p in sf.points], sf.hulls
 		pdim = length(points[1])
 		mapped = Dict{Int64,Int64}()
-
 
 		for P in 1:length(points)
 			point = points[P]
