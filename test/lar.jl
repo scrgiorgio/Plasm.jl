@@ -173,7 +173,7 @@ using Combinatorics
   end
 
 
-  @testset "SELECT" begin
+  @testset "SELECT_FACES" begin
     @test(remove_duplicates([3, 2, 1, 1, 2, 3]) == [1, 2, 3])
 
     # cube3d
@@ -212,7 +212,7 @@ using Combinatorics
     for num_faces in 1:6
       for face_indices in collect(Combinatorics.combinations(collect(1:6), num_faces))
     
-        sub=SELECT(lar,face_indices)
+        sub=SELECT_FACES(lar, face_indices)
     
         @test(length(sub.C[:FV])==num_faces)
         @test(length(sub.C[:FE])==num_faces)

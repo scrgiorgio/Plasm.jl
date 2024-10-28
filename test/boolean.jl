@@ -4,84 +4,123 @@ using LinearAlgebra
 
 Random.seed!(0)
 
-# ////////////////////////////////////////////////////////
-function TwoCubes()
-
-  args=[
-    CUBOID([0.0, 0.0, 0.0],[1.0, 1.0, 1.0]),
-    CUBOID([0.5, 0.5, 0.5],[1.5, 1.5, 1.5])
-  ]
-
+# /////////////////////////////////////////////////////////////////////////////
+function RunBooleanTest(name, bool_op, args; debug_mode=false)
   assembly=STRUCT(args)
   lar = ARRANGE3D(LAR(assembly))
   lar = INNERS(lar)
 
-  for bool_op in [Union, Intersection, Difference, Xor]
-    lar= BOOL3D(lar, bool_op=bool_op, input_args=[LAR(it) for it in args], debug_mode=false)
-    VIEWCOMPLEX(lar, show=["FV"], explode=[1.0,1.0,1.0], title="TwoCubes FV $(bool_op)")
-    VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2], title="TwoCubes CV $(bool_op)")
+
+  if debug_mode
+    for atom in ATOMS(lar)
+      show_debug(atom)
+      VIEWCOMPLEX(atom, explode=[1.0, 1.0, 1.0], show=["V", "EV","FV"])
+    end
   end
 
+  result= BOOL3D(lar, bool_op=bool_op, input_args=[LAR(arg) for arg in args], debug_mode=debug_mode)
+  @show(result.C[:CF])
+  VIEWCOMPLEX(result, show=["FV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) FV")
+  VIEWCOMPLEX(result, show=["CV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) CV")
 end
 
+# //////////////////////////////////////////////////////
+function TwoCubes()
+  return [
+    CUBOID([0.0, 0.0, 0.0],[1.0, 1.0, 1.0]),
+    CUBOID([0.5, 0.5, 0.5],[1.5, 1.5, 1.5])
+  ]
+end
 
-# ////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////
 function ThreeCubes()
-
-  args=[
+  return [
     CUBOID([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
     CUBOID([0.5, 0.5, 0.0], [1.5, 1.5, 1.0]),
-    CUBOID([0.7, 0.7, 0.0], [1.7, 1.7, 1.0])]
-
-  lar=LAR(STRUCT(args))
-  lar=INNERS(ARRANGE3D(lar))
-  input_args=[LAR(arg) for arg in args]
-
-  for bool_op in [Union, Intersection, Difference, Xor]
-    lar=BOOL3D(lar, bool_op=bool_op, input_args=input_args)
-    VIEWCOMPLEX(lar, show=["FV"], explode=[1.0,1.0,1.0], title="3cubes FV $(bool_op)")
-    VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2], title="3cubes CV $(bool_op)")
-  end
-  
+    CUBOID([0.7, 0.7, 0.0], [1.7, 1.7, 1.0])
+    ]
 end
 
-# ////////////////////////////////////////////////////////
-function PieceCylinder()
-
-  cyl=T(3)(-2)(CYLINDER([0.5,4])(8))
-  cube=CUBOID([-1,-1,-1],[+1,+1,+1])
-
-  args=[
-    cube,
-    R(1,2)(π/2)(cyl),
-    R(2,3)(π/2)(cyl),
-    R(1,3)(π/2)(cyl)
+# //////////////////////////////////////////////////////
+function MechanicalPiece(primitive::Hpc)
+  return [
+    CUBOID(
+      [-1.0,-1.0,-1.0],
+      [+1.0,+1.0,+1.0]
+    ),
+    R(1,2)(π/2)(primitive),
+    R(2,3)(π/2)(primitive),
+    R(1,3)(π/2)(primitive)
   ]
-
-  assembly=  STRUCT(args)
-
-  # any boolean expression will work
-  #function my_bool_op(v)
-  #  c,x1,x2,x3=v
-  #  return Union([c,Union([x1,x2,x3])])
-  #end
-
-  lar = LAR(assembly)
-  input_args=[LAR(it) for it in TOPOS(assembly)]
-  lar=ARRANGE3D(lar)
-  lar=INNERS(lar)
-
-  for bool_op in [Union, Intersection, Difference, Xor]
-    lar=BOOL3D(lar, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
-    VIEWCOMPLEX(lar, show=["FV"], explode=[1.0,1.0,1.0], title="PieceCylinder FV")
-    VIEWCOMPLEX(lar, show=["CV"], explode=[1.2,1.2,1.2], title="PieceCylinder CV")
-  end
-
 end
 
-TwoCubes()
-# ThreeCubes()
-# PieceCylinder()
+# //////////////////////////////////////////////////////
+function MechanicalPiece(symbol::Symbol)
+  if symbol==:cube
+    return MechanicalPiece(CUBOID( [-0.4, -0.4, -2.0], [+0.4, +0.4, +2.0]))
+  elseif symbol==:cylinder
+    return MechanicalPiece(T(3)(-2)(CYLINDER([0.5,4])(8)))
+  elseif symbol==:tube
+    return MechanicalPiece(T(3)(-2)(TUBE([0.3,0.5,4.0])(4)))
+  else
+    @assert(false)
+  end
+end
+
+# //////////////////////////////////////////////////////
+function Union(v::Vector{Bool})::Bool   
+  ret=any(v) 
+  println("Union $(v) $(ret)")    
+  return ret
+end
+
+function Intersection(v::Vector{Bool})::Bool     
+  ret=all(v) 
+  println("Intersection $(v) $(ret)")    
+  return ret
+end
+
+function Difference(v::Vector{Bool})::Bool      
+  ret=v[1] && !any(v[2:end]) 
+  println("Difference $(v) $(ret)")    
+  return ret
+end
+
+function Xor(v::Vector{Bool})::Bool      
+  ret=(length([it for it in v if it]) % 2)==1  
+  println("Xor $(v) $(ret)")    
+  return ret
+end
+
+# //////////////////////////////////////////////////////
+#for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [Xor]
+  RunBooleanTest("TwoCubes",bool_op, TwoCubes())
+end
+
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("ThreeCubes",bool_op, ThreeCubes())
+end
+
+# example of user-defined boolean expression: any boolean expression will work
+function UserBoolOp(v::Vector{Bool})::Bool
+  return Difference([v[1],Union(v[2:end])])
+end
+
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("MechanicalPiece/cube", bool_op, MechanicalPiece(:cube))
+end
+
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("MechanicalPiece/cylinder", bool_op, MechanicalPiece(:cylinder))
+end
+
+# BROKEN
+if false
+  for bool_op in [Union, Intersection, Difference, Xor]
+    RunBooleanTest("MechanicalPiece/tube", bool_op, MechanicalPiece(:tube))
+  end
+end
 
 # does not make sense because some cells return "outside" , some other "inside depending or where I am inside the grid
 # Building()
