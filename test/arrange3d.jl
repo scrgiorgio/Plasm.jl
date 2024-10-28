@@ -16,7 +16,7 @@ function RandomCubes(ncubes=6)
 end
 
 # ////////////////////////////////////////////
-function PieceCylinder(num_subdivisions::Int=8)
+function MechanicalPieceCylinder(num_subdivisions::Int=8)
   primitive=T(3)(-2)(CYLINDER([0.5,4])(num_subdivisions))
   return STRUCT( 
     STRUCT(T(1,2,3)(-1,-1,-1),CUBE(2)), 
@@ -27,7 +27,7 @@ function PieceCylinder(num_subdivisions::Int=8)
 end
 
 # ////////////////////////////////////////////
-function PieceTube(num_subdivisions::Int=4)
+function MechanicalPieceTube(num_subdivisions::Int=4)
   primitive=T(3)(-2)(TUBE([0.3,0.5,4.0])(num_subdivisions))
   return STRUCT( 
     STRUCT(T(1,2,3)(-1,-1,-1),CUBE(2)), 
@@ -46,23 +46,23 @@ function Building()
 end
 
 # ///////////////////////////////////////////
-function View3D(hpc::Hpc)
+function RunArrange3DTest(name, hpc::Hpc)
   lar=LAR(hpc)
   lar=ARRANGE3D(lar)
   lar=INNERS(lar)
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="Inner atoms")
-  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="Inner atoms")
+  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="$(name) FV")
+  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="$(name) CV")
 end
 
 # //////////////////////////////////////////////
 begin
   Random.seed!(0)
 
-  View3D(TwoCubes())
-  View3D(Building())
-  View3D(RandomCubes())
-  View3D(PieceCylinder())
-  View3D(PieceTube())
+  RunArrange3DTest("arrange3d/twocubes", TwoCubes())
+  RunArrange3DTest("arrange3d/building", Building())
+  RunArrange3DTest("arrange3d/randomcubes", RandomCubes())
+  RunArrange3DTest("arrange3d/MechanicalPiece/cylinder", MechanicalPieceCylinder())
+  RunArrange3DTest("arrange3d/MechanicalPiece/tube", MechanicalPieceTube())
 
 end
 

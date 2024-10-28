@@ -4,81 +4,97 @@ using LinearAlgebra
 
 Random.seed!(0)
 
-# ////////////////////////////////////////////////////////
-function TwoCubes()
+# /////////////////////////////////////////////////////////////////////////////
+function RunBooleanTest(name, bool_op, args; debug_mode=false)
+  assembly=STRUCT(args)
+  lar = ARRANGE3D(LAR(assembly))
+  lar = INNERS(lar)
 
-  assembly = STRUCT(
-    CUBE(1), 
-    T(1,2,3)(.5,.5,.5), 
-    CUBE(1)
-  )
-
-  lar=LAR(assembly)
-  input_args=[LAR(it) for it in TOPOS(assembly)]
-  lar=ARRANGE3D(lar)
-  lar=INNERS(lar)
-  lar= BOOL3D(lar, bool_op=Difference, input_args=input_args, debug_mode=false)
-  @show(lar)
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
-  # VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) # TODO inside boolean, SELECT does not produce CF
-
-end
-
-# ////////////////////////////////////////////////////////
-function PieceCylinder()
-
-  primitive=T(3)(-2)(CYLINDER([0.5,4])(8))
-  assembly=  STRUCT( 
-    STRUCT(T(1,2,3)(-1,-1,-1),CUBE(2)), 
-    primitive, R(2,3)(π/2), 
-    primitive, R(1,3)(π/2), 
-    primitive 
-  )
-
-  # any boolean expression will work
-  function my_bool_op(v)
-    c,x1,x2,x3=v
-    return Difference([c,Union([x1,x2,x3])])
+  if debug_mode
+    for atom in ATOMS(lar)
+      show_debug(atom)
+      VIEWCOMPLEX(atom, explode=[1.0, 1.0, 1.0], show=["V", "EV","FV"])
+    end
   end
 
-  lar = LAR(assembly)
-  input_args=[LAR(it) for it in TOPOS(assembly)]
-  lar=ARRANGE3D(lar)
-  lar=INNERS(lar)
-
-  VIEWCOMPLEX(lar)
-
-  lar=BOOL3D(lar, bool_op=my_bool_op, input_args=input_args, debug_mode=false)
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
-  # VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) # TODO inside boolean, SELECT does not produce CF
-
+  result= BOOL3D(lar, bool_op=bool_op, input_args=[LAR(arg) for arg in args], debug_mode=debug_mode)
+  VIEWCOMPLEX(result, show=["FV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) FV")
+  VIEWCOMPLEX(result, show=["CV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) CV")
 end
 
-# ///////////////////////////////////////////
-function Building()
-  X = GRID([2.4,4.5,-3,4.5,2.4])
-  Y = GRID([7,5])
-  Z = GRID([3,3])
-  assembly=  STRUCT(X * Y * Z)
-
-  lar=LAR(assembly)
-  input_args=[LAR(it) for it in TOPOS(assembly)]
-
-  lar=ARRANGE3D(lar)
-  lar=INNERS(lar)
-
-  #VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="ARRANGE3D/INNERS/FV")
-  #VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="ARRANGE3D/INNERS/CV")
-
-  lar= BOOL3D(lar, bool_op=Difference, input_args=input_args)
-  @show(lar)
-  VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4])
-  # VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4]) # TODO inside boolean, SELECT does not produce CF
-
+# //////////////////////////////////////////////////////
+function TwoCubes()
+  return [
+    CUBOID([0.0, 0.0, 0.0],[1.0, 1.0, 1.0]),
+    CUBOID([0.5, 0.5, 0.5],[1.5, 1.5, 1.5])
+  ]
 end
 
-TwoCubes()
-PieceCylinder()
+# //////////////////////////////////////////////////////
+function ThreeCubes()
+  return [
+    CUBOID([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
+    CUBOID([0.5, 0.5, 0.0], [1.5, 1.5, 1.0]),
+    CUBOID([0.7, 0.7, 0.0], [1.7, 1.7, 1.0])
+    ]
+end
 
-# does not make sense because some cells return "outside" the only input arg...
+# //////////////////////////////////////////////////////
+function MechanicalPiece(primitive::Hpc)
+  return [
+    CUBOID(
+      [-1.0,-1.0,-1.0],
+      [+1.0,+1.0,+1.0]
+    ),
+    R(1,2)(π/2)(primitive),
+    R(2,3)(π/2)(primitive),
+    R(1,3)(π/2)(primitive)
+  ]
+end
+
+# //////////////////////////////////////////////////////
+function MechanicalPiece(symbol::Symbol)
+  if symbol==:cube
+    return MechanicalPiece(CUBOID( [-0.4, -0.4, -2.0], [+0.4, +0.4, +2.0]))
+  elseif symbol==:cylinder
+    return MechanicalPiece(T(3)(-2)(CYLINDER([0.5,4])(8)))
+  elseif symbol==:tube
+    return MechanicalPiece(T(3)(-2)(TUBE([0.3,0.5,4.0])(4)))
+  else
+    @assert(false)
+  end
+end
+
+
+# //////////////////////////////////////////////////////
+#for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("boolean/TwoCubes",bool_op, TwoCubes())
+end
+
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("boolean/ThreeCubes",bool_op, ThreeCubes())
+end
+
+# example of user-defined boolean expression: any boolean expression will work
+function UserBoolOp(v::Vector{Bool})::Bool
+  return Difference([v[1],Union(v[2:end])])
+end
+
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("boolean/MechanicalPiece/cube", bool_op, MechanicalPiece(:cube))
+end
+
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("boolean/MechanicalPiece/cylinder", bool_op, MechanicalPiece(:cylinder))
+end
+
+# BROKEN
+if false
+  for bool_op in [Union, Intersection, Difference, Xor]
+    RunBooleanTest("boolean/MechanicalPiece/tube", bool_op, MechanicalPiece(:tube))
+  end
+end
+
+# does not make sense because some cells return "outside" , some other "inside depending or where I am inside the grid
 # Building()

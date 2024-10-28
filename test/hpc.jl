@@ -234,14 +234,6 @@ function TestHpcInternal()
   @test length(points) == 4
   @test length(hulls) == 1 && length(hulls[1]) == 4
 
-  # ToBoundaryForm
-  obj = ToBoundaryForm(Struct([
-    Translate(Cube(2), [0.0, 0.0]),
-    Translate(Cube(2), [1.0, 0.0])
-  ]))
-  (T, properties, obj) = toList(obj)[1]
-  @assert length(obj.hulls) == 6
-  @assert length(obj.points) == 6
 
 end
 

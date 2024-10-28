@@ -1,4 +1,5 @@
 # //////////////////////////////////////////////////////////////
+# NEVER WORKED OUT
 function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=nothing)
 
   dst=Lar()
@@ -232,7 +233,7 @@ function arrange3d_v2(src::Lar; debug_mode=true, debug_face=:none, debug_edge=no
 
     vids=vcat([[a for (a,b) in cycle] for cycle in cycles]...)
     if debug_face==F1 || debug_face==:all || (!isnothing(debug_edge) && debug_edge[1] in vcat(vids...) && debug_edge[2] in vids)
-      VIEWCOMPLEX(SELECT(dst, sel), show=["V","FV","Vtext"], title="arrange3d / 3d face face=$(F1)")
+      VIEWCOMPLEX(SELECT_FACES(dst, sel), show=["V","FV","Vtext"], title="arrange3d / 3d face face=$(F1)")
     end  
 
   end
@@ -380,72 +381,84 @@ function lar_connected_components(seeds::Cell, get_connected::Function)::Cells
 end
 
 # ////////////////////////////////////////////////////////////////////////
-function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
+function cycle_dimension(V, cycle)
+  a,b=cycle[1]
+  m,M=V[:,a],V[:,a]
+  for (a,b) in cycle
+    m=[min(m[I],it) for (I,it) in enumerate(V[:,a])]
+    M=[max(M[I],it) for (I,it) in enumerate(V[:,a])]
+  end
+  return prod([M[I]-m[I] for I in 1:3 if (M[I]-m[I])>0]) 
+end
 
-  #0.5 1.0 0.0;# 187
-  #0.0 0.5 -0.5;# 224
+# ////////////////////////////////////////////////////////////////////////
+function cycle_normal(V, cycle)
+  return compute_oriented_newell_normal([V[:,a] for (a, b) in cycle])
+end
 
-  num_cycles=length(cycles)
+# ////////////////////////////////////////////////////////////////////////
+function lar_find_atoms(lar::Lar; debug_mode=false)::Cells
+  V=lar.V
+  FE=lar.C[:FE]
+  EV=lar.C[:EV]
+  num_faces=length(FE)
 
-  connections::Dict{Int,Dict} = Dict(
-      ( A => Dict() for A in 1:num_cycles)...,
-      (-A => Dict() for A in 1:num_cycles)...
-  )
-
-  for (A, Acycle) in enumerate(cycles)
-    for (a, b) in Acycle
-      adjacent1, adjacent2 = Vector{Any}(), Vector{Any}()
-      
-      # other faces incidend to the same edge
-      Bs=collect(unique([B for (B, Bcycle) in enumerate(cycles) if (B!=A) && (([a,b] in Bcycle) || ([b,a] in Bcycle))]))
-      if length(Bs)==0
-        println("PROBLEM WITH edge ",a," ",b)
-        @assert(false)
-      end
-
-      for B in Bs
-
-        @assert(B>=1 && B<=num_cycles)
-
-        # coherent loop
-        if [b, a] in cycles[B]
-            Bcycle, B = cycles[B], +B
-        elseif [a, b] in cycles[B]
-            Bcycle, B = reverse_cycle(cycles[B]), -B
-        else
-            @assert false
+  # compute cycles and normals (note: a normal is unique for a face and shared by all its cycles)
+  begin
+    cycles,normals=[],[]
+    for (A,fe) in enumerate(FE)
+      face_cycles=find_vcycles(Cells([EV[E] for E in fe])) 
+      if length(face_cycles)>1
+        # need to (1) find outer main cycle (2) reverse all other cycles  because they are holes and 
+        # need to be traversed in reversed order (even if the normal is the same)
+        face_cycles=collect(sort(face_cycles,by=cycle->cycle_dimension(V, cycle),rev=true))
+        n1=cycle_normal(V, face_cycles[1])
+        for C in 2:length(face_cycles)
+          n2=cycle_normal(V, face_cycles[C])
+          face_cycles[C]=dot(n1,n2)>=0 ? reverse_cycle(face_cycles[C]) : face_cycles[C]
         end
-        An = compute_oriented_newell_normal([V[:,first] for (first, ___) in Acycle])
-        Bn = compute_oriented_newell_normal([V[:,first] for (first, ___) in Bcycle])
-
-        Ev = V[:,b] - V[:,a]
-        angle1=compute_oriented_angle(+1.0 .* An, +1.0 .* Bn, +1.0 .* Ev)
-        angle2=compute_oriented_angle(-1.0 .* An, -1.0 .* Bn, -1.0 .* Ev)
-        push!(adjacent1, (face=+B, angle=angle1))
-        push!(adjacent2, (face=-B, angle=angle2))
       end
+      push!(cycles, face_cycles)
+      push!(normals, cycle_normal(V, face_cycles[1]))
+      #println("$(A) NORMAL $(normals[end]) face_cycles=$(face_cycles)")
+    end 
+  end
 
-      adjacent1=collect(sort(adjacent1,by=value->value.angle));@assert(length(adjacent1)>0)
-      adjacent2=collect(sort(adjacent2,by=value->value.angle));@assert(length(adjacent2)>0)
-      ev=collect(sort([a,b]))
-      connections[+A][ev]=adjacent1  
-      connections[-A][ev]=adjacent2
-
+  # compute connections
+  begin
+    connections=Dict{Int,Dict}()
+    for (A, Acycles) in enumerate(cycles)
+      connections[+A],connections[-A]=Dict(), Dict()
+      #println("Face $(A) Acycles=$(Acycles) normal=$(normals[A])")
+      for Acycle in Acycles
+        for (a, b) in Acycle
+          adjacent_pos, adjacent_neg = Vector{Any}(),Vector{Any}()
+          for (B, Bcycles) in enumerate(cycles)
+            if A==B  continue  end  # same face, skip
+            # println("  B=$(B) Bcycles=$(Bcycles)")
+            for Bcycle in Bcycles
+              if     ([b,a] in Bcycle)  Bsign=+1 # they are correct: in opposite direction 
+              elseif ([a,b] in Bcycle)  Bsign=-1 # i must go in the opposite direction
+              else  continue  end
+              # println("  Found adj cycle edge=$([a,b]) with face $(B) Bsign=$(Bsign)" )
+              angle_pos=compute_oriented_angle(+1.0 .* normals[A], +Bsign .* normals[B],   V[:,b] - V[:,a]) # from a->b
+              angle_neg=compute_oriented_angle(-1.0 .* normals[A], -Bsign .* normals[B],   V[:,a] - V[:,b]) # from b->a
+              push!(adjacent_pos, (face=(+Bsign) * B, angle=angle_pos))
+              push!(adjacent_neg, (face=(-Bsign) * B, angle=angle_neg))
+            end
+          end
+          if length(adjacent_pos)==0
+            println("PROBLEM WITH edge [$(a),$(b)] only one face incident")
+            @assert(false)
+          end
+          connections[+A][normalize_cell([a,b])]=collect(sort(adjacent_pos,by=value->value.angle))  
+          connections[-A][normalize_cell([a,b])]=collect(sort(adjacent_neg,by=value->value.angle))
+        end
+      end
     end
   end
 
-  # print connections for debugging
-  if debug_mode
-    for (F,  adjacent_per_edge) in connections
-      @assert(abs(F)>=1 && abs(F)<=num_cycles)
-      #println("F=", F)
-      for (ev, adjacents) in adjacent_per_edge
-        #println("  ev=",ev, adjacents)
-      end
-    end
-  end
-
-  # topology checks on connections
+  # topology checks on connections (if A picks B then B must pick A)
   begin
     for (A,  adjacent_per_edge) in connections
       for (ev, adjacents) in adjacent_per_edge
@@ -466,30 +479,26 @@ function lar_find_atoms(V::Points, cycles::Cycles; debug_mode=false)::Cells
     end
   end
 
-  @assert(all([abs(F)>=1 && abs(F)<=num_cycles for F in keys(best_connections)]))
+  #for (k,v) in best_connections
+  #  println(k," ",v)
+  #end
+
+  @assert(all([abs(F)>=1 && abs(F)<=num_faces for F in keys(best_connections)]))
   atoms=lar_connected_components(collect(keys(best_connections)), cur -> best_connections[cur])
+  # @show(atoms)
 
   # atoms topology checks
   begin
-
-    @assert(all([abs(F)>=1 && abs(F)<=num_cycles for F in vcat(atoms...)]))
-
     for F in keys(connections)
-
-      # all index faces should be fine
-
       # one signed face should be in only one atom
       @assert(length([atom for atom in atoms if F in atom])==1)
-
       # if there is +F in one atom, there cannot be -F
-      @assert(length([atom for atom in atoms if F in atom && -F in atom])==0)
-
+      @assert(length([atom for atom in atoms if +F in atom && -F in atom])==0)
     end
   end
 
   # I do not need the sign anymore (could be useful for debugging)
   atoms=[collect(sort([abs(jt) for jt in it])) for it in atoms]
-
 
   # @show(atoms)
 

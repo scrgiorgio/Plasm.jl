@@ -528,16 +528,17 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 	))
 
 	if debug_mode
-		VIEWCOMPLEX(ret, explode=[1.0,1.0,1.0], show=["V","EV","Vtext"], title="arrange3d / 3d ALL faces")
+		show_debug(ret)
+		VIEWCOMPLEX(ret, explode=[1.2,1.2,1.2], show=["V","FV","Vtext"], title="arrange3d / 3d ALL faces")
 	end  
 
 	if LAR_ARRANGE3D_USE_EXPERIMENTAL
 		ret=SIMPLIFY(ret) # not sure this is needed
-		ret, cycles=explode_cycles(ret)
-		ret.C[:FV]=compute_FV(ret)
-		ret.C[:CF]=lar_find_atoms(ret.V, cycles, debug_mode=debug_mode)
 
-		# ret.C[:CV]=compute_CV(ret,is_convex=true) dont think this is needed
+		ret.C[:FV]=compute_FV(ret)
+		ret.C[:CF]=lar_find_atoms(ret, debug_mode=debug_mode)
+
+		# ret.C[:CV]=compute_CV(ret) dont think this is needed
 		CHECK(ret)
 	else
 		# broken, fails to find atoms in case of disconnected components
@@ -546,6 +547,7 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 	end
 
 	if debug_mode
+		@show(ret)
 		VIEWCOMPLEX(ret, show=["CV"], explode=[1.2,1.2,1.2], title="arrange3d / ALL atoms")
 	end
 
@@ -563,7 +565,8 @@ function SPLIT(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
 
 		# scrgiorgio: I do not think this is correct, because it could be there is an outer cell with the exact 
 		#             same bounding box of an inner cell
-		atoms=ATOMS(lar, debug_mode=debug_mode)
+		# VIEWATOMS(lar)
+		atoms=ATOMS(lar)
 		diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
 		max_diag = maximum(diags)
 		outers=lar_copy(lar); outers.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]

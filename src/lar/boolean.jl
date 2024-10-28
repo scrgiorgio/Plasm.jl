@@ -147,36 +147,36 @@ function find_internal_point(lar::Lar;max_attempts=10)
 end
 export find_internal_point
 
+function Union(v::Vector{Bool})::Bool       
+  return any(v) 
+end
 
-function Union(v::AbstractArray)        return any(v) end
-function Intersection(v::AbstractArray) return all(v) end
-function Difference(v::AbstractArray)   return v[1] && !any(v[2:end]) end
-function Xor(v::AbstractArray)          return (length([it for it in v if it]) % 2)==1  end
+function Intersection(v::Vector{Bool})::Bool
+  return all(v) 
+end
 
-export Union, Intersection,Difference,Xor
+function Difference(v::Vector{Bool})::Bool 
+  return v[1] && !any(v[2:end]) 
+end
+
+function Xor(v::Vector{Bool})::Bool  
+  return (length([it for it in v if it]) % 2)==1  
+end
+
+export Union, Intersection, Difference, Xor
+
 
 # //////////////////////////////////////////////////////////////////////////////
-function ATOMS(arrangement::Lar; debug_mode=false)
-	ret=Vector{Lar}()
-	for (A, sel) in enumerate(arrangement.C[:CF])
-		atom = SELECT(arrangement, sel)
-		push!(ret,atom)
-		if debug_mode
-			@show(atom)
-			VIEWCOMPLEX(atom, explode=[1.4, 1.4, 1.4], show=["V", "EV", "FV", "Vtext", "Etext", "Ftext"], face_color=TRANSPARENT)
-		end
-	end
-	return ret
+function ATOMS(lar::Lar)::Vector{Lar}
+  return Vector{Lar}([SELECT_ATOMS(lar, [A]) for A in eachindex(lar.C[:CF])])
 end
 export ATOMS
-
-
 
 # ////////////////////////////////////////////////////////////////
 function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false)::Lar
   
   # if you want to see atoms set debug_mode=true
-  atoms=ATOMS(arrangement, debug_mode=true)
+  atoms=ATOMS(arrangement)
 
   internal_points=[find_internal_point(atom) for atom in atoms] 
   
@@ -216,20 +216,21 @@ function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false
         render_lines(viewer, lines,  colors=colors, line_width=DEFAULT_LINE_WIDTH)
       end
 
-      render_text(viewer, join([string(it) for it in bool_matrix[A,:]], " "), center=internal_point, color=BLACK)
+      explanation=join([string(it) for it in bool_matrix[A,:]], " ")
+      # render_text(viewer, explanation, center=internal_point, color=BLACK)
 
-      VIEWCOMPLEX(viewer, atom, show=["V", "EV"], explode=[1.0,1.0,1.0])
+      VIEWCOMPLEX(viewer, atom, show=["V", "EV"], explode=[1.0,1.0,1.0], title=explanation)
     end
   end
   
   sel=Cell()
   for (A,row) in enumerate(eachrow(bool_matrix))
-    if bool_op(row)
-      append!(sel, arrangement.C[:CF][A])
+    if bool_op(collect(row))
+      append!(sel, A)
     end
   end
 
-  return SELECT(arrangement, normalize_cell(sel))
+  return SELECT_ATOMS(arrangement, sel)
 
 end
 export BOOL3D

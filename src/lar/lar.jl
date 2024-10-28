@@ -56,30 +56,30 @@ end
 
 # ////////////////////////////////////////////
 # disabled: https://github.com/scrgiorgio/Plasm.jl/issues/17
-"""
-function Base.show(io::IO, lar::Lar) 
-	println(io, "Lar(")
-	println(io, "  [ # total ", size(lar.V,2))
+
+function show_debug(lar::Lar) 
+	println("Lar(")
+	println("  [ # total ", size(lar.V,2))
 	for (P,point) in enumerate(eachcol(lar.V))
-		println(io,"    ",join([string(it) for it in point]," "), P<=(size(lar.V,2)-1) ? ";" : "","# ",P)
+		println("    ",join([string(it) for it in point]," "), P<=(size(lar.V,2)-1) ? ";" : "","# ",P)
 	end
-	println(io,"  ] ,")
-	println(io,"   Dict(")
+	println("  ] ,")
+	println("   Dict(")
 	for (K,key) in enumerate(keys(lar.C))
 		cells=lar.C[key]
-		println(io, "  ", repr(key)," =>", "[ ", "# total ",length(cells))
+		println("  ", repr(key)," =>", "[ ", "# total ",length(cells))
 		for (C,cell) in enumerate(cells)
-			println(io, "    ", repr(cell), C<=(length(cells)-1) ? "," : "", "# ", C)
+			println("    ", repr(cell), C<=(length(cells)-1) ? "," : "", "# ", C)
 		end
-		println(io, "  ", "]", K<=(length(keys(lar.C))-1) ? "," : "")
+		println("  ", "]", K<=(length(keys(lar.C))-1) ? "," : "")
 	end
-	println(io, "  ),")
-	println(io,"   Mapping(")
-	println(io, lar.mapping)
-	println(io, "  )")
-	println(io, ")")
+	println("  ),")
+	println("   Mapping(")
+	println( lar.mapping)
+	println("  )")
+	println(")")
 end
-"""
+export show_debug
 
 # //////////////////////////////////////////////////////////////////////////////
 function lar_used_vertices(lar::Lar)
@@ -228,105 +228,146 @@ function CHECK(lar::Lar)
 
 end
 
-# //////////////////////////////////////////////////////////////////////
-function explode_cycles(lar::Lar)::Tuple{Lar,Cycles}
-	# e.g. if a face has two cycles, I want to two cycles to be two faces
-	ret=Lar(lar.V, Dict{Symbol,Any}( :EV => Cells(), :FE => Cells()))
+# ///////////////////////////////////////////////////////////////
+function SELECT_FACES(lar::Lar, sel::Cell)::Lar
 
-	for (F,fe) in enumerate(lar.C[:FE])
-		multi_cycle=find_vcycles(Cells([lar.C[:EV][E] for E in fe]))
-		for cycle in multi_cycle
-			fe=Cell()
-			for (a,b) in cycle
-				push!(ret.C[:EV], [a,b])
-				push!(fe, length(ret.C[:EV]))
-			end
-			push!(ret.C[:FE], fe)
-		end
-	end
-
-	ret=SIMPLIFY(ret)
-
-	cycles=Cycles()
-	for (F,fe) in enumerate(ret.C[:FE])
-		multi_cycle=find_vcycles(Cells([ret.C[:EV][E] for E in fe]))
-		@assert(length(multi_cycle)==1) # NOW each face is one cycle
-		append!(cycles, multi_cycle)
-	end
-
-	CHECK(ret)
-	return ret, cycles
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-"""can be used also to simplify
-
-NOTE: ignoring :CF that is generally used to crate the `sel`
-"""
-function SELECT(lar::Lar, sel::Cell)::Lar
+	# TODO: rewrite this function as "SELECT_ATOMS" below
 
 	sel=normalize_cell(sel)
 
-	ret=Lar(lar.V, Dict(:EV => Cells(), :FV => Cells(), :FE => Cells() ))
-	ret.mapping=Dict(:F => Dict{Int,Int}(), :E => Dict{Int,Int}())
+	ret=Lar(lar.V, Dict(
+		:EV => Cells(), 
+		:FV => Cells(), 
+		:FE => Cells() ))
+
+	ret.mapping=Dict(
+		:F => Dict{Int,Int}(), 
+		:E => Dict{Int,Int}()
+	)
 
 	FV=haskey(lar.C,:FV) ? lar.C[:FV] : compute_FV(lar)
 
-	fmap=Set{Cell}() # from (a,b,c,d,...) 
-	emap=Dict{Cell,Int}() # from (a,b) to new edge index
+	added_fv=Dict{Cell,Int}() # from (a,b,c,d,...)
+	added_ev=Dict{Cell,Int}() # from (a,b) to new edge index
+
 	for Fold in sel
 
 		fv=normalize_cell(FV[Fold])
-		if fv in fmap  continue end
+
+		# already added
+		if haskey(added_fv,fv)  
+			continue 
+		end
 
 		# add new face
-		push!(fmap,fv)
-		push!(ret.C[:FV], [])
-		push!(ret.C[:FE], [])
-		Fnew=length(ret.C[:FV])
-		ret.mapping[:F][Fnew]=Fold
+		begin
+			added_fv[fv]=Fold
+			push!(ret.C[:FV], [])
+			push!(ret.C[:FE], [])
+			Fnew=length(ret.C[:FV])
+			ret.mapping[:F][Fnew]=Fold
+		end
 
-		# add FE and FV
-		# I need FE here, because I cannot know FE from FV,EV especially for non convex-faces
+		# add FE and FV (NOTE: I need FE here, because I cannot know FE from FV,EV especially for non convex-faces)
 		@assert(haskey(lar.C,:FE))
 		begin
 			
 			for Eold in lar.C[:FE][Fold]
-
 				(a,b)=normalize_cell(lar.C[:EV][Eold])
-
 				# already added
-				if haskey(emap,[a,b])
-					Enew=emap[ [a,b] ]
-
+				if haskey(added_ev,[a,b])
+					Enew=added_ev[ [a,b] ]
 				# add edge
 				else
 					push!(ret.C[:EV], [a,b])
 					Enew=length(ret.C[:EV])
-					emap[ [a,b] ]=Enew
+					added_ev[ [a,b] ]=Enew
 					ret.mapping[:E][Enew]=Eold	
 				end
-
 				# adding anyway then I will simplify
 				push!(ret.C[:FE][Fnew], Enew)
-
 				push!(ret.C[:FV][Fnew], a)
 				push!(ret.C[:FV][Fnew], b)
-
 			end
-
 			ret.C[:FV][Fnew]=normalize_cell(ret.C[:FV][Fnew])
 			ret.C[:FE][Fnew]=normalize_cell(ret.C[:FE][Fnew])
-
-			@assert(ret.C[:FV][Fnew]==fv)
-
+			@assert(ret.C[:FV][Fnew]==fv) 
 		end
-
 	end
 
-  return ret
+	return ret
+
 end
-export SELECT
+
+export SELECT_FACES
+
+# /////////////////////////////////////////////////////////////////////
+function SELECT_ATOMS(lar::Lar, sel::Cell)::Lar
+
+	Csel=Set{Int}()
+	Fsel=Set{Int}()
+	Esel=Set{Int}()
+
+	for C in sel
+		push!(Csel,C)
+		for F in lar.C[:CF][C]
+			push!(Fsel,F)
+			for E in lar.C[:FE][F]
+				push!(Esel,E)
+			end
+		end
+	end
+
+	ret=Lar(
+		lar.V, 
+		Dict(
+			:CF => Cells(), 
+			:FE => Cells(),
+			:EV => Cells())
+	)
+
+	ret.mapping=Dict(
+		:C => Dict{Int,Int}(),
+		:F => Dict{Int,Int}(), 
+		:E => Dict{Int,Int}()
+	)
+
+	Emap=Dict{Int,Int}()
+	Fmap=Dict{Int,Int}()
+
+	# add edges
+	for Eold in Esel
+		push!(ret.C[:EV], [ v_index for v_index in lar.C[:EV][Eold] ])
+		Enew=length(ret.C[:EV])
+		ret.mapping[:E][Enew]=Eold
+		Emap[Eold]=Enew
+	end
+
+	# add faces
+	for Fold in Fsel
+		push!(ret.C[:FE], [ Emap[Eold] for Eold in lar.C[:FE][Fold] ])
+		Fnew=length(ret.C[:FE])
+		ret.mapping[:F][Fnew]=Fold
+		Fmap[Fold]=Fnew
+	end
+
+	# add atoms
+	for Cold in Csel
+		push!(ret.C[:CF], [ Fmap[Fold] for Fold in lar.C[:CF][Cold] ])
+		Cnew=length(ret.C[:CF])
+		ret.mapping[:C][Cnew]=Cold
+	end
+
+	ret.C[:FV]=compute_FV(ret)
+	ret.C[:CV]=compute_CV(ret)
+
+	return ret
+
+end
+
+export SELECT_ATOMS
+
+
 
 # //////////////////////////////////////////////////////////////////////
 function TRIANGULATE(V::Points, EV::Cells)::Cells
@@ -425,10 +466,9 @@ function compute_CF(lar::Lar; is_convex=false)::Cells
 end
 
 # //////////////////////////////////////////////////////////////////////////////
-function compute_CV(lar::Lar; is_convex=false)::Cells
-	@assert(is_convex)
+function compute_CV(lar::Lar)::Cells
 	@assert(haskey(lar.C,:CF))
-	@assert(haskey(lar.C,:FV))
+	@assert(haskey(lar.C,:FV)) # NOTE:I think using FV will work only for convex cells, but not sure
 	ret=Cells()
 	for (C,cf) in enumerate(lar.C[:CF])
 		cv=Cell()
@@ -551,7 +591,7 @@ function run_lar_viewer(viewer::Viewer; title="LAR", use_thread=false, propertie
 	end
 
 	properties["show_axis"]           = get(properties,"show_axis", true)
-	properties["title"]               = get(properties,"title","VIEWCOMPLEX")
+	properties["title"]               = get(properties,"title",title)
 	properties["background_color"]    = get(properties,"background_color",Point4d([0.9,0.9,0.9,1.0]))
 
 	run_viewer(viewer, 
@@ -692,7 +732,7 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 	CF=haskey(lar.C, :CF) && length(lar.C[:CF])>0 ? lar.C[:CF] : nothing
 
 	# show atoms exploding by cell centroid
-	if "CV" in show && !isnothing(CF) && !isnothing(FV) 
+	if ("CV" in show || "CF" in show) && !isnothing(CF) && !isnothing(FV) 
 
 		for (C,cf) in enumerate(CF)
 			v_indices=[]
@@ -840,7 +880,7 @@ function VIEWEDGE(lar::Lar, ev::Cell; enlarge=nothing)
   end
 
   selected_faces=normalize_cell(selected_faces)
-  VIEWCOMPLEX(SELECT(lar,selected_faces), show=["FV", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT, title="debug edge")
+  VIEWCOMPLEX(SELECT_FACES(lar, selected_faces), show=["FV", "Vtext"], explode=[1.0,1.0,1.0], face_color=TRANSPARENT, title="debug edge")
 
 end
 
