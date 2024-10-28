@@ -25,7 +25,7 @@ julia --project=.  test/arrange2d.jl
 julia --project=.  test/arrange3d.jl
 julia --project=.  test/boolean.jl
 
-julia --project=.  test/idea-building.jl
+julia --project=.  test/building.jl
 ```
 
 ## Developing Plasm.jl

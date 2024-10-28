@@ -10,7 +10,6 @@ function RunBooleanTest(name, bool_op, args; debug_mode=false)
   lar = ARRANGE3D(LAR(assembly))
   lar = INNERS(lar)
 
-
   if debug_mode
     for atom in ATOMS(lar)
       show_debug(atom)
@@ -19,7 +18,6 @@ function RunBooleanTest(name, bool_op, args; debug_mode=false)
   end
 
   result= BOOL3D(lar, bool_op=bool_op, input_args=[LAR(arg) for arg in args], debug_mode=debug_mode)
-  @show(result.C[:CF])
   VIEWCOMPLEX(result, show=["FV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) FV")
   VIEWCOMPLEX(result, show=["CV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) CV")
 end
@@ -67,39 +65,15 @@ function MechanicalPiece(symbol::Symbol)
   end
 end
 
-# //////////////////////////////////////////////////////
-function Union(v::Vector{Bool})::Bool   
-  ret=any(v) 
-  println("Union $(v) $(ret)")    
-  return ret
-end
-
-function Intersection(v::Vector{Bool})::Bool     
-  ret=all(v) 
-  println("Intersection $(v) $(ret)")    
-  return ret
-end
-
-function Difference(v::Vector{Bool})::Bool      
-  ret=v[1] && !any(v[2:end]) 
-  println("Difference $(v) $(ret)")    
-  return ret
-end
-
-function Xor(v::Vector{Bool})::Bool      
-  ret=(length([it for it in v if it]) % 2)==1  
-  println("Xor $(v) $(ret)")    
-  return ret
-end
 
 # //////////////////////////////////////////////////////
 #for bool_op in [Union, Intersection, Difference, Xor]
-for bool_op in [Xor]
-  RunBooleanTest("TwoCubes",bool_op, TwoCubes())
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("boolean/TwoCubes",bool_op, TwoCubes())
 end
 
 for bool_op in [Union, Intersection, Difference, Xor]
-  RunBooleanTest("ThreeCubes",bool_op, ThreeCubes())
+  RunBooleanTest("boolean/ThreeCubes",bool_op, ThreeCubes())
 end
 
 # example of user-defined boolean expression: any boolean expression will work
@@ -108,17 +82,17 @@ function UserBoolOp(v::Vector{Bool})::Bool
 end
 
 for bool_op in [Union, Intersection, Difference, Xor]
-  RunBooleanTest("MechanicalPiece/cube", bool_op, MechanicalPiece(:cube))
+  RunBooleanTest("boolean/MechanicalPiece/cube", bool_op, MechanicalPiece(:cube))
 end
 
 for bool_op in [Union, Intersection, Difference, Xor]
-  RunBooleanTest("MechanicalPiece/cylinder", bool_op, MechanicalPiece(:cylinder))
+  RunBooleanTest("boolean/MechanicalPiece/cylinder", bool_op, MechanicalPiece(:cylinder))
 end
 
 # BROKEN
 if false
   for bool_op in [Union, Intersection, Difference, Xor]
-    RunBooleanTest("MechanicalPiece/tube", bool_op, MechanicalPiece(:tube))
+    RunBooleanTest("boolean/MechanicalPiece/tube", bool_op, MechanicalPiece(:tube))
   end
 end
 

@@ -159,8 +159,7 @@ function Difference(v::Vector{Bool})::Bool
   return v[1] && !any(v[2:end]) 
 end
 
-function Xor(v::Vector{Bool})::Bool      
-  println(v)    
+function Xor(v::Vector{Bool})::Bool  
   return (length([it for it in v if it]) % 2)==1  
 end
 
