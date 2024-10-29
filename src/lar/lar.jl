@@ -55,6 +55,8 @@ function lar_face_name(lar::Lar, id::Int)::String
 end 
 
 # ////////////////////////////////////////////
+# disabled: https://github.com/scrgiorgio/Plasm.jl/issues/17
+"""
 function Base.show(io::IO, lar::Lar) 
 	println(io, "Lar(")
 	println(io, "  [ # total ", size(lar.V,2))
@@ -77,7 +79,7 @@ function Base.show(io::IO, lar::Lar)
 	println(io, "  )")
 	println(io, ")")
 end
-
+"""
 
 # //////////////////////////////////////////////////////////////////////////////
 function lar_used_vertices(lar::Lar)
@@ -440,7 +442,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 """from Hpc -> Lar """
-function LAR(obj::Hpc; precision=TO_GEOMETRY_DEFAULT_PRECISION_DIGITS)::Lar
+function LAR(obj::Hpc; precision=TO_GEOMETRY_PRECISION)::Lar
 	geo = ToGeometry(obj, precision=precision)
 	ret = Lar()
 	ret.V = hcat(geo.points...)
@@ -542,14 +544,20 @@ end
 export find_vcycles
 
 # //////////////////////////////////////////////////////////////////////////////
-function run_lar_viewer(viewer::Viewer; title="LAR")
-	run_viewer(viewer, properties=Properties(
-		"background_color" => Point4d([0.9,0.9,0.9,1.0]),
-		"use_ortho" => true,
-		"title" => title,
-		"show_axis" => false
-		#, "line_width" => 3
-	))
+function run_lar_viewer(viewer::Viewer; title="LAR", use_thread=false, properties=nothing)
+
+	if isnothing(properties)
+		properties=Properties()
+	end
+
+	properties["show_axis"]           = get(properties,"show_axis", true)
+	properties["title"]               = get(properties,"title","VIEWCOMPLEX")
+	properties["background_color"]    = get(properties,"background_color",Point4d([0.9,0.9,0.9,1.0]))
+
+	run_viewer(viewer, 
+		properties=properties,
+		use_thread=use_thread
+	)
 end
 export run_lar_viewer
 
@@ -570,7 +578,7 @@ function do_explode(points::Points, vt)
 end
 
 # /////////////////////////////////////////////////////
-function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0,0.0,0.0], show=[])
+function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0,0.0,0.0], show=[], properties=Properties())
 
 	ev=lar.C[:EV][E]
 	edge_points=do_explode(lar.V[:, ev], vt)
@@ -581,18 +589,18 @@ function render_edge(viewer::Viewer, lar::Lar, E::Int; line_color=BLACK, vt=[0.0
 	render_lines(viewer, lines, colors=colors, line_width=DEFAULT_LINE_WIDTH)
 
 	if "Vtext" in show
-		render_text(viewer, lar_vertex_name(lar, ev[1]), center=edge_points[:,1], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
-		render_text(viewer, lar_vertex_name(lar, ev[2]), center=edge_points[:,2], color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+		render_text(viewer, lar_vertex_name(lar, ev[1]), center=edge_points[:,1], color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
+		render_text(viewer, lar_vertex_name(lar, ev[2]), center=edge_points[:,2], color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
 	end
 
 	if "Etext" in show
-		render_text(viewer, lar_edge_name(lar, E), center=compute_centroid(edge_points), color=LIGHT_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+		render_text(viewer, lar_edge_name(lar, E), center=compute_centroid(edge_points), color=LAR_EDGE_COLOR, fontsize=get(properties,"font_size", LAR_EDGE_FONT_SIZE))
 	end
 end
 
 
 # /////////////////////////////////////////////////////
-function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0,0.0,0.0], show=[])
+function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0,0.0,0.0], show=[], properties=Properties())
 
 	fv=lar.C[:FV][F]
 	face_points=do_explode(lar.V[:, fv], vt)
@@ -626,7 +634,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 			if "Vtext" in show
 				perturbation= [0.0,0.0,0.0] 
 				# perturbation=rand(3)*0.01
-				render_text(viewer, lar_vertex_name(lar, v_index), center=pos + perturbation , color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+				render_text(viewer, lar_vertex_name(lar, v_index), center=pos + perturbation , color=LAR_VERTEX_COLOR, fontsize=get(properties,"font_size", LAR_VERTEX_FONT_SIZE))
 			end
 		end		
 	end
@@ -659,7 +667,7 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 	# render text
 	begin
 		if "Ftext" in show
-			render_text(viewer, lar_face_name(lar, F), center=compute_centroid(face_points), color=DARK_GRAY, fontsize=DEFAULT_LAR_FONT_SIZE)
+			render_text(viewer, lar_face_name(lar, F), center=compute_centroid(face_points), color=LAR_FACE_COLOR, fontsize=get(properties,"font_size", LAR_FACE_FONT_SIZE))
 		end
 	end
 
@@ -667,7 +675,7 @@ end
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing)
+function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, properties=Properties())
 
   # want lar to be 3 dimensional 
 	begin
@@ -695,7 +703,7 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 			vt=get_explosion_vt(lar.V[:, v_indices], explode)
 			atom_face_color = isnothing(face_color) ? RandomColor() : face_color
 			for F in cf
-				render_face(viewer, lar, F, vt=vt, face_color=atom_face_color, show=show)
+				render_face(viewer, lar, F, vt=vt, face_color=atom_face_color, show=show, properties=properties)
 			end
 		end
 
@@ -708,7 +716,7 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 			vt=get_explosion_vt(lar.V[:, fv], explode)
 			# sometimes getting StackOverflowError
 			try
-				render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show)
+				render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show, properties=properties)
 			catch
 				println("ERROR in render_face, what is going on???")
 			end
@@ -722,9 +730,10 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		if !isnothing(FV) !isnothing(FE) 
 			for (F,fv) in enumerate(FV)
 				vt=get_explosion_vt(lar.V[:, fv], explode)
-				line_color = RandomColor()
+				# line_color = RandomColor()
+				line_color=BLACK
 				for E in FE[F]
-					render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show)
+					render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show, properties=properties)
 				end
 			end
 			
@@ -732,9 +741,24 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		elseif !isnothing(EV)
 			for (E,ev) in enumerate(EV)
 				vt=get_explosion_vt(lar.V[:, ev], explode)
-				line_color = RandomColor()
-				render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show)
+				# line_color = RandomColor()
+				line_color=BLACK
+				render_edge(viewer, lar, E, vt=vt, line_color=line_color, show=show, properties=properties)
 			end
+		end
+
+		# show Ftext if needed
+		if "Ftext" in show && !isnothing(FV)
+			for (F, fv) in enumerate(FV)
+				vt=get_explosion_vt(lar.V[:, fv], explode)
+				# sometimes getting StackOverflowError
+				try
+					render_face(viewer, lar, F, vt=vt, face_color=TRANSPARENT, show=show, properties=properties)
+				catch
+					println("ERROR in render_face, what is going on???")
+				end
+			end
+
 		end
 
 	end
@@ -743,13 +767,18 @@ end
 export render_lar
 
 # //////////////////////////////////////////////////////////////////////////////
-function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR")
-	render_lar(viewer, lar, show=show, explode=explode, face_color=face_color)
-	run_lar_viewer(viewer, title=title)
+function VIEWCOMPLEX(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false, properties=Properties(), numbering=false)
+
+	if numbering
+		show=[show ;  ["Vtext", "Etext", "Ftext"] ]
+	end
+
+	render_lar(viewer, lar, show=show, explode=explode, face_color=face_color, properties=properties)
+	run_lar_viewer(viewer, title=title, use_thread=use_thread, properties=properties)
 end
 
-function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR")
-	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color, title=title)
+function VIEWCOMPLEX(lar::Lar; show=["V", "EV", "FV"], explode=[1.0,1.0,1.0], face_color=nothing, title="LAR", use_thread=false, properties=Properties(), numbering=false)
+	VIEWCOMPLEX(Viewer(), lar, show=show, explode=explode, face_color=face_color, title=title, use_thread=use_thread, properties=properties, numbering=numbering)
 end
 
 export VIEWCOMPLEX

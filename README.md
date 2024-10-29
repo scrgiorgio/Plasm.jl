@@ -9,23 +9,23 @@ This repo:
 ## Run tests
 
 ```bash
-julia --project=. test/bbox.jl
-julia --project=. test/points.jl
-julia --project=. test/plane.jl
+julia --project=. --threads=auto test/bbox.jl
+julia --project=. --threads=auto test/points.jl
+julia --project=. --threads=auto test/plane.jl
 
-julia --project=. test/hpc.jl
-julia --project=. test/structural_frames.jl
+julia --project=. --threads=auto test/hpc.jl
+julia --project=. --threads=auto test/structural_frames.jl
 
 # lar
-julia --project=. test/lar.jl
-julia --project=. test/random-tetgen.jl
-julia --project=. test/simplexn.jl
+julia --project=. --threads=auto test/lar.jl
+julia --project=. --threads=auto test/random-tetgen.jl
+julia --project=. --threads=auto test/simplexn.jl
 
-julia --project=. test/arrange2d.jl
-julia --project=. test/arrange3d.jl
-julia --project=. test/boolean.jl
+julia --project=. --threads=auto test/arrange2d.jl
+julia --project=. --threads=auto test/arrange3d.jl
+julia --project=. --threads=auto test/boolean.jl
 
-julia --project=. test/idea-building.jl
+julia --project=. --threads=auto test/idea-building.jl
 ```
 
 ## Developing Plasm.jl

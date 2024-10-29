@@ -1,7 +1,6 @@
 using ModernGL
 using GLFW
 
-__release_gpu_resources__ = []
 
 # /////////////////////////////////////////////////////////////////////
 mutable struct GLVertexBuffer
@@ -11,16 +10,12 @@ mutable struct GLVertexBuffer
 
   # constructor
   function GLVertexBuffer()
-    ret = new(-1, Vector{Float32}())
-    finalizer(releaseGpuResources, ret)
-    return ret
+    return new(-1, Vector{Float32}())
   end
 
   # constructor
   function GLVertexBuffer(vector::Vector{Float32})
-    ret = new(-1, copy(vector))
-    finalizer(releaseGpuResources, ret)
-    return ret
+    return new(-1, copy(vector))
   end
 
 end
@@ -34,9 +29,7 @@ mutable struct GLVertexArray
 
   # constructor
   function GLVertexArray()
-    ret = new(-1)
-    finalizer(releaseGpuResources, ret)
-    return ret
+    return new(-1)
   end
 
 end
@@ -76,7 +69,6 @@ function GLBatch(prim::UInt32=GL_POINTS)
 		Point4d(0.5, 0.5, 0.5, 1.0),
 		false
 	)
-	finalizer(releaseGpuResources, ret)
 	return ret
 end
 
@@ -187,31 +179,7 @@ function glErrorMessage()
 end
 
 
-# /////////////////////////////////////////////////////////////////////
-function glDeleteLater(fun::Function)
-	global __release_gpu_resources__
-	append!(__release_gpu_resources__, [fun])
-end
 
-# /////////////////////////////////////////////////////////////////////
-function glDeleteNow()
-	global __release_gpu_resources__
-	for fun in __release_gpu_resources__
-		fun()
-	end
-end
-
-# /////////////////////////////////////////////////////////////////////
-function releaseGpuResources(buffer::GLVertexBuffer)
-	global __release_gpu_resources__
-	if buffer.id >= 0
-		id = buffer.id
-		buffer.id = -1
-		glDeleteLater(function ()
-			glDeleteBuffers(1, [id])
-		end)
-	end
-end
 
 # /////////////////////////////////////////////////////////////////////
 function enableAttribute(location::Int32, buffer::GLVertexBuffer, num_components::Int64)
@@ -236,17 +204,6 @@ function disableAttribute(location::Int32, buffer::GLVertexBuffer)
 	glDisableVertexAttribArray(location)
 end
 
-# /////////////////////////////////////////////////////////////////////
-function releaseGpuResources(array::GLVertexArray)
-	global __release_gpu_resources__
-	if array.id >= 0
-		id = array.id
-		array.id = -1
-		glDeleteLater(function ()
-			glDeleteVertexArrays(1, [id])
-		end)
-	end
-end
 
 # /////////////////////////////////////////////////////////////////////
 function enableVertexArray(array::GLVertexArray)
@@ -267,13 +224,6 @@ function disableVertexArray(array::GLVertexArray)
 	glBindVertexArray(0)
 end
 
-# /////////////////////////////////////////////////////////////////////
-function releaseGpuResources(batch::GLBatch)
-	releaseGpuResources(batch.vertex_array)
-	releaseGpuResources(batch.vertices)
-	releaseGpuResources(batch.normals)
-	releaseGpuResources(batch.colors)
-end
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -288,44 +238,11 @@ mutable struct GLShader
 
 	# constructor
 	function GLShader(vertex, fragment)
-		ret = new(vertex, fragment, -1, -1, -1)
-		finalizer(releaseGpuResources, ret)
-		return ret
+		return new(vertex, fragment, -1, -1, -1)
 	end
 
 end
 
-# /////////////////////////////////////////////////////////////////////
-function releaseGpuResources(shader::GLShader)
-
-	global __release_gpu_resources__
-
-	if shader.vertex_shader_id >= 0
-		id = shader.vertex_shader_id
-		shader.vertex_shader_id = -1
-		glDeleteLater(function ()
-			glDeleteShader(id)
-		end)
-	end
-
-	if shader.frag_shader_id >= 0
-		id = shader.frag_shader_id
-		shader.frag_shader_id = -1
-		glDeleteLater(function ()
-			glDeleteShader(id)
-		end)
-
-	end
-
-	if shader.program_id >= 0
-		id = shader.program_id
-		shader.program_id = -1
-		glDeleteLater(function ()
-			glDeleteProgram(id)
-		end)
-	end
-
-end
 
 # /////////////////////////////////////////////////////////////////////
 function createShader(type, source)
@@ -523,15 +440,6 @@ function GLPhongShader(lighting_enabled, color_attribute_enabled)
 end
 
 
-# ///////////////////////////////////////////////////////////////////////
-function releaseGpuResources(viewer::GLFWViewer)
-	for batch in viewer.batches
-		releaseGpuResources(batch)
-	end
-	for (key, shader) in viewer.shaders
-		releaseGpuResources(shader)
-	end
-end
 
 
 # ///////////////////////////////////////////////////////////////////////
@@ -573,6 +481,8 @@ end
 
 # ///////////////////////////////////////////////////////////////////////
 function glRender(viewer::GLFWViewer)
+
+	glDeleteNow()
 
 	glEnable(GL_BLEND)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -907,8 +817,74 @@ function render_triangles(viewer::GLFWViewer, points::Vector{Float32}; normals=n
 	end
 end
 
+
+# /////////////////////////////////////////////////////////////////////
+__release_gpu_resources__ = []
+
+function glDeleteLater(fun::Function)
+	global __release_gpu_resources__
+	append!(__release_gpu_resources__, [fun])
+end
+
+function glDeleteNow()
+	global __release_gpu_resources__
+	v,__release_gpu_resources__=__release_gpu_resources__,[]
+	for fun in __release_gpu_resources__
+		fun()
+	end
+end 
+
+function releaseGpuResources(array::GLVertexArray)
+       global __release_gpu_resources__
+       if array.id >= 0
+               id = array.id
+               array.id = -1
+               glDeleteLater(function () glDeleteVertexArrays(1, [id])end)
+       end
+end
+
+function releaseGpuResources(buffer::GLVertexBuffer)
+	global __release_gpu_resources__
+	if buffer.id >= 0
+		id = buffer.id
+		buffer.id = -1
+		glDeleteLater(function () glDeleteBuffers(1, [id])end)
+	end
+end
+function releaseGpuResources(batch::GLBatch)
+	releaseGpuResources(batch.vertex_array)
+	releaseGpuResources(batch.vertices)
+	releaseGpuResources(batch.normals)
+	releaseGpuResources(batch.colors)
+end
+
+function releaseGpuResources(shader::GLShader)
+	global __release_gpu_resources__
+
+	if shader.vertex_shader_id >= 0
+					id = shader.vertex_shader_id
+					shader.vertex_shader_id = -1
+					glDeleteLater(function () glDeleteShader(id)end)
+	end
+
+	if shader.frag_shader_id >= 0
+					id = shader.frag_shader_id
+					shader.frag_shader_id = -1
+					glDeleteLater(function ()glDeleteShader(id)end)
+
+	end
+
+	if shader.program_id >= 0
+					id = shader.program_id
+					shader.program_id = -1
+					glDeleteLater(function ()glDeleteProgram(id)end)
+	end
+
+end
+
+
 # ///////////////////////////////////////////////////////////////////////
-function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
+function run_viewer_in_current_thread(viewer::GLFWViewer; properties::Properties=Properties())
 
 	# there should NOT be any repetition
 	@assert(length(Set(viewer.batches))==length(viewer.batches))
@@ -941,8 +917,6 @@ function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 		end
 		
 	end
-
-
 
 	viewer.background_color =            get(properties, "background_color", viewer.background_color)
 	viewer.title            =            get(properties, "title", viewer.title)
@@ -990,16 +964,41 @@ function run_viewer(viewer::GLFWViewer; properties::Properties=Properties())
 	end)
 
 	handleResizeEvent(viewer::GLFWViewer)
-	while !viewer.exitNow && !GLFW.WindowShouldClose(win)
+
+	while !GLFW.WindowShouldClose(win)
+		if viewer.exitNow SetWindowShouldClose(win,true) end
 		glRender(viewer)
 		GLFW.SwapBuffers(win)
 		GLFW.PollEvents()
+		sleep(0.001)
 	end
 
-	releaseGpuResources(viewer)
-	glDeleteNow()
-	GLFW.DestroyWindow(win)
-	GLFW.Terminate()
+	for batch in viewer.batches
+		releaseGpuResources(batch)
+	end
+	
+	# keeping shaders
+	# for (key, shader) in viewer.shaders
+	#	 releaseGpuResources(shader)
+	#end
 
+	# GLFW.HideWindow(win)
+	GLFW.DestroyWindow(win)
+	
+	# println("Viewer destroyed")
+end
+
+
+# ///////////////////////////////////////////////////////////////////////
+function run_viewer(viewer::GLFWViewer; properties::Properties=Properties(), use_thread=true)
+
+	# scrgiorgio: disabled since MacOs does not seem to support it
+	#println("Creating Window use_thread=",use_thread)
+	#if use_thread
+	#	Threads.@spawn run_viewer_in_current_thread(viewer, properties=properties)
+	#else
+		run_viewer_in_current_thread(viewer, properties=properties)
+		GLFW.Terminate()
+	#end
 end
 export run_viewer

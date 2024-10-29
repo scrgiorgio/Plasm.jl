@@ -113,8 +113,10 @@ end
 export render_triangles
 
 # ///////////////////////////////////////////////////////////////////////
-function run_viewer(viewer::MeshCatViewer; properties::Properties=Properties())
+function run_viewer(viewer::MeshCatViewer; properties::Properties=Properties(),use_thread=false)
 	
+	# todo
+	@assert(!use_thread)
 	vis=viewer.vis
 
 	# reduce to the case -1,+1 (do not consider the axis)

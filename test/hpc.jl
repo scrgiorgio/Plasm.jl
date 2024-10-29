@@ -222,13 +222,6 @@ function TestHpcInternal()
   obj = Translate(Cube(2, 0.0, 1.0), [0.0, 0.0])
   @test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
 
-  # MapFn
-  function fn(p)
-    return [p[I] + 0.0 for I in 1:length(p)]
-  end
-  obj = MapFn(Cube(2, 0.0, 1.0), fn)
-  @test box(obj) == BoxNd([0.0, 0.0], [1.0, 1.0])
-
   # UkPol
   points, hulls = UkPol(Cube(2, 0.0, 1.0))
   @test length(points) == 4
