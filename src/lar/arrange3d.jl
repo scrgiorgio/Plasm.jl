@@ -2,221 +2,6 @@
 
 
 
-# //////////////////////////////////////////////////////////////////////////////
-function tgw_containment_test(triangle, f, V, FV, EV, FE)::Bool
-	""" Triangle containment test of checkpoint into `f`; used in TGW algorithm """
-	# affine mapping computation to z=0 plane
-	v1, v2, v3 = triangle
-	u = V[:, v2] - V[:, v1]
-	v = V[:, v3] - V[:, v1]
-	w = cross(u, v)
-	T = [1.0 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]
-	T[1:3, 4] = -V[:, v1]
-	R = [1.0 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]
-	R[1:3, 1:3] = [u v w]
-	R = R'
-	mapping = R * T
-
-	trianglepoints = [[V[:, v1] V[:, v2] V[:, v3]]; ones(3)']
-	pts = mapping * trianglepoints
-	points2D = [pts[r, :] for r = 1:size(pts, 1)
-							if !(all(pts[r, :] .== 0) || all(pts[r, :] .== 1))]
-	p2D = hcat(points2D...)'
-	checkpoint = 0.4995 .* p2D[:, 1] + 0.4995 .* p2D[:, 2] + 0.001 .* p2D[:, 3]
-
-	cellpoints = [V[:, FV[f]]; ones(length(FV[f]))']
-	points = mapping * cellpoints
-	verts2D = [points[r, :] for r = 1:size(points, 1)
-						 if !(all(points[r, :] .== 0) || all(points[r, :] .== 1))]
-	P2D = hcat(verts2D...)
-
-	vdict = Dict(collect(zip(FV[f], 1:length(FV[f]))))
-	celledges = [[vdict[v] for v in EV[e]] for e in FE[f]]
-	inner = point_in_face(checkpoint, P2D::Points, lar2cop(celledges)::ChainOp)
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-function tgw_triangle_ordering(triangles, V)
-	""" Correct ordering of triangles (hence faces) about each boundary edge """
-	normals = []
-	v1, v2, v3 = triangles[1]
-	if v1 > v2
-		v1, v2 = v2, v1
-	end
-	e3 = LinearAlgebra.normalize(V[:, v2] - V[:, v1])
-	e1 = LinearAlgebra.normalize(V[:, v3] - V[:, v1])
-	e2 = LinearAlgebra.normalize(cross(e1, e3))
-	basis = [e1 e2 e3]
-	transform = inv(basis)
-
-	angles = []
-	for (v1, v2, v3) in triangles
-		w1 = LinearAlgebra.normalize(V[:, v3] - V[:, v1])
-		w2 = transform * w1
-		w3 = cross([0, 0, 1], w2)
-		push!(normals, w3)
-	end
-	for k = 1:length(normals)
-		angle = atan(normals[k][2], normals[k][1])
-		push!(angles, angle)
-	end
-	pairs = sort(collect(zip(angles, 1:length(triangles))))
-	order = [k for (angle, k) in pairs]
-	return order
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-function tgw_compute_ordered_fan(hinge::Int, bd1, V::Points, FV::Cells, EV::Cells, FE::Cells)
-
-	""" Component of TGW in 3D (Pao);  return an ordered `fan` of 2-cells """
-	cells = SparseArrays.findnz(bd1)[1]
-	triangles = []
-
-	function area(v1, v2, v3)
-		u = V[:, v2] - V[:, v1]
-		v = V[:, v3] - V[:, v1]
-		out = LinearAlgebra.norm(cross(u, v)) # actually, to be divided by two
-		return out
-	end
-
-	for f in cells
-		v1, v2 = EV[hinge]
-		index = findfirst(v -> (area(v1, v2, v) ≠ 0), FV[f])
-		v3 = FV[f][index]
-
-		# test if [v1,v2,v3] interior to f
-		while true
-			if tgw_containment_test([v1, v2, v3], f, V, FV, EV, FE)
-				push!(triangles, [v1, v2, v3])
-				break
-			else
-				index = findnext(v -> (area(v1, v2, v) ≠ 0), FV[f], index + 1)
-				v3 = FV[f][index]
-			end
-		end
-	end
-	order = tgw_triangle_ordering(triangles, V)
-	return [cells[index] for index in order]
-end
-
-
-# //////////////////////////////////////////////////////////////////////////////
-function tgw_next(cycle, pivot, marks)
-	
-	""" Utility function for TGW in 3D """
-	len = length(cycle)
-	ind = findfirst(x -> x == pivot, cycle)[1]
-	nextIndex = ind == len ? 1 : ind + 1
-	#if marks[nextIndex]==2
-	#  nextIndex = ind==1 ? len : ind-1
-	#end
-	return cycle[nextIndex][1]
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-function tgw_prev(cycle, pivot, marks)
-	""" Utility function for TGW in 3D """
-	len = length(cycle)
-	ind = findfirst(x -> x == pivot, cycle)[1] #  ind is address of pivot in cycle
-	nextIndex = ind == 1 ? len : ind - 1
-	return cycle[nextIndex][1]
-end
-
-# //////////////////////////////////////////////////////////////////////////////
-function tgw_build_copCF(V_row, rcopEV, rcopFE)
-	
-	""" TGW algorithm implementation (pao) """
-
-	# G&F -> Pao data structures
-	V = BYCOL(V_row)
-	num_vertices=size(V, 2)
-	EV = cop2lar(rcopEV)
-	fe = cop2lar(rcopFE)
-	fv = [union([EV[e] for e in fe[f]]...) for f = 1:length(fe)]
-	FV = convert(Cells, fv)
-	copFE = rcopFE    # alias useful for algorithm testing 
-	VV = [[index] for index = 1:num_vertices]
-
-	copEF = transpose(copFE)
-	FE = [SparseArrays.findnz(copFE[k, :])[1] for k = 1:size(copFE, 1)]
-	# Initializations
-	m, n = size(copEF)
-	marks = zeros(Int, n)
-	I = Int[]
-	J = Int[]
-	W = Int[]
-	jcol = 0
-	choose(marks) = findall(x -> x < 2, marks)[end]
-
-	# Main loop (adding one copFC's column stepwise)
-	# while sum(marks) < 2n # no robust condition ... make better
-	while (!all(value == 2 for value in marks) && (sum(marks) <= 2n))
-		# to don't loop
-		# select a (d−1)-cell, "seed" of the column extraction
-		σ = choose(marks)
-		if marks[σ] == 0
-			cd1 = sparsevec([σ], Int[1], n)
-		elseif marks[σ] == 1
-			cd1 = sparsevec([σ], Int[-1], n)
-		end
-		# compute boundary cd2 of seed cell
-		cd2 = copEF * cd1
-		# loop until (boundary) cd2 becomes empty
-		while nnz(cd2) ≠ 0
-			corolla = sparsevec([], Int[], m)
-			# for each “hinge” τ cell
-			for τ ∈ (.*)(SparseArrays.findnz(cd2)...)
-				#compute the  coboundary
-				tau = sparsevec([abs(τ)], Int[sign(τ)], m)  # ERROR: index out of bound here!
-				bd1 = transpose(transpose(tau) * copEF)
-				cells2D = SparseArrays.findnz(bd1)[1]
-				# compute the  support
-				inters = intersect(cells2D, SparseArrays.findnz(cd1)[1])
-				if inters ≠ []
-					pivot = inters[1]
-				else
-					error("no pivot")
-				end
-				# compute the new adj cell
-				fan = tgw_compute_ordered_fan(abs(τ), bd1, V, FV, EV, FE) 
-				if τ > 0
-					adj = tgw_next(fan, pivot, marks)
-				elseif τ < 0
-					adj = tgw_prev(fan, pivot, marks)
-				end
-				# orient adj
-				if copEF[abs(τ), adj] ≠ copEF[abs(τ), pivot]
-					corolla[adj] = cd1[pivot]
-				else
-					corolla[adj] = -(cd1[pivot])
-				end
-			end
-			# insert corolla cells in current cd1
-			for (k, val) in zip(SparseArrays.findnz(corolla)...)
-				cd1[k] = val
-			end
-			# compute again the boundary of cd1
-			cd2 = copEF * cd1
-		end
-		for σ ∈ SparseArrays.findnz(cd1)[1]
-			# update the counters of used cells
-			marks[σ] += 1
-		end
-		# append a new column to [∂d+]
-		# copFC += cd1
-		rows, vals = SparseArrays.findnz(cd1)
-		jcol += 1
-		append!(I, rows)
-		append!(J, [jcol for k = 1:nnz(cd1)])
-		append!(W, vals)
-	end
-	copCF = sparse(J, I, W)
-	# @show copCF;
-	return copCF
-end
-
 
 #//////////////////////////////////////////////////////////////////////////////
 # REMARK: will not work when vs[:,1:3] are aligned !!!!  TODO: fix 
@@ -511,8 +296,180 @@ function fragment_all_faces(lar::Lar)
 	return rV, rcopEV, rcopFE
 end
 
-# //////////////////////////////////////////////////////////////////////////////
+# ////////////////////////////////////////////////////////////////////////
+function lar_tgw(lar::Lar; debug_mode=false)::Cells
 
+  # Newell's method, works for concave too and it is oriented
+  function compute_oriented_newell_normal(loop::AbstractPointsNd)::PointNd
+    n = [0.0, 0.0, 0.0]
+    for (I, (x1, y1, z1)) in enumerate(loop)
+        x2, y2, z2 = loop[mod1(I+1, length(loop))]
+        n[1] += (y1 - y2) * (z1 + z2)
+        n[2] += (z1 - z2) * (x1 + x2)
+        n[3] += (x1 - x2) * (y1 + y2)
+    end
+    return n / LinearAlgebra.norm(n)
+  end
+
+  function cycle_normal(V, cycle)
+    return compute_oriented_newell_normal([V[:,a] for (a, b) in cycle])
+  end
+
+  function cycle_dimension(V, cycle)
+    a,b=cycle[1]
+    m,M=V[:,a],V[:,a]
+    for (a,b) in cycle
+      m=[min(m[I],it) for (I,it) in enumerate(V[:,a])]
+      M=[max(M[I],it) for (I,it) in enumerate(V[:,a])]
+    end
+    return prod([M[I]-m[I] for I in 1:3 if (M[I]-m[I])>0]) 
+  end
+
+	# tgw angle computation
+	function compute_oriented_angle(a::PointNd, b::PointNd, c::PointNd)::Float64
+		a = a / LinearAlgebra.norm(a)
+		b = b / LinearAlgebra.norm(b)
+		angle = atan(dot(cross(a, b), c), dot(a, b))
+
+		ret=rad2deg(angle)
+
+		# I think it will not be a problem if the first face I see is 180 or -180 it means they are two flat faces connected each others
+		# @assert(ret!=180.0 || ret==-180.0) # ambiguity otherwise
+		return ret
+	end
+
+  V=lar.V
+  FE=lar.C[:FE]
+  EV=lar.C[:EV]
+  num_faces=length(FE)
+
+  # compute cycles and normals (note: a normal is unique for a face and shared by all its cycles)
+  begin
+    cycles,normals=[],[]
+    for (A,fe) in enumerate(FE)
+      face_cycles=find_vcycles(Cells([EV[E] for E in fe])) 
+      if length(face_cycles)>1
+        # need to (1) find outer main cycle (2) reverse all other cycles  because they are holes and 
+        # need to be traversed in reversed order (even if the normal is the same)
+        face_cycles=collect(sort(face_cycles,by=cycle->cycle_dimension(V, cycle),rev=true))
+        n1=cycle_normal(V, face_cycles[1])
+        for C in 2:length(face_cycles)
+          n2=cycle_normal(V, face_cycles[C])
+          face_cycles[C]=dot(n1,n2)>=0 ? reverse_cycle(face_cycles[C]) : face_cycles[C]
+        end
+      end
+      push!(cycles, face_cycles)
+      push!(normals, cycle_normal(V, face_cycles[1]))
+      #println("$(A) NORMAL $(normals[end]) face_cycles=$(face_cycles)")
+    end 
+  end
+
+  # compute connections
+  begin
+    connections=Dict{Int,Dict}()
+    for (A, Acycles) in enumerate(cycles)
+      connections[+A],connections[-A]=Dict(), Dict()
+      #println("Face $(A) Acycles=$(Acycles) normal=$(normals[A])")
+      for Acycle in Acycles
+        for (a, b) in Acycle
+          adjacent_pos, adjacent_neg = Vector{Any}(),Vector{Any}()
+          for (B, Bcycles) in enumerate(cycles)
+            if A==B  continue  end  # same face, skip
+            # println("  B=$(B) Bcycles=$(Bcycles)")
+            for Bcycle in Bcycles
+              if     ([b,a] in Bcycle)  Bsign=+1 # they are correct: in opposite direction 
+              elseif ([a,b] in Bcycle)  Bsign=-1 # i must go in the opposite direction
+              else  continue  end
+              # println("  Found adj cycle edge=$([a,b]) with face $(B) Bsign=$(Bsign)" )
+              angle_pos=compute_oriented_angle(+1.0 .* normals[A], +Bsign .* normals[B],   V[:,b] - V[:,a]) # from a->b
+              angle_neg=compute_oriented_angle(-1.0 .* normals[A], -Bsign .* normals[B],   V[:,a] - V[:,b]) # from b->a
+              push!(adjacent_pos, (face=(+Bsign) * B, angle=angle_pos))
+              push!(adjacent_neg, (face=(-Bsign) * B, angle=angle_neg))
+            end
+          end
+          if length(adjacent_pos)==0
+            println("PROBLEM WITH edge [$(a),$(b)] only one face incident")
+            @assert(false)
+          end
+          connections[+A][normalize_cell([a,b])]=collect(sort(adjacent_pos,by=value->value.angle))  
+          connections[-A][normalize_cell([a,b])]=collect(sort(adjacent_neg,by=value->value.angle))
+        end
+      end
+    end
+  end
+
+  # topology checks on connections (if A picks B then B must pick A)
+  begin
+    for (A,  adjacent_per_edge) in connections
+      for (ev, adjacents) in adjacent_per_edge
+        for adj in adjacents
+          B=adj.face
+          @assert B in [it.face for it in connections[A][ev]]
+          @assert A in [it.face for it in connections[B][ev]]
+        end
+      end
+    end
+  end
+
+  # find best connections by angles (TGW)
+  begin
+    best_connections=Dict{Int, Cell}()
+    for (A,  adjacent_per_edge) in connections
+      best_connections[A]=remove_duplicates([adjacents[1].face for (ev, adjacents) in adjacent_per_edge])
+    end
+  end
+
+  #for (k,v) in best_connections
+  #  println(k," ",v)
+  #end
+
+  @assert(all([abs(F)>=1 && abs(F)<=num_faces for F in keys(best_connections)]))
+  atoms=lar_connected_components(collect(keys(best_connections)), cur -> best_connections[cur])
+  # @show(atoms)
+
+  # atoms topology checks
+  begin
+    for F in keys(connections)
+      # one signed face should be in only one atom
+      @assert(length([atom for atom in atoms if F in atom])==1)
+      # if there is +F in one atom, there cannot be -F
+      @assert(length([atom for atom in atoms if +F in atom && -F in atom])==0)
+    end
+  end
+
+  # I do not need the sign anymore (could be useful for debugging)
+  atoms=[collect(sort([abs(jt) for jt in it])) for it in atoms]
+
+  # @show(atoms)
+
+  # topology check
+  begin
+    num_full_cell_per_face= Dict{Int,Int}()
+    for (A, atom) in enumerate(atoms)
+
+      # each atom must not contain the same face twice
+      if length(Set(atom))!=length(atom)
+        @assert(false)
+      end
+
+      for F in atom
+        if !haskey(num_full_cell_per_face,F) num_full_cell_per_face[F]=0 end
+        num_full_cell_per_face[F]+=1
+      end
+    end
+
+    # @show(num_full_cell_per_face)
+
+    # no hanging face, and a face cannot be shared by more than 2-full-dim cells
+    # note: consider the outer atom too
+    @assert(all([v==2 for (k,v) in num_full_cell_per_face]))
+
+  end
+
+  return atoms
+end
+
+# //////////////////////////////////////////////////////////////////////////////
 function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 	""" Main function of arrangement pipeline """
 	rV, rcopEV, rcopFE=fragment_all_faces(lar)
@@ -532,19 +489,13 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 		VIEWCOMPLEX(ret, explode=[1.2,1.2,1.2], show=["V","FV","Vtext"], title="arrange3d / 3d ALL faces")
 	end  
 
-	if LAR_ARRANGE3D_USE_EXPERIMENTAL
-		ret=SIMPLIFY(ret) # not sure this is needed
+	ret=SIMPLIFY(ret) # not sure this is needed
 
-		ret.C[:FV]=compute_FV(ret)
-		ret.C[:CF]=lar_find_atoms(ret, debug_mode=debug_mode)
+	ret.C[:FV]=compute_FV(ret)
+	ret.C[:CF]=lar_tgw(ret, debug_mode=debug_mode)
 
-		# ret.C[:CV]=compute_CV(ret) dont think this is needed
-		CHECK(ret)
-	else
-		# broken, fails to find atoms in case of disconnected components
-		rcopCF = tgw_build_copCF(rV, rcopEV, rcopFE)
-		ret.C[:CF]=cop2lar(convert(ChainOp,rcopCF))
-	end
+	# ret.C[:CV]=compute_CV(ret) dont think this is needed
+	CHECK(ret)
 
 	if debug_mode
 		@show(ret)
@@ -557,36 +508,6 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 end
 export ARRANGE3D
 
-# ////////////////////////////////////////////////////////////////
-function SPLIT(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
-	if LAR_ARRANGE3D_USE_EXPERIMENTAL
-		return arrange3d_v2_split(lar)
-	else
-
-		# scrgiorgio: I do not think this is correct, because it could be there is an outer cell with the exact 
-		#             same bounding box of an inner cell
-		# VIEWATOMS(lar)
-		atoms=ATOMS(lar)
-		diags =[LinearAlgebra.norm(b[2] - b[1]) for b in [lar_bounding_box(atom, only_used_vertices=true) for atom in atoms]]
-		max_diag = maximum(diags)
-		outers=lar_copy(lar); outers.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] == max_diag]
-		inners=lar_copy(lar); inners.C[:CF]=[lar.C[:CF][A] for (A,atom) in enumerate(atoms) if diags[A] <  max_diag]
-		return outers,inners
-	end
-end
-export SPLIT
-
-# ////////////////////////////////////////////////////////////////
-function OUTERS(lar::Lar)::Lar
-  return SPLIT(lar)[1]
-end
-export OUTERS
-
-# ////////////////////////////////////////////////////////////////
-function INNERS(lar::Lar)::Lar
-  return SPLIT(lar)[2]
-end
-export INNERS
 
 
 
