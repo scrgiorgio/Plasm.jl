@@ -297,8 +297,8 @@ function find_internal_point(lar::Lar;max_attempts=10)
   # i want to move out of the complex
   move_out = 3.0 * LinearAlgebra.norm(b2 - b1)   
 
-  @show(b1,b2)
-  @show(move_out)
+  #@show(b1,b2)
+  #@show(move_out)
 
   for attempt in 1:max_attempts
 
@@ -308,7 +308,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
     external_point = inside_bbox + move_out * random_dir(pdim)
     ray_dir    = normalized(inside_bbox-external_point)
 
-    @show("Trying", external_point, ray_dir)
+    #@show("Trying", external_point, ray_dir)
 
     distances=PointNd()
 
@@ -316,7 +316,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
       hit,distance=ray_face_intersection(external_point, ray_dir, lar, I)
       if !isnothing(hit)
         push!(distances,distance)
-        @show("hit", external_point,ray_dir,distance)
+        #@show("hit", external_point,ray_dir,distance)
       end
     end
     
@@ -330,7 +330,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
     # I want to find the inner IN range which is bigger
     begin
       distances=sort(distances)
-      @show(distances)
+      #@show(distances)
       best_delta,internal_point=nothing,nothing
       for I in 1:length(distances)-1
         delta=distances[I+1]-distances[I]
@@ -338,10 +338,10 @@ function find_internal_point(lar::Lar;max_attempts=10)
           distance=distances[I]+delta/2
           if isnothing(best_delta) || delta>best_delta
             internal_point=external_point+ray_dir*distance
-            @show("new best", external_point, ray_dir, distance,internal_point, best_delta,delta)
+            #@show("new best", external_point, ray_dir, distance,internal_point, best_delta,delta)
             best_delta=delta
           else
-            @show("not the best",delta)
+            #@show("not the best",delta)
           end
         end
       end
@@ -357,7 +357,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
     internal_external_distance=LinearAlgebra.norm(external_point-internal_point)
     distances=[(internal_external_distance-distance) for distance in distances]
     @assert(is_internal_point(lar, internal_point, ray_dir))
-    @show(internal_point, ray_dir, distances)
+    #@show(internal_point, ray_dir, distances)
     return internal_point, ray_dir, distances
 
   end

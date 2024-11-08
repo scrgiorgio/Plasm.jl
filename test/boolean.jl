@@ -7,8 +7,17 @@ Random.seed!(0)
 # /////////////////////////////////////////////////////////////////////////////
 function RunBooleanTest(name, bool_op, args; debug_mode=false)
   assembly=STRUCT(args)
-  lar = ARRANGE3D(LAR(assembly))
-  lar = INNERS(lar)
+
+
+  lar=LAR(assembly)
+  pdim=size(lar.V, 1)
+  
+  if pdim==2
+    lar = ARRANGE2D(lar)
+  else
+    lar = ARRANGE3D(lar)
+    lar = INNERS(lar)
+  end
 
   if debug_mode
     for atom in ATOMS(lar)
@@ -19,7 +28,27 @@ function RunBooleanTest(name, bool_op, args; debug_mode=false)
 
   result= BOOL(lar, bool_op=bool_op, input_args=[LAR(arg) for arg in args], debug_mode=debug_mode)
   VIEWCOMPLEX(result, show=["FV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) FV")
-  VIEWCOMPLEX(result, show=["CV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) CV")
+
+  if pdim==3
+    VIEWCOMPLEX(result, show=["CV"], explode=[1.2,1.2,1.2], title="$(name)/$(bool_op) CV")
+  end
+end
+
+# //////////////////////////////////////////////////////
+function TwoQuads()
+  return [
+    CUBOID([0.0, 0.0],[1.0, 1.0]),
+    CUBOID([0.5, 0.5],[1.5, 1.5])
+  ]
+end
+
+# //////////////////////////////////////////////////////
+function ThreeQuads()
+  return [
+    CUBOID([0.0, 0.0], [1.0, 1.0]),
+    CUBOID([0.5, 0.5], [1.5, 1.5]),
+    CUBOID([0.7, 0.7], [1.7, 1.7])
+    ]
 end
 
 # //////////////////////////////////////////////////////
@@ -65,9 +94,18 @@ function MechanicalPiece(symbol::Symbol)
   end
 end
 
+# //////////////////////////////////////////////////////
+# 2d
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("boolean/TwoQuads",bool_op, TwoQuads())
+end
+
+for bool_op in [Union, Intersection, Difference, Xor]
+  RunBooleanTest("boolean/ThreeQuads",bool_op, ThreeQuads())
+end
 
 # //////////////////////////////////////////////////////
-#for bool_op in [Union, Intersection, Difference, Xor]
+# 3d
 for bool_op in [Union, Intersection, Difference, Xor]
   RunBooleanTest("boolean/TwoCubes",bool_op, TwoCubes())
 end
