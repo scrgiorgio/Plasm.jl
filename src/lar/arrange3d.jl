@@ -297,7 +297,7 @@ function fragment_all_faces(lar::Lar)
 end
 
 # ////////////////////////////////////////////////////////////////////////
-function lar_find_atoms_3d(lar::Lar; debug_mode=false)::Cells
+function lar_tgw(lar::Lar; debug_mode=false)::Cells
 
   # Newell's method, works for concave too and it is oriented
   function compute_oriented_newell_normal(loop::AbstractPointsNd)::PointNd
@@ -492,7 +492,7 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 	ret=SIMPLIFY(ret) # not sure this is needed
 
 	ret.C[:FV]=compute_FV(ret)
-	ret.C[:CF]=lar_find_atoms_3d(ret, debug_mode=debug_mode)
+	ret.C[:CF]=lar_tgw(ret, debug_mode=debug_mode)
 
 	# ret.C[:CV]=compute_CV(ret) dont think this is needed
 	CHECK(ret)

@@ -17,6 +17,7 @@ end
 export random_dir
 
 # ////////////////////////////////////////////////////////////////////////
+# needed only for 3D
 function lar_connected_components(seeds::Cell, get_connected::Function)::Cells
   ret = []
   assigned = Set()
@@ -42,6 +43,7 @@ function lar_connected_components(seeds::Cell, get_connected::Function)::Cells
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+# needed only for 3D
 function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Cell
 
   pdim=size(lar.V, 1)
@@ -75,6 +77,7 @@ end
 
 
 # ////////////////////////////////////////////////////////////////
+# needed only for 3D
 function SPLIT(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
 
   pdim=size(lar.V, 1)
@@ -194,12 +197,14 @@ end
 
 # ////////////////////////////////////////////////////////////////
 function OUTERS(lar::Lar)::Lar
+  # needed only for 3D
   return SPLIT(lar)[1]
 end
 export OUTERS
 
 # ////////////////////////////////////////////////////////////////
 function INNERS(lar::Lar)::Lar
+  # needed only for 3D
   return SPLIT(lar)[2]
 end
 export INNERS
@@ -211,7 +216,6 @@ function ray_face_intersection(ray_origin::PointNd, ray_dir::PointNd, lar::Lar, 
 
   if pdim===2
 
-    # scrgiorgio: not tested. 
     a,b = lar.C[:EV][idx]
     P1  = lar.V[:, a]
     P2  = lar.V[:, b]
