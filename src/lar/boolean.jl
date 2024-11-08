@@ -11,51 +11,274 @@ end
 export random_float
 
 # //////////////////////////////////////////////////////////////////////////////
-function random_dir()
-  return normalized([random_float(-1.0,1.0) for I in 1:3])
+function random_dir(dim::Int)
+  return normalized([random_float(-1.0,1.0) for I in 1:dim])
 end
 export random_dir
 
-# //////////////////////////////////////////////////////////////////////////////
-function ray_face_intersection(ray_origin::PointNd, ray_dir::PointNd, lar::Lar, F::Int)
+# ////////////////////////////////////////////////////////////////////////
+function lar_connected_components(seeds::Cell, get_connected::Function)::Cells
+  ret = []
+  assigned = Set()
 
-  face          = lar.C[:FV][F]
-  face_points3d = lar.V[:,face]
-	plane=plane_create(face_points3d)
-
-	hit3d, t=plane_ray_intersection(ray_origin, ray_dir, plane)
-	if isnothing(hit3d)
-		return nothing,nothing
-	end
-
-	# i need to check if the hit is really inside the face
-	#   to do so I project all in 2d and use the 2d classify point
-	project = project_points3d(face_points3d; double_check=true) # scrgiorgio: remove double check 
-
-	hit2d         = project(hit3d[:,:])[:,1]
-	face_points2d = project(face_points3d)
-
-  vdict=Dict(vertex_index => I for (I, vertex_index) in enumerate(face))
-  face_edges=[ [vdict[a],vdict[b]] for (a,b) in lar.C[:EV] if a in face && b in face]
-  # @show(face_edges)
-
-	classify = classify_point(hit2d, BYROW(face_points2d), face_edges) 
-  if classify == "p_out"
-    return nothing,nothing
+  function visit(component, cur::Int)
+    if cur in assigned return end
+    push!(assigned, cur)
+    @assert !(cur in component)
+    push!(component, cur)
+    for other in get_connected(cur)
+      visit(component, other)
+    end
   end
+
+  for seed in seeds
+      if seed in assigned continue end
+      component = Set()
+      visit(component, seed)
+      push!(ret, collect(component))
+  end
+
+  return ret
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+function guess_boundary_faces(lar::Lar, faces::Vector; max_attempts=1000)::Cell
+
+  pdim=size(lar.V, 1)
+
+  for attempt in 1:max_attempts
+    b1,b2=lar_bounding_box(lar; only_used_vertices=true)
+    move_out = pdim*LinearAlgebra.norm(b2 - b1)   
+    inside_bbox = [random_float(b1[I],b2[I]) for I in 1:pdim ]
+    external_point = inside_bbox + move_out * random_dir(pdim)
+    ray_dir = normalized(inside_bbox-external_point)
+    distances=[]
+    for F in faces
+      hit, distance=ray_face_intersection(external_point, ray_dir, lar, F)
+      if !isnothing(hit)
+        push!(distances,[distance,F])
+      end
+    end
+
+    # this means I need two hit and should start outside and end in outside
+    if length(distances) >=2 && (length(distances) % 2) == 0
+      println("guess_boundary_faces #attempt=",attempt) # , " distances=", distances)
+      distances=sort(distances)
+      return [ distances[1][end], distances[end][end]]
+    end
+
+    # println("FAILED guess_boundary_faces #attempt=", attempt, " distances=", distances)
+
+  end
+  @assert(false)
+end
+
+
+# ////////////////////////////////////////////////////////////////
+function SPLIT(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
+
+  pdim=size(lar.V, 1)
+  @assert(pdim==2 || pdim==3)
+
+  if pdim==2
+
+    # TODO
+
+  else
+
+    function compute_atom_bbox(lar::Lar, atom::Cell)
+      points=PointsNd()
+      for F in atom
+        append!(points,[p for p in eachcol(lar.V[:, lar.C[:FV][F] ])])
+      end
+      return bbox_create(points)
+    end
+
+    atoms=[cf for cf in lar.C[:CF]]
+  end
+
   
-  # println("ray ", ray_origin, " ",ray_dir, " intersecting  with face ",F, " ", BYROW(face_points3d),"---",hit2d, BYROW(face_points2d), face_edges)
-  return hit3d, t
+
+  # connected atoms
+  begin
+    #for (A,atom) in enumerate(atoms)
+    #  println("Atom ",A," ",atom)
+    #end
+    components=lar_connected_components(collect(eachindex(atoms)), A -> [B for B in eachindex(atoms) if A!=B && length(intersect(Set(atoms[A]),Set(atoms[B])))>0 ])
+    components=[ [atoms[jt] for jt in it] for it in components]
+
+    for (C,component) in enumerate(components)
+      # not 100% sure about it
+      if length(component)>2
+        components[C]=remove_duplicates(component)
+      else
+        components[C]=[normalize_cell(it) for it in component]
+      end
+    end
+
+    #for (C,component) in enumerate(components)
+    #  println("Component ",C," ",component)
+    #end
+  end
+
+  lar_outers=lar_copy(lar);lar_outers.C[:CF]=[]
+  lar_inners=lar_copy(lar);lar_inners.C[:CF]=[]
+  
+  for (C,component) in enumerate(components)
+
+    faces=remove_duplicates(vcat(component...))
+    num_atoms=length(component)
+    #println("# components ",C, " num_atoms=", num_atoms, " faces=",faces)
+    #println(component)
+
+    # there should be at least the internal and the external
+    @assert(length(component)>=2) 
+
+    outer, inners=nothing,[]
+
+    # there is one outer cell, and one inner cell and they must be the same
+    if num_atoms==2
+      @assert(component[1]==component[2])
+      println("length is 2, one outer, one inner")
+      outer,inners=component[1],[component[2]]
+
+    else
+      
+      # try guessing with the bounding box
+      begin
+        bboxes=[compute_atom_bbox(lar, atom) for (A,atom) in enumerate(component)]
+        for (O,maybe_outer) in enumerate(component)
+          is_outer=true
+          maybe_inners=[]
+          for (I,maybe_inner) in enumerate(component)
+            if I!=O 
+              push!(maybe_inners, maybe_inner)
+              is_outer=is_outer && bbox_contain(bboxes[O], bboxes[I]) && bboxes[O]!=bboxes[I]
+            end
+          end
+          if is_outer
+            @assert(isnothing(outer))
+            outer,inners=maybe_outer,maybe_inners
+            println("Found outer by using bounding box")
+          end
+        end
+      end
+
+      # try guessing with boundary faces (can be slow and error-prone)
+      if isnothing(outer)
+        filtered=component
+        while length(filtered)>1
+          boundary_faces=guess_boundary_faces(lar, faces)
+          filtered = [atom for atom in filtered if all([F in atom for F in boundary_faces])]
+        end
+        @assert(length(filtered)==1)
+        outer =filtered[1]
+        inners=[atom for atom in component if atom!=outer]
+      end
+
+    end
+
+    # println("outer is ",outer)
+
+    # topology check: 
+    begin
+      @assert(!isnothing(outer))
+      @assert(length(inners)>=1)
+      @assert((length(inners)+1)==length(component))
+
+      # all outer faces should in any of the inners
+      for F in outer 
+        @assert(F in vcat(inners...))
+      end
+    end
+
+    push!(lar_outers.C[:CF], outer)
+    append!(lar_inners.C[:CF], inners)
+
+  end
+
+  return lar_outers, lar_inners
 
 end
-export ray_face_intersection
 
+# ////////////////////////////////////////////////////////////////
+function OUTERS(lar::Lar)::Lar
+  return SPLIT(lar)[1]
+end
+export OUTERS
+
+# ////////////////////////////////////////////////////////////////
+function INNERS(lar::Lar)::Lar
+  return SPLIT(lar)[2]
+end
+export INNERS
+
+# //////////////////////////////////////////////////////////////////////////////
+function ray_face_intersection(ray_origin::PointNd, ray_dir::PointNd, lar::Lar, idx::Int)
+
+  pdim=size(lar.V, 1)
+
+  if pdim===2
+
+    # scrgiorgio: not tested. 
+    a,b = lar.C[:EV][idx]
+    P1  = lar.V[:, a]
+    P21 = lar.V[:, b]
+    v = P1 - ray_origin  
+    w = P2 - P1 
+    A = [-ray_dir w]
+    if abs(det(A)) < LAR_DEFAULT_ERR 
+        return nothing, nothing 
+    end
+    t_u = A \ v
+    t, u = t_u[1], t_u[2]
+    if t >= 0.0 && 0.0 <= u <= 1.0
+        return ray_origin + t * ray_dir, t
+    else
+        return nothing,nothing
+    end
+
+  else
+    @assert(pdim==3)
+
+    face          = lar.C[:FV][idx]
+    face_points3d = lar.V[:,face]
+    plane=plane_create(face_points3d)
+
+    hit3d, t=plane_ray_intersection(ray_origin, ray_dir, plane)
+    if isnothing(hit3d)
+      return nothing,nothing
+    end
+
+    # i need to check if the hit is really inside the face
+    #   to do so I project all in 2d and use the 2d classify point
+    project = project_points3d(face_points3d; double_check=true) # scrgiorgio: remove double check 
+
+    hit2d         = project(hit3d[:,:])[:,1]
+    face_points2d = project(face_points3d)
+
+    vdict=Dict(vertex_index => I for (I, vertex_index) in enumerate(face))
+    face_edges=[ [vdict[a],vdict[b]] for (a,b) in lar.C[:EV] if a in face && b in face]
+    # @show(face_edges)
+
+    classify = classify_point(hit2d, BYROW(face_points2d), face_edges) 
+    if classify == "p_out"
+      return nothing,nothing
+    end
+    
+    # println("ray ", ray_origin, " ",ray_dir, " intersecting  with face ",idx, " ", BYROW(face_points3d),"---",hit2d, BYROW(face_points2d), face_edges)
+    return hit3d, t
+
+  end
+
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 function is_internal_point(lar::Lar, ray_origin::PointNd, ray_dir::PointNd)
+  pdim=size(lar.V,1)
   num_intersections=0
-  for F in 1:length(lar.C[:FV])
-    hit,t=ray_face_intersection(ray_origin, ray_dir, lar, F)
+  for I in 1:length(lar.C[ pdim==2 ? :EV : :FV])
+    hit,t=ray_face_intersection(ray_origin, ray_dir, lar, I)
     if !isnothing(hit)
       num_intersections+=1
     end
@@ -69,15 +292,17 @@ export is_internal_point
 function find_internal_point(lar::Lar;max_attempts=10) 
 
   # @show(lar)
+  # VIEWCOMPLEX(lar)
 
-  #VIEWCOMPLEX(lar)
+  pdim=size(lar.V, 1)
+  @assert(pdim==2 || pdim==3)
 
 	# TODO: reintroduce space index to avoid O(N^2) complexity
 
   b1,b2=lar_bounding_box(lar; only_used_vertices=true)
   
   # i want to move out of the complex
-  move_out = 3*LinearAlgebra.norm(b2 - b1)   
+  move_out = pdim*LinearAlgebra.norm(b2 - b1)   
 
   #@show(b1,b2)
   #@show(move_out)
@@ -85,16 +310,17 @@ function find_internal_point(lar::Lar;max_attempts=10)
   for attempt in 1:max_attempts
 
     # choose a random point inside the box and a random direction
-    inside_bbox = [random_float(b1[I],b2[I]) for I in 1:3 ]
+    inside_bbox = [random_float(b1[I],b2[I]) for I in 1:pdim ]
 
-    external_point = inside_bbox + move_out * random_dir()
+    external_point = inside_bbox + move_out * random_dir(pdim)
     ray_dir    = normalized(inside_bbox-external_point)
 
     #@show("Trying", external_point, ray_dir)
 
     distances=PointNd()
-    for F in 1:length(lar.C[:FV])
-      hit,distance=ray_face_intersection(external_point, ray_dir, lar, F)
+
+    for I in 1:length(lar.C[ pdim==2 ? :EV : :FV])
+      hit,distance=ray_face_intersection(external_point, ray_dir, lar, I)
       if !isnothing(hit)
         push!(distances,distance)
         #@show("hit", external_point,ray_dir,distance)
@@ -173,7 +399,7 @@ end
 export ATOMS
 
 # ////////////////////////////////////////////////////////////////
-function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false)::Lar
+function BOOL(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false)::Lar
   
   # if you want to see atoms set debug_mode=true
   atoms=ATOMS(arrangement)
@@ -192,6 +418,10 @@ function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false
   
     # show internal / external points for classification
     if debug_mode
+
+      # todo 2d
+      @assert(pdim==3)
+
       viewer=Viewer()
 
       # points
@@ -233,6 +463,12 @@ function BOOL3D(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false
   return SELECT_ATOMS(arrangement, sel)
 
 end
-export BOOL3D
+
+export BOOL
+
+
+
+
+
 
 

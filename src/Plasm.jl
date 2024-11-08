@@ -47,20 +47,13 @@ LAR_EDGE_COLOR       = BLUE
 LAR_FACE_COLOR       = MAGENTA
 
 
-
-# use new TGW and SPLIT code (cannot be sure it's more sbable, need testing)
-LAR_ARRANGE3D_USE_EXPERIMENTAL = true
-
 include("./lar/lar.jl")
 include("./lar/simplexn.jl")
 include("./lar/integr.jl")
 include("./lar/classify.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
-include("./lar/experimental/arrange2d.jl")
-include("./lar/experimental/arrange3d.jl")
 include("./lar/boolean.jl")
-
 
 function __init__()
 	InitPythonHullCode()
