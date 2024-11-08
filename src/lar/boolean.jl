@@ -78,26 +78,17 @@ end
 function SPLIT(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
 
   pdim=size(lar.V, 1)
-  @assert(pdim==2 || pdim==3)
+  @assert(pdim==3)
 
-  if pdim==2
-
-    # TODO
-
-  else
-
-    function compute_atom_bbox(lar::Lar, atom::Cell)
-      points=PointsNd()
-      for F in atom
-        append!(points,[p for p in eachcol(lar.V[:, lar.C[:FV][F] ])])
-      end
-      return bbox_create(points)
+  function compute_atom_bbox(lar::Lar, atom::Cell)
+    points=PointsNd()
+    for F in atom
+      append!(points,[p for p in eachcol(lar.V[:, lar.C[:FV][F] ])])
     end
-
-    atoms=[cf for cf in lar.C[:CF]]
+    return bbox_create(points)
   end
 
-  
+  atoms=[cf for cf in lar.C[:CF]]
 
   # connected atoms
   begin
@@ -223,19 +214,21 @@ function ray_face_intersection(ray_origin::PointNd, ray_dir::PointNd, lar::Lar, 
     # scrgiorgio: not tested. 
     a,b = lar.C[:EV][idx]
     P1  = lar.V[:, a]
-    P21 = lar.V[:, b]
+    P2  = lar.V[:, b]
+
     v = P1 - ray_origin  
     w = P2 - P1 
-    A = [-ray_dir w]
+    A = [ray_dir -w]
     if abs(det(A)) < LAR_DEFAULT_ERR 
-        return nothing, nothing 
+      return nothing, nothing # parallel or coincidents
     end
     t_u = A \ v
     t, u = t_u[1], t_u[2]
     if t >= 0.0 && 0.0 <= u <= 1.0
         return ray_origin + t * ray_dir, t
     else
-        return nothing,nothing
+      # println("here ", t," ", u)
+      return nothing,nothing
     end
 
   else
@@ -302,10 +295,10 @@ function find_internal_point(lar::Lar;max_attempts=10)
   b1,b2=lar_bounding_box(lar; only_used_vertices=true)
   
   # i want to move out of the complex
-  move_out = pdim*LinearAlgebra.norm(b2 - b1)   
+  move_out = 3.0 * LinearAlgebra.norm(b2 - b1)   
 
-  #@show(b1,b2)
-  #@show(move_out)
+  @show(b1,b2)
+  @show(move_out)
 
   for attempt in 1:max_attempts
 
@@ -315,7 +308,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
     external_point = inside_bbox + move_out * random_dir(pdim)
     ray_dir    = normalized(inside_bbox-external_point)
 
-    #@show("Trying", external_point, ray_dir)
+    @show("Trying", external_point, ray_dir)
 
     distances=PointNd()
 
@@ -323,7 +316,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
       hit,distance=ray_face_intersection(external_point, ray_dir, lar, I)
       if !isnothing(hit)
         push!(distances,distance)
-        #@show("hit", external_point,ray_dir,distance)
+        @show("hit", external_point,ray_dir,distance)
       end
     end
     
@@ -337,7 +330,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
     # I want to find the inner IN range which is bigger
     begin
       distances=sort(distances)
-      #@show(distances)
+      @show(distances)
       best_delta,internal_point=nothing,nothing
       for I in 1:length(distances)-1
         delta=distances[I+1]-distances[I]
@@ -345,10 +338,10 @@ function find_internal_point(lar::Lar;max_attempts=10)
           distance=distances[I]+delta/2
           if isnothing(best_delta) || delta>best_delta
             internal_point=external_point+ray_dir*distance
-            #@show("new best", external_point, ray_dir, distance,internal_point, best_delta,delta)
+            @show("new best", external_point, ray_dir, distance,internal_point, best_delta,delta)
             best_delta=delta
           else
-            #@show("not the best",delta)
+            @show("not the best",delta)
           end
         end
       end
@@ -364,15 +357,15 @@ function find_internal_point(lar::Lar;max_attempts=10)
     internal_external_distance=LinearAlgebra.norm(external_point-internal_point)
     distances=[(internal_external_distance-distance) for distance in distances]
     @assert(is_internal_point(lar, internal_point, ray_dir))
-    #@show(internal_point, ray_dir, distances)
+    @show(internal_point, ray_dir, distances)
     return internal_point, ray_dir, distances
 
   end
 
 	error("cannot find internal point")
 end
-export find_internal_point
 
+# /////////////////////////////////////////////////////////////////////
 function Union(v::Vector{Bool})::Bool       
   return any(v) 
 end
@@ -391,10 +384,117 @@ end
 
 export Union, Intersection, Difference, Xor
 
+# /////////////////////////////////////////////////////////////////////
+function SELECT_ATOMS(lar::Lar, sel::Cell)::Lar
+
+  pdim=size(lar.V, 1)
+
+  if pdim==2
+
+    Fsel, Esel=Set{Int}(), Set{Int}()
+    
+    for F in sel
+      push!(Fsel,F)
+      for E in lar.C[:FE][F]
+        push!(Esel,E)
+      end
+    end
+
+    ret=Lar(lar.V, Dict(
+        :FE => Cells(),
+        :EV => Cells())
+    )
+
+    ret.mapping=Dict(
+      :F => Dict{Int,Int}(), 
+      :E => Dict{Int,Int}()
+    )
+
+    # add edges
+    Emap=Dict{Int,Int}()
+    for Eold in Esel
+      push!(ret.C[:EV], [ v_index for v_index in lar.C[:EV][Eold] ])
+      Enew=length(ret.C[:EV])
+      ret.mapping[:E][Enew]=Eold
+      Emap[Eold]=Enew
+    end
+
+    # add faces
+    Fmap=Dict{Int,Int}()
+    for Fold in Fsel
+      push!(ret.C[:FE], [ Emap[Eold] for Eold in lar.C[:FE][Fold] ])
+      Fnew=length(ret.C[:FE])
+      ret.mapping[:F][Fnew]=Fold
+      Fmap[Fold]=Fnew
+    end
+
+    ret.C[:FV]=compute_FV(ret)
+    return ret
+
+  else
+
+    Csel, Fsel, Esel=Set{Int}(),Set{Int}(), Set{Int}()
+    for C in sel
+      push!(Csel,C)
+      for F in lar.C[:CF][C]
+        push!(Fsel,F)
+        for E in lar.C[:FE][F]
+          push!(Esel,E)
+        end
+      end
+    end
+
+    ret=Lar(
+      lar.V, 
+      Dict(
+        :CF => Cells(), 
+        :FE => Cells(),
+        :EV => Cells())
+    )
+
+    ret.mapping=Dict(
+      :C => Dict{Int,Int}(),
+      :F => Dict{Int,Int}(), 
+      :E => Dict{Int,Int}()
+    )
+
+    # add edges
+    Emap=Dict{Int,Int}()
+    for Eold in Esel
+      push!(ret.C[:EV], [ v_index for v_index in lar.C[:EV][Eold] ])
+      Enew=length(ret.C[:EV])
+      ret.mapping[:E][Enew]=Eold
+      Emap[Eold]=Enew
+    end
+
+    # add faces
+    Fmap=Dict{Int,Int}()
+    for Fold in Fsel
+      push!(ret.C[:FE], [ Emap[Eold] for Eold in lar.C[:FE][Fold] ])
+      Fnew=length(ret.C[:FE])
+      ret.mapping[:F][Fnew]=Fold
+      Fmap[Fold]=Fnew
+    end
+
+    # add atoms
+    for Cold in Csel
+      push!(ret.C[:CF], [ Fmap[Fold] for Fold in lar.C[:CF][Cold] ])
+      Cnew=length(ret.C[:CF])
+      ret.mapping[:C][Cnew]=Cold
+    end
+
+    ret.C[:FV]=compute_FV(ret)
+    ret.C[:CV]=compute_CV(ret)
+
+    return ret
+  end
+
+end
 
 # //////////////////////////////////////////////////////////////////////////////
 function ATOMS(lar::Lar)::Vector{Lar}
-  return Vector{Lar}([SELECT_ATOMS(lar, [A]) for A in eachindex(lar.C[:CF])])
+  pdim=size(lar.V,1)
+  return Vector{Lar}([SELECT_ATOMS(lar, [A]) for A in eachindex(lar.C[pdim==2 ? :FE : :CF])])
 end
 export ATOMS
 

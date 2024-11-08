@@ -231,8 +231,6 @@ end
 # ///////////////////////////////////////////////////////////////
 function SELECT_FACES(lar::Lar, sel::Cell)::Lar
 
-	# TODO: rewrite this function as "SELECT_ATOMS" below
-
 	sel=normalize_cell(sel)
 
 	ret=Lar(lar.V, Dict(
@@ -300,73 +298,6 @@ function SELECT_FACES(lar::Lar, sel::Cell)::Lar
 end
 
 export SELECT_FACES
-
-# /////////////////////////////////////////////////////////////////////
-function SELECT_ATOMS(lar::Lar, sel::Cell)::Lar
-
-	Csel=Set{Int}()
-	Fsel=Set{Int}()
-	Esel=Set{Int}()
-
-	for C in sel
-		push!(Csel,C)
-		for F in lar.C[:CF][C]
-			push!(Fsel,F)
-			for E in lar.C[:FE][F]
-				push!(Esel,E)
-			end
-		end
-	end
-
-	ret=Lar(
-		lar.V, 
-		Dict(
-			:CF => Cells(), 
-			:FE => Cells(),
-			:EV => Cells())
-	)
-
-	ret.mapping=Dict(
-		:C => Dict{Int,Int}(),
-		:F => Dict{Int,Int}(), 
-		:E => Dict{Int,Int}()
-	)
-
-	Emap=Dict{Int,Int}()
-	Fmap=Dict{Int,Int}()
-
-	# add edges
-	for Eold in Esel
-		push!(ret.C[:EV], [ v_index for v_index in lar.C[:EV][Eold] ])
-		Enew=length(ret.C[:EV])
-		ret.mapping[:E][Enew]=Eold
-		Emap[Eold]=Enew
-	end
-
-	# add faces
-	for Fold in Fsel
-		push!(ret.C[:FE], [ Emap[Eold] for Eold in lar.C[:FE][Fold] ])
-		Fnew=length(ret.C[:FE])
-		ret.mapping[:F][Fnew]=Fold
-		Fmap[Fold]=Fnew
-	end
-
-	# add atoms
-	for Cold in Csel
-		push!(ret.C[:CF], [ Fmap[Fold] for Fold in lar.C[:CF][Cold] ])
-		Cnew=length(ret.C[:CF])
-		ret.mapping[:C][Cnew]=Cold
-	end
-
-	ret.C[:FV]=compute_FV(ret)
-	ret.C[:CV]=compute_CV(ret)
-
-	return ret
-
-end
-
-export SELECT_ATOMS
-
 
 
 # //////////////////////////////////////////////////////////////////////
