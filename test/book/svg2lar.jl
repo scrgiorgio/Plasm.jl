@@ -246,11 +246,11 @@ function svg2lar(filename::String; flag=true)::LAR
 			append!(outlines, polyline)
 		end
 	end
-@show outlines;
 	lines = hcat(outlines...)
 	lines = map( x->round(x,sigdigits=8), lines )
 	# LAR model construction
 	V,EV = lines2lar(lines)
+@show V,EV;
 	# normalization
 	V = svg_normalize(V,flag=flag)
 	return V,EV
