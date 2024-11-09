@@ -1,4 +1,4 @@
-using DataStructures
+export SVG
 
 """
 	cubicbezier2D(curvePts::Array{Array{Float,1},1})
@@ -197,7 +197,7 @@ end
 
 
 """
-	svg2lar(filename::String; flag=true)
+	SVG(filename::String; flag=true)
 
 Parse a SVG file to a `LAR` model `(V,EV)`.
 Only  `<line >` and `<rect >` and `<path >` SVG primitives are currently translated.
@@ -255,4 +255,3 @@ function svg2lar(filename::String; flag=true)::LAR
 	V = svg_normalize(V,flag=flag)
 	return V,EV
 end
-flag=true
