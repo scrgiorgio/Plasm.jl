@@ -1,5 +1,7 @@
-export SVG
+export SVG, pathparse
 
+
+# //////////////////////////////////////////////////////////////////////////////
 """
 	cubicbezier2D(curvePts::Array{Array{Float,1},1})
 
@@ -35,7 +37,7 @@ function cubicbezier2D( curvePts::Array{Array{Float64,1},1} )
 end
 
 
-
+# //////////////////////////////////////////////////////////////////////////////
 """
 	const cmdsplit
 
@@ -45,6 +47,7 @@ a sequence of graphics commnds.
 const cmdsplit = r"\s*([mMzZlLhHvVcCsSqQtTaA])\s*"
 
 
+# //////////////////////////////////////////////////////////////////////////////
 """
 	const digitRegEx
 
@@ -53,6 +56,8 @@ commnds of a `<path` element.
 """
 const digitRegEx = r"\s*(-?[0-9]*\.?\d+)\s*"
 
+
+# //////////////////////////////////////////////////////////////////////////////
 """
 	pathparse(elements)
 
@@ -122,7 +127,7 @@ function pathparse(data, cnrtlpolygon=false)
 end
 
 
-
+# //////////////////////////////////////////////////////////////////////////////
 """
 	lines2lar(lines)
 
@@ -152,7 +157,7 @@ function lines2lar(lines)
 end
 
 
-
+# //////////////////////////////////////////////////////////////////////////////
 """
 	svg_normalize(V::Points; flag=true::Bool)::Points
 
@@ -183,27 +188,25 @@ function svg_normalize(V::Points; flag=true)
 		# Z = T(1,2)(0, ymax-ymin) * S(1,2)(1,-1)
 		Z = S(1,2)(1,-1)
 	end
-	dim = size(V,1)
-	W = Z[1:dim,:] * [V;ones(1,size(V,2))]
-	#V = map( x->round(x,digits=8), W )
-	V = map(approxVal(8), W)
-
-	if m > n # V by rows
-		V = convert(Points, V')
-	end
-	return V
+	return Z # Plasm tensor = composition of transformations
 end
 
 
-
+# //////////////////////////////////////////////////////////////////////////////
 """
 	SVG(filename::String; flag=true)
 
 Parse a SVG file to a `LAR` model `(V,EV)`.
 Only  `<line >` and `<rect >` and `<path >` SVG primitives are currently translated.
 TODO:  interpretation of transformations.
+
+# Example
+
+```julia
+
+```
 """
-function svg2lar(filename::String; flag=true)::LAR
+function SVG(filename::String; flag=true)::Hpc
 	outlines = Array{Float64,1}[]
 	matchall(r::Regex, s::AbstractString; overlap::Bool=false) =
 		collect(( m.match for m=eachmatch(r,s,overlap=overlap) ));
@@ -214,7 +217,6 @@ function svg2lar(filename::String; flag=true)::LAR
 		tag = elements[1]
 		# SVG <line > primitives
 		if tag == "<line"
-#@show elements
 			r = r"(.)(.)="
 			regex = r"([0-9]*?\.[0-9]*)"
 			prefixes = matchall(r,line)
@@ -250,8 +252,7 @@ function svg2lar(filename::String; flag=true)::LAR
 	lines = map( x->round(x,sigdigits=8), lines )
 	# LAR model construction
 	V,EV = lines2lar(lines)
-@show V,EV;
 	# normalization
-	V = svg_normalize(V,flag=flag)
-	return V,EV
+	Z = svg_normalize(V,flag=flag)
+	return Z(MKPOL(V,EV))
 end
