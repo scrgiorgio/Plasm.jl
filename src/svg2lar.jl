@@ -1,4 +1,4 @@
-export SVG, pathparse
+export SVG, pathparse, cmdsplit, digitRegEx
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -210,11 +210,13 @@ function SVG(filename::String; flag=true)::Hpc
 	outlines = Array{Float64,1}[]
 	matchall(r::Regex, s::AbstractString; overlap::Bool=false) =
 		collect(( m.match for m=eachmatch(r,s,overlap=overlap) ));
-@show filename
 	for line in eachline(filename)
+@show (line)
 		parts = Base.split(lstrip(line), ' ')
 		elements = [part for part in parts if part≠""]
+@show (elements)
 		tag = elements[1]
+@show (tag)
 		# SVG <line > primitives
 		if tag == "<line"
 			r = r"(.)(.)="
@@ -226,14 +228,14 @@ function SVG(filename::String; flag=true)::Hpc
 			push!(outlines, outline)
 		# SVG <rect > primitives
 		elseif tag == "<rect"
-			r = r"(.)(.)="
-			regex = r"([0-9]*?\.[0-9]*)"
-			prefixes = matchall(r,line)
-			values = matchall(regex,line)
-			x, y, width, height = map(Meta.parse, values)
-			# regex = r"""(<rect x=")(.+?)(" y=")(.+?)(" )(.*?)( width=")(.+?)(" height=")(.+?)("/>)"""
-			# coords = collect(match( regex , line)[k] for k in (4,6,8,10))
-			# x, y, width, height = [ parse(Float64, string) for string in coords ]
+#			r = r"(.)(.)="
+#			regex = r"([0-9]*?\.[0-9]*)"
+#			prefixes = matchall(r,line)
+#			values = matchall(regex,line)
+#			x, y, width, height = map(Meta.parse, values)
+			regex = r"""(<rect x=")(.+?)(" y=")(.+?)(" )(.*?)( width=")(.+?)(" height=")(.+?)("/>)"""
+			coords = collect(match( regex , line)[k] for k in (4,6,8,10))
+			x, y, width, height = [ parse(Float64, string) for string in coords ]
 			line1 = [ x, y, x+width, y ]
 			line2 = [ x, y, x, y+height ]
 			line3 = [ x+width, y, x+width, y+height ]
@@ -241,6 +243,7 @@ function SVG(filename::String; flag=true)::Hpc
 			push!(outlines, line1, line2, line3, line4)
 		# SVG <path  > primitives
 		# see https://github.com/chebfun/chebfun/issues/1617
+@show (outlines)
 		elseif tag == "<path"
 			dataregex = r"""d=(".*?")(.*?)"""
 			data = string(match( dataregex , line)[1])
