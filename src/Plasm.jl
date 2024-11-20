@@ -26,7 +26,7 @@ include("./plane.jl")
 include("./defaults.jl")
 include("./viewer.jl")
 include("./hpc.jl")
-include("./svg2lar.jl")
+include("./svg.jl")
 
 MAP_GLUE=0.0
 include("./fenvs.jl")
