@@ -51,7 +51,7 @@ function RunArrange3DTest(name, hpc::Hpc)
   lar=ARRANGE3D(lar)
   lar=INNERS(lar)
   VIEWCOMPLEX(lar, show=["FV"], explode=[1.4,1.4,1.4], title="$(name) FV")
-  VIEWCOMPLEX(lar, show=["CV"], explode=[1.4,1.4,1.4], title="$(name) CV")
+  VIEWCOMPLEX(lar, show=["CV"], explode=[1,1,1], title="$(name) CV")
 end
 
 # //////////////////////////////////////////////

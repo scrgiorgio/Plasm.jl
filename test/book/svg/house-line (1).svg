@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="1573.23" height="821.39" viewBox="0 0 1573.23 821.39">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
+
+      .cls-1, .cls-2 {
+        stroke: #000;
+        stroke-miterlimit: 10;
+        stroke-width: .25px;
+      }
+
+      .cls-2 {
+        fill: none;
+      }
+    </style>
+  </defs>
+  <rect class="cls-1" x="835.61" y=".12" width="211.29" height="281.37"/>
+  <rect class="cls-2" x="1046.89" y=".12" width="309.62" height="211.7"/>
+  <rect class="cls-2" x="309.62" y=".12" width="309.62" height="213.02"/>
+  <rect class="cls-2" x="619.24" y=".12" width="216.37" height="281.37"/>
+  <rect class="cls-2" x="835.61" y=".12" width="211.29" height="281.37"/>
+  <rect class="cls-2" x="1135.91" y="223.44" width="220.6" height="104.5"/>
+  <rect class="cls-2" x="311.55" y="226.24" width="220.6" height="104.5"/>
+  <rect class="cls-2" x="203.22" y="366.79" width="108.3" height="69.67"/>
+  <rect class="cls-2" x="1356.51" y="366.79" width="108.3" height="69.67"/>
+  <rect class="cls-2" x="619.24" y="281.49" width="129.65" height="187.71"/>
+  <rect class="cls-2" x="917.24" y="281.49" width="129.65" height="187.71"/>
+  <rect class="cls-2" x="917.24" y="469.2" width="129.65" height="230.28"/>
+  <rect class="cls-2" x="619.24" y="469.2" width="129.65" height="230.28"/>
+  <rect class="cls-2" x="1356.51" y="436.3" width="216.6" height="263.17"/>
+  <rect class="cls-2" x="98.11" y="436.62" width="213.41" height="263.17"/>
+  <polygon class="cls-2" points="1047.83 213.15 1135.91 213.15 1135.91 327.93 1048.83 327.93 1047.83 213.15"/>
+  <rect class="cls-2" x="532.16" y="211.52" width="87.08" height="118.04"/>
+  <rect class="cls-2" x="1356.51" y="270.54" width="108.3" height="96.09"/>
+  <rect class="cls-2" x="203.22" y="270.49" width="108.3" height="96.14"/>
+  <rect class="cls-2" x="748.89" y="330.74" width="168.35" height="138.46"/>
+  <polygon class="cls-2" points="704.38 803.23 464.43 803.12 464.43 625.94 619.24 625.94 619.24 699.47 704.38 699.47 704.38 803.23"/>
+  <polygon class="cls-2" points="619.24 329.56 311.55 330.74 311.62 769.14 464.43 769.14 464.43 625.94 619.24 625.94 619.24 329.56"/>
+  <polygon class="cls-2" points="961.75 699.47 961.75 803.12 1201.7 803.12 1201.7 769.14 1201.7 625.94 1046.89 625.94 1046.89 699.47 961.75 699.47"/>
+  <polygon class="cls-2" points="1356.51 769.14 1356.51 327.93 1045.83 327.93 1046.89 625.94 1201.7 625.94 1201.7 769.14 1356.51 769.14"/>
+</svg>
