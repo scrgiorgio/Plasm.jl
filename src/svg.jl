@@ -58,14 +58,18 @@ function traverse_svg(cur, T::Matrix3d, points,hulls; bezier_show_control_points
 	# ___________________________________________
 	if cur.name=="g"
 		
-		transform=cur["transform"]
-		@assert(startswith(transform,"matrix("))
-		@assert(endswith(transform,")"))
-		transform=[parse(Float64, kt) for kt in split_any(transform[8:end-1],",")]
-		T2=Matrix3d(
-			transform[1],transform[3],transform[5],
-			transform[2],transform[4],transform[6],
-			0.0,0.0,1.0)
+		if haskey(cur,"transform")
+			transform=cur["transform"]
+			@assert(startswith(transform,"matrix("))
+			@assert(endswith(transform,")"))
+			transform=[parse(Float64, kt) for kt in split_any(transform[8:end-1],",")]
+			T2=Matrix3d(
+				transform[1],transform[3],transform[5],
+				transform[2],transform[4],transform[6],
+				0.0,0.0,1.0)
+		else
+			T2=Matrix3d()
+		end
 
 		for sub in eachelement(cur)
 			traverse_svg(sub, T * T2, points, hulls, bezier_show_control_points=bezier_show_control_points, bezier_npoints=bezier_npoints)
@@ -97,28 +101,46 @@ function traverse_svg(cur, T::Matrix3d, points,hulls; bezier_show_control_points
 
 		first_pos, current_pos=nothing,nothing
 		tokens=parse_svg_path(cur["d"])
-		path_cur=1
 
-		while path_cur<=length(tokens)
+		Cursor=1
+		function get_token()
+			ret=tokens[Cursor]
+			Cursor+=1
+			return ret
+		end
+		
+		while Cursor<=length(tokens)
 
-			cmd=tokens[path_cur]
-			path_cur+=1
-
+			cmd=get_token()
 
 			# Move To
 			if cmd=="M" || cmd=="m"
-				x,y=[parse(Float64, jt) for jt in split_any(tokens[path_cur]," ,")]
-				path_cur+=1
+				x,y=[parse(Float64, jt) for jt in split_any(get_token()," ,")]
 				current_pos=[x,y]
 				first_pos=current_pos
 
 			# Line To
 			elseif cmd=="L" || cmd=="l"
 				@assert(!isnothing(current_pos))
-				x,y=[parse(Float64, jt) for jt in split_any(tokens[path_cur]," ,")]
-				path_cur+=1
+				x,y=[parse(Float64, jt) for jt in split_any(get_token()," ,")]
 				add_line(current_pos..., x,y)
 				current_pos=[x,y]
+
+			# Horizontal Line
+			elseif cmd=="H" || cmd=="h"
+				@assert(!isnothing(current_pos))
+				x=parse(Float64, get_token())
+				y=current_pos[2]
+				add_line(current_pos..., x,y)
+				current_pos=[x,y]
+
+			# Vertical Line
+		elseif cmd=="V" || cmd=="v"
+			@assert(!isnothing(current_pos))
+			x=current_pos[1]
+			y=parse(Float64, get_token())
+			add_line(current_pos..., x,y)
+			current_pos=[x,y]
 
 			# Close Path
 			elseif cmd=="Z" || cmd=="z"
@@ -130,17 +152,19 @@ function traverse_svg(cur, T::Matrix3d, points,hulls; bezier_show_control_points
 			elseif cmd=="C" || cmd=="c"
 				@assert(!isnothing(current_pos))
 
-				path_value=tokens[path_cur]
-				path_cur+=1
-
 				control_points=[current_pos]
+
+				path_value=get_token()
 				for jt in split_any(path_value," ")
 					x,y=[parse(Float64, kt) for kt in split_any(jt,",")]
 					push!(control_points,[x,y])
 				end
 
 				# todo, only cubic bezier supported right now
-				@assert(length(control_points)==4) 
+				if length(control_points)!=4
+					println("SVG Bezier curve with ",length(control_points)," points. Ignoring since not supported")
+					return
+				end 
 
 				Bx,By = cubicbezier2D(control_points)
 				bezier_points = [ [Bx(u),By(u)] for u=0.0: (1.0/bezier_npoints) :1.0]
@@ -167,10 +191,8 @@ function traverse_svg(cur, T::Matrix3d, points,hulls; bezier_show_control_points
 	end
 
 
-
-	# not supported
-	println(cur.name, " not suppported")
-	@assert(false)
+	# not supported, so ignoring
+	println("SVG $(cur.name) not suppported so ignoring")
 
 end
 
@@ -188,6 +210,7 @@ function read_svg(filename::String; bezier_show_control_points=false, bezier_npo
 	return MKPOL(points,hulls)
 
 end
+export read_svg
 
 
 """
