@@ -572,7 +572,115 @@ export BOOL
 
 
 
+# //////////////////////////////////////////////////////////
+function UNION(v::Vector)::Hpc
+  ret=STRUCT(v)
+  ret.properties["bool_op"]=Union
+  return ret
+end
+
+function INTERSECTION(v::Vector)::Hpc
+  ret=STRUCT(v)
+  ret.properties["bool_op"]=Intersection
+  return ret
+end
+
+function DIFFERENCE(v::Vector)::Hpc
+  ret=STRUCT(v)
+  ret.properties["bool_op"]=Difference
+  return ret
+end
+
+function XOR(v::Vector)::Hpc
+  ret=STRUCT(v)
+  ret.properties["bool_op"]=Xor
+  return ret
+end
+
+function UNION(       a, b...)::Hpc return UNION(       [a; collect(b)])  end
+function INTERSECTION(a, b...)::Hpc return INTERSECTION([a; collect(b)])  end
+function DIFFERENCE(  a, b...)::Hpc return DIFFERENCE(  [a; collect(b)])  end
+function XOR(         a, b...)::Hpc return XOR(         [a; collect(b)])  end
+
+export UNION, INTERSECTION, DIFFERENCE, XOR
 
 
+
+# /////////////////////////////////////////////////////////////////////////
+function BOOL(hpc::Hpc; debug_mode::Bool=false)::Lar
+
+  Tdim = dim(hpc) + 1
+  args=Vector{Hpc}()
+
+
+  function SIMPLIFY(T::MatrixNd, node::Union{Hpc,Geometry})::Hpc
+
+    """
+    all bool node becomes non-leaf node
+    push transformation matrices to leaf
+    NOTE: ignoring properties apart from `bool_op` (don't think I need them)
+    """
+  
+    # final geometry
+    if isa(node,Geometry)
+      ret=Hpc(T, [node])
+      push!(args, ret)
+      return ret
+    end
+  
+    T = T * embed(node.T, Tdim)
+  
+    # a STRUCT is by definition a UNION of its childs
+    bool_op=get(node.properties,"bool_op", Plasm.Union) 
+  
+    childs=[SIMPLIFY(T, child) for child in node.childs]
+  
+    # simplify (scrgiorgio: not so sure about the complement...)
+    if length(childs)==1
+      return childs[1]
+    else
+      return Hpc(MatrixNd(Tdim), childs, Properties("bool_op" => bool_op))
+    end
+  end
+
+  assembly = SIMPLIFY(MatrixNd(Tdim), hpc)
+  lar = LAR(assembly)
+
+  pdim=size(lar.V, 1)
+  if pdim==2
+    lar = ARRANGE2D(lar)
+  else
+    lar = ARRANGE3D(lar)
+    lar = INNERS(lar)
+  end
+
+  show_debug(assembly)
+  println("#args=",length(args))
+
+  function my_bool_op(bool_args::Vector{Bool})::Bool
+    println("my_bool_op"," ",bool_args)
+    @assert(length(bool_args)==length(args))
+    Cursor=1
+    function my_bool_op_inner(node::Hpc)
+      bool_op=get(node.properties,"bool_op",nothing)
+      if !isnothing(bool_op)
+        return bool_op([my_bool_op_inner(child) for child in node.childs])
+      else
+        ret=bool_args[Cursor]
+        Cursor+=1
+        return ret
+      end
+    end
+    ret=my_bool_op_inner(assembly)
+    @assert(Cursor==(length(bool_args)+1)) # all arguments must be consumed
+    return ret
+  end
+
+  result= Plasm.BOOL(lar, bool_op=my_bool_op, input_args=[LAR(arg) for arg in args], debug_mode=debug_mode)
+  return result
+
+end
+
+export BOOL
 
 

@@ -136,3 +136,21 @@ end
 
 # does not make sense because some cells return "outside" , some other "inside depending or where I am inside the grid
 # Building()
+
+
+# /////////////////////////////////////////////////////
+# HPC part
+begin
+  cube = CUBE(1)
+
+  hpc = UNION( 
+    DIFFERENCE( cube, T(1,2,3)(.5,.5,.5),  cube), 
+    T([1])([2.0]), 
+    DIFFERENCE( cube, T(1,2,3)(.5,.5,.5),  cube))
+  result=BOOL(hpc)
+
+  VIEWCOMPLEX(result, show=["FV"], explode=[1.2,1.2,1.2])
+  VIEWCOMPLEX(result, show=["CV"], explode=[1.2,1.2,1.2])
+end
+
+

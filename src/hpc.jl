@@ -683,6 +683,20 @@ function Base.show(io::IO, self::Hpc)
 	print(io, ")")
 end
 
+# //////////////////////////////////////////////////////////
+function show_debug(hpc::Hpc; nrec::Int=0)
+  tab="  " ^ nrec
+  println(tab, "Hpc("," T=",hpc.T, " properties=",hpc.properties)
+  for child in hpc.childs
+    if isa(child,Hpc)
+      show_debug(child, nrec=nrec+1)
+    else
+      println(tab * "  ", child)
+    end
+  end
+	println(tab, ")")
+end
+
 function dim(self::Hpc)
 	return dim(self.T) - 1
 end
