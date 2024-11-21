@@ -2,3 +2,4 @@
 .vs/*
 .DS_Store
 */.DS_Store
+*.bak
