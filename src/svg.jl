@@ -23,7 +23,7 @@ function split_any(s, chars)::Vector{String}
 	for other in chars[2:end]
 		s=string(replace(s, string(other) => sep))
 	end
-	return Base.split(s,sep)
+	return [it for it in Base.split(s,sep) if strip(it)!=""]
 end
 
 # ///////////////////////////////////////////////
@@ -44,35 +44,44 @@ end
 
 
 # ///////////////////////////////////////////////
-function traverse_svg(cur, T::Matrix3d, points,hulls; bezier_show_control_points=false, bezier_npoints=10)
+function traverse_svg(cur, style, T::Matrix3d, out; bezier_show_control_points=false, bezier_npoints=10)
+
+	if haskey(cur,"style")
+		style=cur["style"]
+	end
+
+	if haskey(cur,"transform")
+		transform=cur["transform"]
+		# TODO: support multiple transformation
+		if startswith(transform,"matrix(")
+			@assert(endswith(transform,")"))
+			a,b,c,d,e,f=[parse(Float64, kt) for kt in split_any(transform[length("matrix(")+1:end-1],", ")]
+			T=T*Matrix3d(
+				a,c,e,
+				b,d,f,
+				0.0,0.0,1.0)
+		elseif startswith(transform,"translate(")
+			@assert(endswith(transform,")"))
+			tx,ty=[parse(Float64, kt) for kt in split_any(transform[length("translate(")+1:end-1],", ")]
+			T=T*Matrix3d(
+				1.0,0.0,tx,
+				0.0,1.0,ty,
+				0.0,0.0,1.0)	
+		else
+			@assert(false)
+		end
+	end
 
 	function add_line(x1,y1,x2,y2)
 		x1,y1,z1=T*[x1,y1,1.0];@assert(z1==1.0)
 		x2,y2,z2=T*[x2,y2,1.0];@assert(z2==1.0)
-		push!(points,[x1,y1])
-		push!(points,[x2,y2])
-		N=length(points)
-		push!(hulls,[N-1,N])
+		push!(out, [x1,y1,x2,y2,style])
 	end
 
 	# ___________________________________________
 	if cur.name=="g"
-		
-		if haskey(cur,"transform")
-			transform=cur["transform"]
-			@assert(startswith(transform,"matrix("))
-			@assert(endswith(transform,")"))
-			transform=[parse(Float64, kt) for kt in split_any(transform[8:end-1],",")]
-			T2=Matrix3d(
-				transform[1],transform[3],transform[5],
-				transform[2],transform[4],transform[6],
-				0.0,0.0,1.0)
-		else
-			T2=Matrix3d()
-		end
-
 		for sub in eachelement(cur)
-			traverse_svg(sub, T * T2, points, hulls, bezier_show_control_points=bezier_show_control_points, bezier_npoints=bezier_npoints)
+			traverse_svg(sub, style, T, out, bezier_show_control_points=bezier_show_control_points, bezier_npoints=bezier_npoints)
 		end
 		return
 
@@ -94,6 +103,28 @@ function traverse_svg(cur, T::Matrix3d, points,hulls; bezier_show_control_points
 		add_line(x2,y2, x1,y2)
 		add_line(x1,y2, x1,y1)
 		return
+	end
+
+	# ___________________________________________
+	if cur.name=="polyline"
+		points=[parse(Float64, jt) for jt in split_any(cur["points"],", ") ]
+		points=[ [points[P],points[P+1]] for P in 1:2:length(points)]
+		for P in eachindex(points)
+			if (P+1)<=length(points)
+				add_line(points[P]..., points[P+1]...)
+			end
+		end
+		return
+	end
+
+	# ___________________________________________
+	if cur.name=="polygon"
+		points=[parse(Float64, jt) for jt in split_any(cur["points"],", ")]
+		points=[ [points[P],points[P+1]] for P in 1:2:length(points) ]
+		for P in eachindex(points)
+			add_line(points[P]..., ((P+1)>length(points) ? points[1] : points[P+1])...)
+		end
+		return 
 	end
 
 	# ___________________________________________
@@ -200,15 +231,31 @@ end
 # ///////////////////////////////////////////////
 function read_svg(filename::String; bezier_show_control_points=false, bezier_npoints=10)::Hpc
 
-	points,hulls=Plasm.ConcretePointsNd(),Cells()
+	out=[]
 	doc = parsexml(read(filename,String))
 	for it in eachelement(doc.root)
-		traverse_svg(it, Matrix3d(), points, hulls, bezier_show_control_points=bezier_show_control_points, bezier_npoints=bezier_npoints)
+		traverse_svg(it, "", Matrix3d(), out, bezier_show_control_points=bezier_show_control_points, bezier_npoints=bezier_npoints)
 	end
 
+	v=[]
+	unique_styles=collect(Set([style for (x1,y1,x2,y2,style) in out]))
+	for unique_style in unique_styles
+		points,hulls=Plasm.ConcretePointsNd(),Cells()
+		for (x1,y1,x2,y2,style) in out
+			if style==unique_style
+				push!(points,[x1,y1])
+				push!(points,[x2,y2])
+				N=length(points)
+				push!(hulls,[N-1,N])
+			end
+		end
+		push!(v,PROPERTIES(
+			MKPOL(points, hulls),
+			Properties("line_color" => Plasm.COLORS[rand(1:12)], "line_width" => 1)
+		))
+	end
 
-	return MKPOL(points,hulls)
-
+	return STRUCT(v)
 end
 export read_svg
 
