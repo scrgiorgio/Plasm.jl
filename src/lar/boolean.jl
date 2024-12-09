@@ -683,4 +683,21 @@ end
 
 export BOOL
 
+# ////////////////////////////////////////////////////////
+# all faces that appear only once
+function BOUNDARY(lar::Lar)
+  counter=[0 for fv in lar.C[:FV]]
+  for cf in lar.C[:CF]
+    for F in cf
+      counter[F]+=1
+    end
+  end
+  # println(counter)
+  sel=[F for (F,fe) in enumerate(lar.C[:FE]) if counter[F]==1]
+  ret=SELECT_FACES(lar, sel)
+  if haskey(ret.C,:CF) delete!(ret.C[:CF]) end
+  if haskey(ret.C,:CV) delete!(ret.C[:CV]) end
+  return ret
+end
 
+export BOUNDARY
