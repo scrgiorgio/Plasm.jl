@@ -22,9 +22,12 @@ mutable struct Lar
 	# for mapping new cell ids to old cell idx
 	mapping::Dict{Symbol, Dict{Int,Int}}
 
+	# extra properties
+	properties::Properties
+
 	# constructor
-	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,Cells}(); mapping=Dict{Int,Int}()) = begin
-		new(V, C, mapping)
+	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,Cells}(); mapping=Dict{Int,Int}(), properties=Properties()) = begin
+		new(V, C, mapping, properties)
 	end
 
 end
