@@ -34,8 +34,6 @@ export SQRT, PI, COS, LEN, AND, OR, ToFloat64, C, ATAN2, MOD, ADD, MEANPOINT, SK
 import Base.sqrt
 SQRT(f::Function) = x -> f(x)^(1 / 2)
 
-
-
 import Base.-
 -(f::Function, g::Function) = (x...) -> f(x...) - g(x...)
 
@@ -57,11 +55,13 @@ import Base.^
 
 
 PI = pi
+SIN = sin
 COS = cos
 LEN = length
 AND = all
 OR = any
 
+export SIN,COS
 
 
 # /////////////////////////////////////////////////////////////////
@@ -2739,4 +2739,6 @@ Generate a 1D object of `Hpc` type with `n` unit segments.
 ```
 """
 GRID1(n) = QUOTE(DIESIS(n)(1.0))
+
+
 
