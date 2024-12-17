@@ -76,7 +76,8 @@ Pkg.add([
   "MeshCat",
   "IJulia",
   "Random",
-  "Statistics"
+  "Statistics",
+  "PlyIO"
 ])
 
 # update the manifest too

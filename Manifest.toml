@@ -2,7 +2,7 @@
 
 julia_version = "1.9.3"
 manifest_format = "2.0"
-project_hash = "8832f07867b95e35d1c589d6964f215e28e2500c"
+project_hash = "e1510e69f129c825deca2a8f9c087bcc30f5b219"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -558,6 +558,11 @@ version = "0.43.4+0"
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.9.2"
+
+[[deps.PlyIO]]
+git-tree-sha1 = "40cae522a94143cbad947cbe6071eb51037df624"
+uuid = "42171d58-473b-503a-8d5f-782019eb09ec"
+version = "1.2.0"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
