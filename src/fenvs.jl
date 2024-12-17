@@ -339,6 +339,12 @@ function CONS(Funs)
 	end
 end
 
+function CONS(Funs...)
+	return function (x)
+		return [f(x) for f in Funs]
+	end
+end
+
 # /////////////////////////////////////////////////////////////////
 function IF(funs)
 	function IF1(arg)
