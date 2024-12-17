@@ -307,7 +307,7 @@ function INSR(f)
 	function INSR0(seq)
 		N = length(seq)
 		res = seq[N]
-		for I in N-2:-1:1
+		for I in N-1:-1:1
 			res = f([seq[I], res])
 		end
 		return res

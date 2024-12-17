@@ -262,7 +262,20 @@ function Temple()
 
   function ColRow(N::Int64)
     v = [col for I in 1:N]
-    return INSR(RIGHT)(v)
+
+    function WRONG_INSR(f)
+      function INSR0(seq)
+        N = length(seq)
+        res = seq[N]
+        for I in N-2:-1:1
+          res = f([seq[I], res])
+        end
+        return res
+      end
+      return INSR0
+    end
+
+    return WRONG_INSR(RIGHT)(v)
   end
 
   ColRowAndGable = TOP([ColRow(4), Gable(1.0, 12.0, 4)])
