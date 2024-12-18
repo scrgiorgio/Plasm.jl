@@ -25,6 +25,7 @@ include("./points.jl")
 include("./plane.jl")
 include("./defaults.jl")
 include("./viewer.jl")
+include("./viewer.ply.jl")
 include("./hpc.jl")
 include("./svg.jl")
 
