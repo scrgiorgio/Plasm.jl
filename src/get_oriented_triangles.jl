@@ -91,9 +91,10 @@ function run_viewer(viewer::GetOrientedTriangles; properties::Properties=Propert
             push!(component, [a, b, c])
             push!(visited, normalize_cell([a, b, c]))
             for (A, B) in [(a, b), (b, c), (c, a)]
-                for (d, e, f) in get(connections, (A, B), [])
-                    push!(stack, (d, e, f))
-                end
+              # need to go in the reverse order
+              for (d, e, f) in get(connections, (B, A), [])
+                  push!(stack, (d, e, f))
+              end
             end
         end
         push!(components, component)
