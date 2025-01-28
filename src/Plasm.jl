@@ -57,6 +57,9 @@ include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
 include("./lar/boolean.jl")
 
+
+include("./get_oriented_triangles.jl")
+
 function __init__()
 	InitPythonHullCode()
 end
