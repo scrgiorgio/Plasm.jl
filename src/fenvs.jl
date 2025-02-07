@@ -2762,3 +2762,9 @@ function GR(d,α)
 	return MAT(HOMO(Q(d)')) ∘ R(1,2)(α) ∘ MAT(HOMO(Q(d)))
 end
 export GR
+
+BREP(obj::Hpc) = CONS([S1,CAT∘S2])(get_oriented_triangles(obj))
+
+BREP(obj::Lar) = CONS([S1,CAT∘S2])(get_oriented_triangles(MKPOL(obj.V, obj.C[:CV])))
+
+export BREP
