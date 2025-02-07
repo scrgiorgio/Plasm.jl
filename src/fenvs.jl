@@ -2748,3 +2748,17 @@ GRID1(n) = QUOTE(DIESIS(n)(1.0))
 
 
 
+# //////////////////////////////////////////////////////
+# rotated = GR([1,1,1],π/3)(CUBE(1))
+# VIEWCOMPLEX(rotated)
+function GR(d,α)
+	d = [1,1,1]
+	u₃ = normalize(d)
+	u₂ = normalize(u₃ × [0,0,1])
+	u₁ = u₂ × u₃
+
+	Q(d) = [u₁ u₂ u₃]'
+
+	return MAT(HOMO(Q(d)')) ∘ R(1,2)(α) ∘ MAT(HOMO(Q(d)))
+end
+export GR
