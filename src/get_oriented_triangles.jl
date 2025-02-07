@@ -58,6 +58,12 @@ function run_viewer(viewer::GetOrientedTriangles; properties::Properties=Propert
     triangles=[triangle for triangle in triangles if count[normalize_cell(triangle)]==1]
   end
 
+  return find_connected_components(points, triangles)
+end
+
+# ///////////////////////////////////////////////////
+function find_connected_components(points,triangles)
+
   # compute edge connectivity
   begin
     connections = Dict()
@@ -78,7 +84,6 @@ function run_viewer(viewer::GetOrientedTriangles; properties::Properties=Propert
     end
   end
 
-  # find connected components
   begin
     components = Vector{Cells}()
     visited = Set()
@@ -103,8 +108,8 @@ function run_viewer(viewer::GetOrientedTriangles; properties::Properties=Propert
 
   return (points,components)
 end
-
-
+  
+export find_connected_components
 
 # ///////////////////////////////////////////////////
 function get_oriented_triangles(hpc::Hpc)
@@ -113,19 +118,27 @@ function get_oriented_triangles(hpc::Hpc)
   return run_viewer(viewer)
 end
 
-# ///////////////////////////////////////////////////
-function get_oriented_triangles(lar::Lar)
-  viewer=GetOrientedTriangles()
-  render_lar(viewer, lar)
-  return run_viewer(viewer)
-end
-
 export get_oriented_triangles
 
-# ///////////////////////////////////////////////////
-BREP(obj::Hpc) = CONS([S1,CAT∘S2])(get_oriented_triangles(obj))
+# WRONG (!)
+function BREP(obj::Hpc)
+  return CONS([S1,CAT∘S2])(get_oriented_triangles(obj))
+end
 
-BREP(obj::Lar) = CONS([S1,CAT∘S2])(get_oriented_triangles(MKPOL(obj.V, obj.C[:CV])))
+# ///////////////////////////////////////////////////
+function  BREP(lar::Lar) 
+  # OLD AND WRONG
+  #   return CONS([S1,CAT∘S2])(get_oriented_triangles(MKPOL(obj.V, obj.C[:CV])))
+
+  points,triangles=lar.V,[]
+  for face in lar.C[:FV]
+    for I in 1:(length(face)-2)
+      push!(triangles,[face[1], face[I+1], face[I+2]])
+    end
+  end
+
+  return find_connected_components(points,triangles)
+end
 
 export BREP
 
