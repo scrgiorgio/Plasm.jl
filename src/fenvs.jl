@@ -28,7 +28,13 @@ export SQRT, PI, COS, LEN, AND, OR, ToFloat64, C, ATAN2, MOD, ADD, MEANPOINT, SK
 	BEZIERSTRIPE, BSPLINE, NUBSPLINE, DISPLAYNUBSPLINE, RATIONALBSPLINE, NURBSPLINE, DISPLAYNURBSPLINE, HOMO, PROPERTIES, SQUARE, LINE, MKPOINTS, FRAME2, FRAME3,
 	COLOR, ICOSPHERE, icosphere, GRID1,
 	TORUS, RING, SPHERE,
-	IsPolytope, IsSimplex
+	IsPolytope, IsSimplex, 
+	ISREALPOS
+
+
+ISREALPOS(x) = ISREAL(x) && GT(0)(x)
+
+
 
 
 import Base.sqrt
@@ -344,6 +350,10 @@ function CONS(Funs...)
 		return [f(x) for f in Funs]
 	end
 end
+
+F(Funs)   =CONS(Funs)
+F(Funs...)=CONS(Funs...)
+export F
 
 # /////////////////////////////////////////////////////////////////
 function IF(funs)
@@ -1055,6 +1065,11 @@ function SKELETON(ord::Int)
 	 end
 	 return SKELETON0
 end
+
+SK = SKELETON
+export SK
+
+
 
 # /////////////////////////////////////////////////////////////////
 function UKPOL(pol)
