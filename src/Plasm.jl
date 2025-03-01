@@ -27,7 +27,6 @@ include("./defaults.jl")
 include("./viewer.jl")
 include("./viewer.ply.jl")
 include("./hpc.jl")
-include("./svg.jl")
 
 MAP_GLUE=0.0
 include("./fenvs.jl")
@@ -56,6 +55,7 @@ include("./lar/classify.jl")
 include("./lar/arrange2d.jl")
 include("./lar/arrange3d.jl")
 include("./lar/boolean.jl")
+include("./lar/svg2lar.jl")
 
 
 include("./get_oriented_triangles.jl")
