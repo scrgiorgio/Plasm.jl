@@ -132,6 +132,7 @@ LAR model construction from array of float quadruples.
 Each `line` in input array stands for `x1,y1,x2,y2`.
 """
 function lines2lar(lines)
+@show lines;
 	vertdict = OrderedDict{Array{Float64,1}, Int64}()
 	EV = Array{Int64,1}[]
 	idx = 0
@@ -188,7 +189,7 @@ end
 
 
 """
-	svg2lar(filename::String; flag=true)
+	svg2lar(SVG::String; flag=true)
 
 Parse a SVG file to a `LAR` model `(V,EV)`.
 Only  `<line >` and `<rect >` and `<path >` SVG primitives are currently translated.
@@ -200,9 +201,13 @@ function SVG(filename::String; flag=true)
 	matchall(r::Regex, s::AbstractString; overlap::Bool=false) =
 		collect(( m.match for m=eachmatch(r,s,overlap=overlap) ));
 	for line in eachline(filename)
+@show line;
 		parts = Base.split(lstrip(line), ' ')
+@show parts;
 		elements = [part for part in parts if part≠""]
+@show elements;
 		tag = elements[1]
+@show tag;
 		# SVG <line > primitives
 		if tag == "<line"
 			r = r"(.)(.)="
@@ -217,7 +222,9 @@ function SVG(filename::String; flag=true)
 			r = r"(.)(.)="
 			regex = r"([0-9]*?\.[0-9]*)"
 			prefixes = matchall(r,line)
+@show prefixes;
 			values = matchall(regex,line)
+@show values;
 			x, y, width, height = map(Meta.parse, values)
 			# regex = r"""(<rect x=")(.+?)(" y=")(.+?)(" )(.*?)( width=")(.+?)(" height=")(.+?)("/>)"""
 			# coords = collect(match( regex , line)[k] for k in (4,6,8,10))
@@ -236,10 +243,13 @@ function SVG(filename::String; flag=true)
 			append!(outlines, polyline)
 		end
 	end
+@show outlines;
 	lines = hcat(outlines...)
-	lines = map( x->round(x,sigdigits=8), lines )
+@show lines;
+	#lines = map( x->round(x,sigdigits=8), lines )
 	# LAR model construction
 	V,EV = lines2lar(lines)
+@show V,EV;
 	# normalization
 	pol = normalcoords(V,EV,flag=flag)
 	#return V,EV
