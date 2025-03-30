@@ -860,14 +860,14 @@ function ISPOL(obj)
 end
 
 # /////////////////////////////////////////////////////////////////
-function POINT(p; point_color=Point4d(1.0, 1.0, 1.0, 1.0), point_width=5)
+function POINT(p; point_color=Point4d(1.0, 1.0, 1.0, 1.0), point_size=5)
 	return PROPERTIES(
-		MKPOL([p], [[1]]),
-		Properties(
-			"point_color" => point_color,
-			"point_width" => point_width
-		)
-	)
+    MKPOL([p],[[1]]),
+    Properties(
+      "point_color" => point_color,
+      "point_size" => point_size
+    )
+  )
 end
 
 # /////////////////////////////////////////////////////////////////
