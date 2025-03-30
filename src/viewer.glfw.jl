@@ -782,7 +782,7 @@ function render_points(viewer::GLFWViewer, points::Vector{Float32}; colors=nothi
 	batch = GLBatch(GL_POINTS)
 	push!(viewer.batches,batch)
 	batch.point_size=point_size
-	point_color=point_color
+	batch.point_color=point_color
 	batch.vertices = GLVertexBuffer(points)
 	if !isnothing(colors)
 		batch.colors = GLVertexBuffer(colors)
