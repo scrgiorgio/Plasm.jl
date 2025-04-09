@@ -199,6 +199,7 @@ function SVG(filename::String; flag=true)
 	matchall(r::Regex, s::AbstractString; overlap::Bool=false) =
 		collect(( m.match for m=eachmatch(r,s,overlap=overlap) ));
 	for line in eachline(filename)
+@show line;
 		parts = Base.split(lstrip(line), ' ')
 		elements = [part for part in parts if part≠""]
 		tag = elements[1]
