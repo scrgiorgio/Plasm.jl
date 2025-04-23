@@ -26,6 +26,8 @@ julia --project=.  test/arrange3d.jl
 julia --project=.  test/boolean.jl
 
 julia --project=.  test/building.jl
+
+julia --project=.  test/svg_parser.jl
 ```
 
 ## Developing Plasm.jl
@@ -77,8 +79,10 @@ Pkg.add([
   "IJulia",
   "Random",
   "Statistics",
-  "PlyIO"
-])
+  "PlyIO",
+  "XML",
+  "JSON"
+  ])
 
 # update the manifest too
 Pkg.resolve()
@@ -123,30 +127,3 @@ exit()
 # ~/.julia/conda/3/bin/jupyter notebook --ip='*' --NotebookApp.token='' --NotebookApp.password=''
 ```
 
-# SVG
-
-We support only a restricted dialect of SVG.
-To parse/read SVG you need to
-
-- install Inkscape
-- open the original svg
-- Select all objects (CTRL+A)
-- Choose *Path/Stroke to Path*
-- Choose *Path/Combine*
-- Choose *Path/Flatten*
-- Choose *Extensions / Modify Path / APproximate Curves to Straight Line*. Select a "good" value (like 30/50 points)
-- "Save a copy"
-
-```julia
-using Plasm
-
-VIEW(read_svg("test/book/svg/inkscape/lar_color.svg"))
-VIEW(read_svg("test/book/svg/inkscape/new.svg"))
-
-       
-VIEW(read_svg("test/book/svg/inkscape/curved.svg"))
-VIEW(read_svg("test/book/svg/inkscape/house-line.svg"))
-
-# BROKEN
-# VIEW(read_svg("test/book/svg/inkscape/bird2.svg"))  
-```

@@ -641,7 +641,7 @@ mutable struct Hpc
 	properties::Properties
 
 	# constructor
-	function Hpc(T::MatrixNd=MatrixNd(0), childs::Union{Vector{Hpc},Vector{Geometry}}=[], properties=Properties())
+	function Hpc(T::MatrixNd=MatrixNd(0), childs::Union{Vector{Hpc},Vector{Geometry}}=Vector{Hpc}(), properties=Properties())
 
 		self = new()
 		self.childs = childs
