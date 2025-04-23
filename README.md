@@ -59,6 +59,8 @@ Pkg.activate(".")
 
 Pkg.add([
   "Combinatorics", 
+  "CSV",
+  "DataFrames",
   "GLFW", 
   "ModernGL", 
   "PyCall", 

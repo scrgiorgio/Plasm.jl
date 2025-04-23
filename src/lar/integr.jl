@@ -170,8 +170,8 @@ julia> SURFACE(P)
 6,0
 ```
 """
-function SURFACE(P, signedInt::Bool=false)::Float64
-    return II(P, 0, 0, 0, signedInt)
+function SURFACE(P)::Float64
+    return II(P, 0, 0, 0)
 end
 
 
