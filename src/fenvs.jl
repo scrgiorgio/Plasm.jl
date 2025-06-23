@@ -2735,7 +2735,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function SPHERE(radius=1.0::Number)
-	function SPHERE0(subds=[16, 32]::CellCell)
+	function SPHERE0(subds=[16, 32]::Cell)
 		N, M = subds
 		domain = T(1, 2)(-pi / 2, -pi)(Power(INTERVALS(pi)(N), INTERVALS(2 * pi)(M)))
 		fx = p -> radius * (-cos(p[1])) * sin(p[2])
