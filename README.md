@@ -28,6 +28,10 @@ julia --project=.  test/boolean.jl
 julia --project=.  test/building.jl
 
 julia --project=.  test/svg_parser.jl
+
+# 20251124 svg building
+julia --project=.  examples\svg\buildings_hcmgis_osm.jl  
+
 ```
 
 ## Developing Plasm.jl

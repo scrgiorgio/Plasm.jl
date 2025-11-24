@@ -1604,7 +1604,7 @@ function svg_to_plasm(node)
         line_width=max(1,Int(round(polyline.style.stroke_width)))
         face_color=Point4d(polyline.style.fill)
   
-        println(line_color, line_width, face_color)
+        # println(line_color, line_width, face_color)
   
         points=[[p.x,p.y] for p in polyline.points]
         if polyline.closed
