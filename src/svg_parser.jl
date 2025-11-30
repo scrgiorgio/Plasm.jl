@@ -1606,7 +1606,7 @@ function svg_to_plasm(node)
   
         # println(line_color, line_width, face_color)
   
-        points=[[p.x,p.y] for p in polyline.points]
+        points=[[p.x,-p.y] for p in polyline.points]  # mirror lungo asse Y
         if polyline.closed
   
           # this is in general wrong (could be non-convex) 
