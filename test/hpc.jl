@@ -305,7 +305,6 @@ function Temple()
 end
 
 import Base.*, Base.splat
-*(a::Hpc, b::Hpc) = Power(a, b)
 
 function Manhattan2D()
   global verts = [[0.0, 0], [3, 0], [5, 0], [7, 0], [8, 0], [9.5, 1], [10, 1.5], [0, 3], [3, 3],
