@@ -9,28 +9,24 @@ This repo:
 ## Run tests
 
 ```bash
+# === geometry ===
 julia --project=.  test/bbox.jl
 julia --project=.  test/points.jl
 julia --project=.  test/plane.jl
 
+# === hpc === 
 julia --project=.  test/hpc.jl
 julia --project=.  test/structural_frames.jl
 
-# lar
+# === lar === 
 julia --project=.  test/lar.jl
 julia --project=.  test/random-tetgen.jl
 julia --project=.  test/simplexn.jl
-
 julia --project=.  test/arrange2d.jl
 julia --project=.  test/arrange3d.jl
 julia --project=.  test/boolean.jl
-
 julia --project=.  test/building.jl
-
-julia --project=.  test/svg_parser.jl
-
-# 20251124 svg building
-julia --project=.  examples\svg\buildings_hcmgis_osm.jl  
+julia --project=.  test/svg.jl
 
 ```
 

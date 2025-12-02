@@ -27,8 +27,6 @@ include("./viewer.jl")
 include("./viewer.ply.jl")
 include("./hpc.jl")
 
-include("./svg_parser.jl")
-
 MAP_GLUE=0.0
 include("./fenvs.jl")
 
@@ -58,6 +56,9 @@ include("./lar/arrange3d.jl")
 include("./lar/boolean.jl")
 
 include("./get_oriented_triangles.jl")
+
+include("./svg.jl")
+
 
 function __init__()
 	InitPythonHullCode()

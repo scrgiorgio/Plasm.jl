@@ -303,27 +303,6 @@ end
 export SELECT_FACES
 
 
-# //////////////////////////////////////////////////////////////////////
-function TRIANGULATE(V::Points, EV::Cells)::Cells
-
-	triin = Triangulate.TriangulateIO()
-	triin.pointlist = V 
-	triin.segmentlist = hcat(EV...)
-
-	# p: Triangulates a Planar Straight Line Graph
-	# Q for quiet
-	(triout, __vorout) = Triangulate.triangulate("pQ", triin) 
-
-	ret=Cells()
-	for (u, v, w) in eachcol(triout.trianglelist)
-		centroid = (V[:, u] + V[ :,v] + V[:,w]) ./ 3
-		if classify_point(centroid, BYROW(V), EV)=="p_in"
-			push!(ret, [u, v, w])
-		end
-	end
-	return ret
-end
-export TRIANGULATE
 
 # //////////////////////////////////////////////////////////////////////////////
 function compute_VE(lar::Lar)
@@ -590,7 +569,34 @@ function render_face(viewer::Viewer, lar::Lar, F::Int; face_color=BLACK, vt=[0.0
 		end
 		vcycles = vcat(find_vcycles(cell_EV)...)
 		points2d = project_points3d(face_points; double_check=true)(face_points)
-		triangulation = TRIANGULATE(points2d, vcycles)
+
+		# === to display I need to triangulate the face === 
+
+		function triangulate_face(V::Points, EV::Cells)
+
+			triin = Triangulate.TriangulateIO()
+			triin.pointlist = V 
+			triin.segmentlist = hcat(EV...)
+
+			# p: Triangulates a Planar Straight Line Graph
+			# Q for quiet
+			(triout, __vorout) = Triangulate.triangulate("pQ", triin) 
+
+			# Triangle may have added intersection vertices
+			V=triout.pointlist
+
+			ret=Cells()
+			for (u, v, w) in eachcol(triout.trianglelist)
+				centroid = (V[:, u] + V[ :,v] + V[:,w]) ./ 3
+				if classify_point(centroid, BYROW(V), EV)=="p_in"
+					push!(ret, [u, v, w])
+				end
+			end
+			return V, ret
+		end
+
+
+		points2d, triangulation = triangulate_face(points2d, vcycles)
 
 	# is it a simple triangle?
 	elseif length(fv)==3
@@ -689,11 +695,11 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 		for (F, fv) in enumerate(FV)
 			vt=get_explosion_vt(lar.V[:, fv], explode)
 			# sometimes getting StackOverflowError
-			try
+			#try
 				render_face(viewer, lar, F, vt=vt, face_color=isnothing(face_color) ? RandomColor() : face_color, show=show, properties=properties)
-			catch
-				println("ERROR in render_face, what is going on???")
-			end
+			#catch
+			#	println("ERROR in render_face, what is going on???")
+			#end
 		end
 	end
 
@@ -701,7 +707,7 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 	if "EV" in show
 		
 		# exploding by face centroid
-		if !isnothing(FV) !isnothing(FE) 
+		if !isnothing(FV) && !isnothing(FE) 
 			for (F,fv) in enumerate(FV)
 				vt=get_explosion_vt(lar.V[:, fv], explode)
 				# line_color = RandomColor()

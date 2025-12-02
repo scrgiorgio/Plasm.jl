@@ -123,3 +123,81 @@ function point_in_face(point, V_row::Points, copEV::ChainOp)
 	return classify_point(point, V_row, copEV) == "p_in"
 end
 export point_in_face
+
+# //////////////////////////////////////////////////////////////////////////////
+""" 
+Robust point-in-polygon test using ray-casting with random ray direction.
+By using a random ray angle, we statistically avoid edge cases like vertices on the ray
+or horizontal/vertical edges aligned with the ray. This is simpler and more robust than
+special-case handling. Uses a seeded random for reproducibility.
+"""
+function classify_point_robust(pnt, V_row::Points, EV::Cells)
+  x, y = pnt
+  
+  # Use a random ray direction (seeded by point coordinates for reproducibility)
+  # This avoids pathological cases with horizontal edges or vertices on ray
+  seed = hash((x, y))
+  angle = (seed % 1000) / 1000.0 * π  # Random angle between 0 and π
+  dx = cos(angle)
+  dy = sin(angle)
+  
+  count = 0
+  
+  for (a, b) in EV
+    p1, p2 = V_row[a, :], V_row[b, :]
+    x1, y1 = p1
+    x2, y2 = p2
+    
+    # Ray from point: P = (x, y) + t*(dx, dy), t >= 0
+    # Edge: parametric form Q = p1 + s*(p2-p1), 0 <= s <= 1
+    # Solve: (x, y) + t*(dx, dy) = (x1, y1) + s*(x2-x1, y2-y1)
+    
+    edge_dx = x2 - x1
+    edge_dy = y2 - y1
+    
+    # Determinant of the system
+    det = dx * edge_dy - dy * edge_dx
+    
+    # Skip if ray and edge are parallel (determinant near zero)
+    if abs(det) < 1e-10
+      continue
+    end
+    
+    # Solve for t (ray parameter) and s (edge parameter)
+    t = ((x1 - x) * edge_dy - (y1 - y) * edge_dx) / det
+    s = ((x1 - x) * dy - (y1 - y) * dx) / det
+    
+    # Check if intersection is valid: t > 0 (ray direction) and 0 <= s <= 1 (on edge)
+    if t > 0 && s >= 0 && s <= 1
+      count += 1
+    end
+  end
+  
+  # Odd count = inside, even count = outside
+  return (count % 2) == 1 ? "p_in" : "p_out"
+end
+export classify_point_robust
+
+# //////////////////////////////////////////////////////////////////////////////
+""" 
+Classify multiple triangles robustly, returning a binary list (0=discard, 1=keep).
+V_tri contains triangle vertices (possibly with Steiner points from triangulation).
+FV is the list of triangle face definitions (indices into V_tri).
+V_orig and EV_orig are the original vertices and edges for classification.
+Returns a list of 0s and 1s indicating which triangles to keep.
+"""
+function classify_triangles_robust(V_tri::Points, FV::Cells, V_orig::Points, EV_orig::Cells)
+  result = Int[]
+  
+  for fv in FV
+    v1, v2, v3 = V_tri[:, fv[1]], V_tri[:, fv[2]], V_tri[:, fv[3]]
+    centroid = (v1 + v2 + v3) / 3
+    
+    classification = classify_point_robust(centroid, V_orig, EV_orig)
+    
+    push!(result, classification == "p_in" ? 1 : 0)
+  end
+  
+  return result
+end
+export classify_triangles_robust
