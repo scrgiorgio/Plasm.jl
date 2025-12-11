@@ -61,7 +61,11 @@ include("./svg.jl")
 
 
 function __init__()
-	InitPythonHullCode()
+	try
+		InitPythonHullCode()
+	catch e
+		@warn "Failed to initialize Python hull code. ConvexHull functionality may not be available." exception=(e, catch_backtrace())
+	end
 end
 
 end
