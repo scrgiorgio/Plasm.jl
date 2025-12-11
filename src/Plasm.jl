@@ -61,10 +61,11 @@ include("./svg.jl")
 
 
 function __init__()
+	# Initialize Python hull code with automatic scipy installation
 	try
 		InitPythonHullCode()
 	catch e
-		@warn "Failed to initialize Python hull code. ConvexHull functionality may not be available." exception=(e, catch_backtrace())
+		@warn "Failed to initialize Python hull code. ConvexHull functionality may require manual Python/scipy setup." exception=(e, catch_backtrace())
 	end
 end
 

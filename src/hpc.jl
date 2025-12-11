@@ -1213,6 +1213,14 @@ export InitPythonHullCode
 
 function InitPythonHullCode()
 
+	# Ensure scipy is installed
+	try
+		pyimport("scipy")
+	catch
+		# Install scipy if not available
+		pyimport("pip").main(["install", "scipy"])
+	end
+
 	# ALL PYTHON CODE HERE
 	# resolving a problem of scipy spatial which always triangulate the output
 	# https://github.com/scipy/scipy/blob/main/scipy/spatial/_qhull.pyx
