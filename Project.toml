@@ -1,7 +1,7 @@
 name = "Plasm"
 uuid = "f409d63b-f417-4cf6-91a7-43a0b773193b"
 authors = ["Giorgio Scorzelli"]
-version = "1.0.2"
+version = "1.0.3"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
