@@ -96,34 +96,34 @@ end
 
 # //////////////////////////////////////////////////////
 # 2d
-for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [BoolUnion, Intersection, Difference, Xor]
   RunBooleanTest("boolean/TwoQuads",bool_op, TwoQuads())
 end
 
-for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [BoolUnion, Intersection, Difference, Xor]
   RunBooleanTest("boolean/ThreeQuads",bool_op, ThreeQuads())
 end
 
 # //////////////////////////////////////////////////////
 # 3d
-for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [BoolUnion, Intersection, Difference, Xor]
   RunBooleanTest("boolean/TwoCubes",bool_op, TwoCubes())
 end
 
-for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [BoolUnion, Intersection, Difference, Xor]
   RunBooleanTest("boolean/ThreeCubes",bool_op, ThreeCubes())
 end
 
 # example of user-defined boolean expression: any boolean expression will work
 function UserBoolOp(v::Vector{Bool})::Bool
-  return Difference([v[1],Union(v[2:end])])
+  return Difference([v[1],BoolUnion(v[2:end])])
 end
 
-for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [BoolUnion, Intersection, Difference, Xor]
   RunBooleanTest("boolean/MechanicalPiece/cube", bool_op, MechanicalPiece(:cube))
 end
 
-for bool_op in [Union, Intersection, Difference, Xor]
+for bool_op in [BoolUnion, Intersection, Difference, Xor]
   RunBooleanTest("boolean/MechanicalPiece/cylinder", bool_op, MechanicalPiece(:cylinder))
 end
 

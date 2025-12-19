@@ -6,6 +6,8 @@
 This repo:
 - https://github.com/scrgiorgio/Plasm.jl
 
+
+
 ## Run tests
 
 ```bash
@@ -28,6 +30,19 @@ julia --project=.  test/boolean.jl
 julia --project=.  test/building.jl
 julia --project=.  test/svg.jl
 
+```
+
+
+## Updating to Latest Version
+
+After `git pull`:
+
+```bash
+# Update dependencies
+julia --project=. -e "using Pkg; Pkg.resolve(); Pkg.instantiate()"
+
+# Test the installation
+julia --project=. -e "using Plasm; VIEW(CUBE(1))"
 ```
 
 ## Developing Plasm.jl
@@ -65,10 +80,7 @@ Pkg.add([
   "ModernGL", 
   "PyCall", 
   "StaticArrays", 
-  "Test", 
-  "LinearAlgebra", 
   "DataStructures", 
-  "SparseArrays", 
   "NearestNeighbors", 
   "Triangulate", 
   "IntervalTrees",
@@ -79,12 +91,13 @@ Pkg.add([
   "FileIO",
   "MeshCat",
   "IJulia",
-  "Random",
-  "Statistics",
   "PlyIO",
   "XML",
   "JSON"
   ])
+
+# Standard libraries (no need to add, already included with Julia):
+# using Test, LinearAlgebra, Random, Statistics, SparseArrays
 
 # update the manifest too
 Pkg.resolve()

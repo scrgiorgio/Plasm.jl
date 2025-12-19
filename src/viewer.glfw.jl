@@ -248,7 +248,11 @@ end
 function createShader(type, source)
 	shader_id = glCreateShader(type)::GLuint
 	glCheckError()
-	glShaderSource(shader_id, 1, convert(Ptr{UInt8}, pointer([convert(Ptr{GLchar}, pointer(source))])), C_NULL)
+	
+	# Use Ref() for shader source - more compatible with NVIDIA drivers
+	source_ptr = Ref(pointer(source))
+	glShaderSource(shader_id, 1, source_ptr, C_NULL)
+	
 	glCompileShader(shader_id)
 	status = GLint[0]
 	glGetShaderiv(shader_id, GL_COMPILE_STATUS, status)
@@ -315,14 +319,14 @@ phong_vert_source = """
 	uniform mat4 u_projection_matrix;
 	uniform vec4 u_color;
 	
-	attribute  vec4 a_position;
+	attribute vec4 a_position;
 	
 	#if LIGHTING_ENABLED
-	attribute  vec3 a_normal;
+	in vec3 a_normal;
 	#endif
 	
 	#if COLOR_ATTRIBUTE_ENABLED
-	attribute vec4 a_color;
+	in vec4 a_color;
 	#endif
 	
 	#if LIGHTING_ENABLED

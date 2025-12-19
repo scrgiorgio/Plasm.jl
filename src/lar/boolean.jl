@@ -370,7 +370,8 @@ function find_internal_point(lar::Lar;max_attempts=10)
 end
 
 # /////////////////////////////////////////////////////////////////////
-function Union(v::Vector{Bool})::Bool       
+# Boolean operation functions (renamed to avoid Base.Union conflict)
+function BoolUnion(v::Vector{Bool})::Bool       
   return any(v) 
 end
 
@@ -386,7 +387,7 @@ function Xor(v::Vector{Bool})::Bool
   return (length([it for it in v if it]) % 2)==1  
 end
 
-export Union, Intersection, Difference, Xor
+export BoolUnion, Intersection, Difference, Xor
 
 # /////////////////////////////////////////////////////////////////////
 function SELECT_ATOMS(lar::Lar, sel::Cell)::Lar
@@ -503,7 +504,7 @@ end
 export ATOMS
 
 # ////////////////////////////////////////////////////////////////
-function BOOL(arrangement::Lar; input_args=[], bool_op=Union, debug_mode=false)::Lar
+function BOOL(arrangement::Lar; input_args=[], bool_op=BoolUnion, debug_mode=false)::Lar
   
   # if you want to see atoms set debug_mode=true
   atoms=ATOMS(arrangement)
@@ -575,7 +576,7 @@ export BOOL
 # //////////////////////////////////////////////////////////
 function UNION(v::Vector)::Hpc
   ret=STRUCT(v)
-  ret.properties["bool_op"]=Union
+  ret.properties["bool_op"]=BoolUnion
   return ret
 end
 
@@ -631,7 +632,7 @@ function BOOL(hpc::Hpc; debug_mode::Bool=false)::Lar
     T = T * embed(node.T, Tdim)
   
     # a STRUCT is by definition a UNION of its childs
-    bool_op=get(node.properties,"bool_op", Plasm.Union) 
+    bool_op=get(node.properties,"bool_op", Plasm.BoolUnion) 
   
     childs=[SIMPLIFY(T, child) for child in node.childs]
   
