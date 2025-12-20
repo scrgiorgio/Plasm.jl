@@ -322,11 +322,11 @@ phong_vert_source = """
 	attribute vec4 a_position;
 	
 	#if LIGHTING_ENABLED
-	in vec3 a_normal;
+	attribute vec3 a_normal;
 	#endif
 	
 	#if COLOR_ATTRIBUTE_ENABLED
-	in vec4 a_color;
+	attribute vec4 a_color;
 	#endif
 	
 	#if LIGHTING_ENABLED
