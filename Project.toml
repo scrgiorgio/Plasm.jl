@@ -37,7 +37,7 @@ Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 XML = "72c71f33-b9b6-44de-8c94-c961784809e2"
 
 [compat]
-julia = "1.9 - 1.12"
+julia = "1.9"
 CSV = "0.10"
 Colors = "0.12"
 Combinatorics = "1"
