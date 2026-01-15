@@ -45,6 +45,34 @@ end
 export lar_copy
 
 # ////////////////////////////////////////////
+function Transform(T::Union{MatrixNd, Matrix{Float64}}, lar::Lar)::Lar
+	# Convert MatrixNd to Matrix if needed
+	Tmat = isa(T, MatrixNd) ? T.T : T
+	
+	# Get dimensions
+	n_dims = size(lar.V, 1)
+	n_points = size(lar.V, 2)
+	T_dim = size(Tmat, 1)  # Get matrix dimension
+	
+	# Transform vertices using homogeneous coordinates
+	# Each vertex becomes [1; point] and is transformed by Tmat
+	V_transformed = zeros(n_dims, n_points)
+	for i in 1:n_points
+		point = lar.V[:, i]
+		# Create homogeneous vector [1; point; zeros(...)]
+		homo_point = [1.0; point; zeros(T_dim - n_dims - 1)]
+		# Apply transformation
+		transformed = Tmat * homo_point
+		# Normalize by homogeneous coordinate and extract result
+		V_transformed[:, i] = [transformed[j, 1] / transformed[1, 1] for j in 2:(n_dims+1)]
+	end
+	
+	# Create new Lar with transformed vertices
+	return Lar(V_transformed, deepcopy(lar.C), mapping=deepcopy(lar.mapping))
+end
+export Transform
+
+# ////////////////////////////////////////////
 function lar_vertex_name(lar::Lar, id::Int)::String
 	return string(haskey(lar.mapping,:V) ? lar.mapping[:V][id] : id)
 end

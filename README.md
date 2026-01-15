@@ -38,72 +38,16 @@ julia --project=.  test/svg.jl
 After `git pull`:
 
 ```bash
+
+rm Manifest.toml
+
 # Update dependencies
-julia --project=. -e "using Pkg; Pkg.resolve(); Pkg.instantiate()"
+julia --project=. -e "using Pkg; Pkg.update()"
 
 # Test the installation
 julia --project=. -e "using Plasm; VIEW(CUBE(1))"
 ```
 
-## Developing Plasm.jl
-
-Links:
-- https://discourse.julialang.org/t/pattern-for-activating-the-current-project/15379/2
-
-**Always remember to activate the current project** (in the current directory):
-
-```bash
-
-# from here use
-julia --project=. whatever...
-```
-
-```bash
-
-# clone the current repository
-cd ~
-mkdir -p github.com/scrgiorgio
-cd github.com/scrgiorgio
-git clone https://github.com/scrgiorgio/Plasm.jl
-cd Plasm.jl
-
-julia
-
-using Pkg
-Pkg.activate(".")
-
-Pkg.add([
-  "Combinatorics", 
-  "CSV",
-  "DataFrames",
-  "GLFW", 
-  "ModernGL", 
-  "PyCall", 
-  "StaticArrays", 
-  "DataStructures", 
-  "NearestNeighbors", 
-  "Triangulate", 
-  "IntervalTrees",
-  "CoordinateTransformations", 
-  "Rotations",
-  "GeometryBasics",
-  "Colors",
-  "FileIO",
-  "MeshCat",
-  "IJulia",
-  "PlyIO",
-  "XML",
-  "JSON"
-  ])
-
-# Standard libraries (no need to add, already included with Julia):
-# using Test, LinearAlgebra, Random, Statistics, SparseArrays
-
-# update the manifest too
-Pkg.resolve()
-
-exit()
-```
 
 ## Viewer options
 
