@@ -755,18 +755,18 @@ function render_lar(viewer::Viewer, lar::Lar; show=["V", "EV", "FV"], explode=[1
 			end
 		end
 
-		# show Ftext if needed
-		if "Ftext" in show && !isnothing(FV)
-			for (F, fv) in enumerate(FV)
-				vt=get_explosion_vt(lar.V[:, fv], explode)
-				# sometimes getting StackOverflowError
-				try
-					render_face(viewer, lar, F, vt=vt, face_color=TRANSPARENT, show=show, properties=properties)
-				catch
-					println("ERROR in render_face, what is going on???")
-				end
-			end
+	end
 
+	# show Ftext if needed (independent of EV)
+	if "Ftext" in show && !isnothing(FV)
+		for (F, fv) in enumerate(FV)
+			vt=get_explosion_vt(lar.V[:, fv], explode)
+			# sometimes getting StackOverflowError
+			try
+				render_face(viewer, lar, F, vt=vt, face_color=TRANSPARENT, show=show, properties=properties)
+			catch
+				println("ERROR in render_face, what is going on???")
+			end
 		end
 
 	end
