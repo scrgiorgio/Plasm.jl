@@ -411,6 +411,10 @@ mutable struct Geometry
 end
 export Geometry
 
+function Geometry(points::AbstractPointsNd; hulls::Cells=Cells())
+	return CreateGeometry(points, hulls)
+end
+
 function addPoint(self::Geometry, p::PointNd)::Int
 	idx = get(self.db, p, 0)
 	if idx >= 1
@@ -659,6 +663,10 @@ export Hpc
 
 function Hpc(g::Geometry; properties=Properties())
 	return Hpc(MatrixNd(0), [g], properties)
+end
+
+function Hpc(T::MatrixNd, g::Geometry; properties=Properties())
+	return Hpc(T, [g], properties)
 end
 
 
