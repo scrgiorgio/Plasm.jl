@@ -26,9 +26,12 @@ mutable struct Lar
 	properties::Properties
 
 	# constructor
-	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,Cells}(); mapping=Dict{Int,Int}(), properties=Properties()) = begin
+	Lar(V::Matrix{Float64}=Matrix{Float64}(undef, 0, 0), C::Dict=Dict{Symbol,Cells}(); mapping=Dict{Symbol,Dict{Int,Int}}(), properties=Properties()) = begin
 		new(V, C, mapping, properties)
 	end
+
+	# positional constructor for all 4 fields (used when pasting @show output back into REPL)
+	Lar(V::Matrix{Float64}, C::Dict, mapping::Dict, properties::Dict) = new(V, C, mapping, properties)
 
 end
 export Lar
