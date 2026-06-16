@@ -42,7 +42,7 @@ function RandomColor()::Point4d
 	return ret
 end
 
-DEFAULT_BACKGROUND_COLOR= Point4d([0.3,0.4,0.5,1.0]) 
+DEFAULT_BACKGROUND_COLOR= WHITE #Point4d([0.3,0.4,0.5,1.0]) 
 DEFAULT_LAR_BACKGROUND_COLOR=WHITE
 
 DEFAULT_USE_ORTHO=true

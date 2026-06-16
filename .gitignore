@@ -3,3 +3,6 @@
 .DS_Store
 */.DS_Store
 *.bak
+Manifest.toml
+.vscode/*
+bug.jl
