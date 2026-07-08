@@ -20,6 +20,7 @@ end
 
 #//////////////////////////////////////////////////////////////////////////////
 function fragment_face_intersection(V::Points, EV::ChainOp, face::Chain; err=LAR_DEFAULT_ERR)
+@show face;
 	vs = buildFV(EV, face)     # EV::ChainOp, face::Chain
 	retV = Points(undef, 0, 3)
 	visited_verts = []
@@ -137,6 +138,9 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function fragment_single_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
+
+println("********* begin", sigma);
+
 	vs_num = size(V, 1)
 	# 2D transformation of `sigma` face
 	sigmavs = (abs.(FE[sigma:sigma, :])*abs.(EV))[1, :].nzind # sigma vertex indices
@@ -152,11 +156,14 @@ function fragment_single_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
 	end
 	# computation of 2D arrangement of sigma face
 	sV = sV[:, 1:2]
+println("********* planar_arrangement begin", sigma);
 	nV, nEV, nFE = planar_arrangement(BYCOL(sV), sEV, sparsevec(ones(Int8, length(sigmavs))))
+println("********* planar_arrangement end", sigma);
 	nV = BYROW(nV)
 	nvsize = size(nV, 1)
 	# return each 2D complex in 3D
 	nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
+println("********* end", sigma);
 	return nV, nEV, nFE
 end
 
@@ -289,6 +296,7 @@ function fragment_all_faces(lar::Lar)
 		depot_EV[sigma] = nEV
 		depot_FE[sigma] = nFE
 	end
+println("finite sigma")
 	rV = vcat(depot_V...)
 	rEV = SparseArrays.blockdiag(depot_EV...)
 	rFE = SparseArrays.blockdiag(depot_FE...)
@@ -297,7 +305,7 @@ function fragment_all_faces(lar::Lar)
 end
 
 # ////////////////////////////////////////////////////////////////////////
-function lar_tgw(lar::Lar; debug_mode=false)::Cells
+function lar_tgw(lar::Lar; debug_mode=true)::Cells
 
   # Newell's method, works for concave too and it is oriented
   function compute_oriented_newell_normal(loop::AbstractPointsNd)::PointNd
@@ -355,7 +363,7 @@ function lar_tgw(lar::Lar; debug_mode=false)::Cells
         n1=cycle_normal(V, face_cycles[1])
         for C in 2:length(face_cycles)
           n2=cycle_normal(V, face_cycles[C])
-          face_cycles[C]=dot(n1,n2)>=0 ? reverse_cycle(face_cycles[C]) : face_cycles[C]
+          face_cycles[C]=dot(n1,n2)>=0 ? Plasm.reverse_cycle(face_cycles[C]) : face_cycles[C]
         end
       end
       push!(cycles, face_cycles)
@@ -424,7 +432,7 @@ function lar_tgw(lar::Lar; debug_mode=false)::Cells
   #end
 
   @assert(all([abs(F)>=1 && abs(F)<=num_faces for F in keys(best_connections)]))
-  atoms=lar_connected_components(collect(keys(best_connections)), cur -> best_connections[cur])
+  atoms=Plasm.lar_connected_components(collect(keys(best_connections)), cur -> best_connections[cur])
   # @show(atoms)
 
   # atoms topology checks
@@ -462,7 +470,7 @@ function lar_tgw(lar::Lar; debug_mode=false)::Cells
 
     # no hanging face, and a face cannot be shared by more than 2-full-dim cells
     # note: consider the outer atom too
-    @assert(all([v==2 for (k,v) in num_full_cell_per_face]))
+     @assert(all([v==2 for (k,v) in num_full_cell_per_face]))
 
   end
 
@@ -473,6 +481,8 @@ end
 function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 	""" Main function of arrangement pipeline """
 	rV, rcopEV, rcopFE=fragment_all_faces(lar)
+
+println("ARRANGE3D")
 
   EV = cop2lar(rcopEV)
   FE = cop2lar(rcopFE) 
@@ -491,11 +501,21 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 
 	ret=SIMPLIFY(ret) # not sure this is needed
 
-	ret.C[:FV]=compute_FV(ret)
-	ret.C[:CF]=lar_tgw(ret, debug_mode=debug_mode)
+@show ret;
+	V,EV,FE,fe,ev,edge_bad = datainput(ret::Lar);
+	if edge_bad != []
+		badgesets = linsequence(V,EV, edge_bad);
+		orderedbadgesets = outbadgesets(V,ev,badgesets)
+		ev,fe = fixbadgesets(ev, fe, orderedbadgesets)
+		ret.C[:EV] = cop2lar(ev)
+		ret.C[:FE] = cop2lar(fe)
+	end
 
-	# ret.C[:CV]=compute_CV(ret) dont think this is needed
-	CHECK(ret)
+	ret.C[:FV]=Plasm.compute_FV(ret)
+	ret.C[:CF]=Plasm.lar_tgw(ret, debug_mode=false)
+
+	# ret.C[:CV]=Plasm.compute_CV(ret) dont think this is needed
+	Plasm.CHECK(ret)
 
 	if debug_mode
 		@show(ret)
@@ -508,8 +528,89 @@ function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 end
 export ARRANGE3D
 
+#///////////////////////////////////////////////////////////////////////////////
+function datainput(ret::Lar)
+	V = ret.V 
+	EV = ret.C[:EV]
+	FE = ret.C[:FE]
+	fe = lar2cop(ret.C[:FE])
+	ev = lar2cop(ret.C[:EV])
+	fe_nums = sum(fe, dims=1);
+	edge_bad = [k for (k,val) in enumerate(fe_nums) if val==1];
+	return(V,EV,FE,fe,ev,edge_bad)
+end
 
+#///////////////////////////////////////////////////////////////////////////////
+function iscollinear(V,EV, badge1, badge2)
+	c1,c2,c3 = union(EV[badge1],EV[badge2])
+	p1 = V[:,c1]; p2 = V[:,c2]; p3 = V[:,c3];
+	v12 = p2 - p1; v13 = p3 - p1;
+	global ϵ = LinearAlgebra.norm(v12 × v13)
+	isapprox(ϵ, 0.0; atol=1e-8, rtol=0)
+end
 
+#///////////////////////////////////////////////////////////////////////////////
+function linsequence(V,EV, edge_bad)
+	for (k, edge) in enumerate(edge_bad)
+		subset = [edge]
+		for i=k+1:LEN(edge_bad)
+			if iscollinear(V,EV, subset[end], edge_bad[i])
+				push!(subset, edge_bad[i])
+			end
+		end
+		if k==1 global badgesets = [subset] end
+		if LEN(subset) >= 3 && !issubset(subset, badgesets[end])
+			push!(badgesets, subset)
+ 		end 
+	end
+	return badgesets
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function ord(V,ev,badgeset)
+	vmodules = []
+	for badge in badgeset
+		v1,v2 = findnz(ev[badge, :])[1]
+		v = V[:,v1] - V[:,v2]
+		vmodule = sqrt(SUM(AA(SQR)(v)))
+		push!(vmodules, vmodule)
+	end
+	return vmodules
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function outbadgesets(V,ev,badgesets)
+	orderedbadgesets = []
+	for (k,badgeset) in enumerate(badgesets)
+		n = LEN(badgeset)
+		ordering = ord(V,ev,badgeset)
+		max_idx = argmax(ordering) 
+		temp = copy(badgeset[1])
+		badgeset[1] = copy(badgeset[max_idx])
+		badgeset[max_idx] = temp
+		push!(orderedbadgesets, badgeset)
+	end
+	return orderedbadgesets
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function fixbadgesets(ev, fe, orderedbadgesets)
+	size(ev,1) == size(fe,2) ? n = size(ev,1) : error("ev net compatible to fe")
+	todelete = [] # first elements of orderedbadgesets
+	for orderedbadgeset in orderedbadgesets  # a normally a triple
+		toshare = orderedbadgeset[1]
+		tofix   = orderedbadgeset[2:end]
+		for badge in tofix
+			commonface = findnz(fe[:,toshare])[1][1]
+			fe[commonface, badge] = 1
+		end
+		push!(todelete, toshare)
+	end
+	tohold = setdiff(1:n, todelete);	
+	newev = copy(ev[tohold, :]) 
+	newfe = copy(fe[:, tohold])
+	return newev,newfe
+end
 
 
 
