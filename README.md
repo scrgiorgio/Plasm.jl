@@ -12,17 +12,57 @@ This repo:
 Requires Julia >= 1.10.  From the repository root:
 
 ```bash
+
+# make sure julia >= 1.10
 julia --version                                                        # >= 1.10
-julia --project=. -e "using Pkg; Pkg.instantiate(); Pkg.precompile()"  # no ✗ errors
-julia --project=. -e "using Plasm; VIEW(CUBE(1))"                      # opens the viewer
+
+# Julia 1.10 only (BPA.jl is not registered)
+julia --project=. -e "using Pkg; Pkg.add(url=\"https://github.com/ctsilva/BPA.jl\")"
+
+# check no ✗ errors
+julia --project=. -e "using Pkg; Pkg.instantiate(); Pkg.precompile()"
+
+# opens the viewer
+julia --project=. -e "using Plasm; VIEW(CUBE(1))" 
 ```
 
 
 ## Tutorials
 
+### Point cloud:
+
+Read a LAZ file and render it as a point cloud.
+
+Options: 
+- `--max-points=N` subsamples big files (default 2000000);
+- `--color-by-height` colors the points by elevation (blue=low, red=high)
+
 ```bash
-julia --project=. tutorials/point-cloud.jl ./tutorials/autzen_trim.laz 
-julia --project=. tutorials/point-cloud.jl ./Roma_LIDAR.laz --color-by-height
+julia --project=. tutorials/point-cloud.jl ./tutorials/autzen_trim.laz
+julia --project=. tutorials/point-cloud.jl ./Roma_LIDAR.laz --max-points=500000 --color-by-height
+```
+
+### Ball pivoting
+
+Surface reconstruction of a LIDAR point cloud with the Ball Pivoting Algorithm ([BPA.jl](https://github.com/ctsilva/BPA.jl)).
+
+Options:
+- `--max-points=N` subsamples big files (default 200000)
+- `--radii=a,b,...` ball radii as multiples of the point spacing (typical distance between neighbouring
+  points, printed by the tutorial), one reconstruction pass per radius, in increasing order (default 2,4)
+
+How to choose the radii (the tutorial prints the point spacing and tips for the next run):
+- the ball must be larger than the spacing, or it falls through the points: start at 1.5-2
+- it must be smaller than the details to keep, or it bridges over them (e.g. tree crowns, walls)
+- for unevenly sampled data add larger radii: each pass fills holes the previous one left
+- look at "points used": if many points are not used, increase the radii
+- e.g. on `autzen_trim.laz`: `--radii=1.5` uses 91% of the points, `--radii=2` 93%, `--radii=2,4` 95%
+
+In the viewer press `L` to show the triangle edges.
+
+```bash
+julia --project=. tutorials/bpa-example.jl ./tutorials/autzen_trim.laz
+julia --project=. tutorials/bpa-example.jl ./Roma_LIDAR.laz --max-points=300000 --radii=2,4
 ```
 
 

@@ -1,12 +1,22 @@
-# How to run (from the repository root):
-#   julia --project=. -e "using Pkg; Pkg.instantiate()"   # first time only
-#   julia --project=. tutorials/point-cloud.jl <file.laz> [--color-by-height]
+# Read a LAZ file and render it as a point cloud (usage and options: see README.md)
 
 using Plasm
 
+# command line: one file name plus --name=value options
+function option(name, default)
+	values = [arg[length(name)+4:end] for arg in ARGS if startswith(arg, "--$name=")]
+	return isempty(values) ? default : last(values)
+end
+
+files = filter(arg -> !startswith(arg, "--"), ARGS)
+length(files) == 1 || error("usage: julia --project=. tutorials/point-cloud.jl <file.laz> [--color-by-height] [--max-points=2000000]")
+filename        = files[1]
+
 color_by_height = "--color-by-height" in ARGS
-filename = only(filter(arg -> !startswith(arg, "--"), ARGS))
-V = read_laz(filename, max_points=2_000_000)
+
+max_points      = parse(Int, option("max-points", "2000000"))
+
+V = read_laz(filename, max_points=max_points)
 println("Read ", size(V, 2), " points")
 
 # move to the origin (UTM coordinates are too big for the Float32 used by the viewer)

@@ -397,6 +397,7 @@ mutable struct Geometry
 	faces::Cells
 	hulls::Cells
 
+	# scrgiorgio 14Nov26: inserted for bpa and pointclouds
 	# point cloud (no topology): by-col points and optional RGBA colors (4 floats per point)
 	cloud::Points
 	cloud_colors::Vector{Float32}
@@ -444,6 +445,7 @@ function addHull(self::Geometry, points::AbstractPointsNd)
 	push!(self.hulls, [addPoint(self, p) for p in points])
 end
 
+# scrgiorgio 14Nov26: inserted for bpa and pointclouds (point cloud in dim and box)
 function dim(self::Geometry)
 	!isempty(self.points) && return length(self.points[1])
 	!isempty(self.cloud)  && return size(self.cloud, 1)
@@ -455,6 +457,7 @@ function box(self::Geometry)
 	if !isempty(self.points)
 		addPoints(ret, self.points)
 	end
+	# scrgiorgio 14Nov26: inserted for bpa and pointclouds
 	if !isempty(self.cloud)
 		addPoint(ret, vec(minimum(self.cloud, dims=2)))
 		addPoint(ret, vec(maximum(self.cloud, dims=2)))
@@ -479,6 +482,7 @@ function Base.show(io::IO, self::Geometry)
 		print(io, ", faces=", repr(self.faces))
 	end
 
+	# scrgiorgio 14Nov26: inserted for bpa and pointclouds
 	if !isempty(self.cloud)
 		print(io, ", cloud=", size(self.cloud, 1), "x", size(self.cloud, 2), isempty(self.cloud_colors) ? "" : " with colors")
 	end
@@ -499,6 +503,14 @@ function ToSimplicialForm(self::Geometry)
 
 	ret = Geometry()
 	for hull in self.hulls
+
+		# scrgiorgio 14Nov26: inserted for bpa and pointclouds
+		# already a simplex (vertex, edge or triangle) of lower dimension: Delaunay would fail (needs pdim+1 points), skip python
+		if length(hull) <= min(pdim, 3)
+			addHull(ret, [self.points[idx] for idx in hull])
+			continue
+		end
+
 		__spatial = pyimport_conda("scipy.spatial", "scipy") # the second argument is the conda package name
 		ConvexHull = __spatial.ConvexHull
 		Delaunay   = __spatial.Delaunay
@@ -652,6 +664,7 @@ function render_geometry(viewer::Viewer, T::Matrix4d, obj::Geometry, properties:
 	render_lines(viewer, triangle_lines, line_width=line_width, line_color=line_color)
 	render_points(viewer, points, point_size=point_size, point_color=point_color)
 
+	# scrgiorgio 14Nov26: inserted for bpa and pointclouds
 	# point cloud: transform all points at once, one render_points call
 	if !isempty(obj.cloud)
 		D, N = size(obj.cloud)
