@@ -397,6 +397,10 @@ mutable struct Geometry
 	faces::Cells
 	hulls::Cells
 
+	# point cloud (no topology): by-col points and optional RGBA colors (4 floats per point)
+	cloud::Points
+	cloud_colors::Vector{Float32}
+
 	# constructor
 	function Geometry()
 		self = new(
@@ -405,6 +409,8 @@ mutable struct Geometry
 			Cells(),
 			Cells(),
 			Cells(),
+			Points(undef, 0, 0),
+			Vector{Float32}(),
 		)
 		return self
 	end
@@ -438,12 +444,20 @@ function addHull(self::Geometry, points::AbstractPointsNd)
 	push!(self.hulls, [addPoint(self, p) for p in points])
 end
 
-dim(self::Geometry) = isempty(self.points) ? 0 : length(self.points[1])
+function dim(self::Geometry)
+	!isempty(self.points) && return length(self.points[1])
+	!isempty(self.cloud)  && return size(self.cloud, 1)
+	return 0
+end
 
 function box(self::Geometry)
 	ret = BoxNd(dim(self))
 	if !isempty(self.points)
 		addPoints(ret, self.points)
+	end
+	if !isempty(self.cloud)
+		addPoint(ret, vec(minimum(self.cloud, dims=2)))
+		addPoint(ret, vec(maximum(self.cloud, dims=2)))
 	end
 	return ret
 end
@@ -463,6 +477,10 @@ function Base.show(io::IO, self::Geometry)
 
 	if length(self.faces) > 0
 		print(io, ", faces=", repr(self.faces))
+	end
+
+	if !isempty(self.cloud)
+		print(io, ", cloud=", size(self.cloud, 1), "x", size(self.cloud, 2), isempty(self.cloud_colors) ? "" : " with colors")
 	end
 
 	print(io, ")")
@@ -633,6 +651,15 @@ function render_geometry(viewer::Viewer, T::Matrix4d, obj::Geometry, properties:
 	render_lines(viewer,lines,line_width=line_width, line_color=line_color)
 	render_lines(viewer, triangle_lines, line_width=line_width, line_color=line_color)
 	render_points(viewer, points, point_size=point_size, point_color=point_color)
+
+	# point cloud: transform all points at once, one render_points call
+	if !isempty(obj.cloud)
+		D, N = size(obj.cloud)
+		P = vcat(obj.cloud[1:min(D, 3), :], zeros(max(0, 3 - D), N)) # as ToVector3
+		W = T[4, 1:3]' * P .+ T[4, 4]
+		P = (T[1:3, 1:3] * P .+ T[1:3, 4]) ./ W
+		render_points(viewer, Vector{Float32}(vec(P)), colors=isempty(obj.cloud_colors) ? nothing : obj.cloud_colors, point_size=point_size, point_color=point_color)
+	end
 
 end
 export render_geometry

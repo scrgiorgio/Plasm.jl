@@ -1,11 +1,29 @@
 # Plasm
 
-[![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Build Status](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/scrgiorgio/Plasm.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 
 This repo:
 - https://github.com/scrgiorgio/Plasm.jl
 
+
+## Setup
+
+Requires Julia >= 1.10.  From the repository root:
+
+```bash
+julia --version                                                        # >= 1.10
+julia --project=. -e "using Pkg; Pkg.instantiate(); Pkg.precompile()"  # no ✗ errors
+julia --project=. -e "using Plasm; VIEW(CUBE(1))"                      # opens the viewer
+```
+
+
+## Tutorials
+
+```bash
+julia --project=. tutorials/point-cloud.jl ./tutorials/autzen_trim.laz 
+julia --project=. tutorials/point-cloud.jl ./Roma_LIDAR.laz --color-by-height
+```
 
 
 ## Run tests
@@ -33,19 +51,19 @@ julia --project=.  test/svg.jl
 ```
 
 
-## Updating to Latest Version
+## Updating
 
-After `git pull`:
+After `git pull` (new packages):
 
 ```bash
+julia --project=. -e "using Pkg; Pkg.instantiate(); Pkg.precompile()"
+```
 
+After a Julia upgrade, or on "resolved with a different julia version" / `✗` errors:
+
+```bash
 rm Manifest.toml
-
-# Update dependencies
-julia --project=. -e "using Pkg; Pkg.update()"
-
-# Test the installation
-julia --project=. -e "using Plasm; VIEW(CUBE(1))"
+julia --project=. -e "using Pkg; Pkg.update(); Pkg.precompile()"
 ```
 
 

@@ -58,6 +58,7 @@ include("./lar/boolean.jl")
 include("./get_oriented_triangles.jl")
 
 include("./svg.jl")
+include("./pointcloud.jl")
 
 
 function __init__()
