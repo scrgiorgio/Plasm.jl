@@ -448,7 +448,7 @@ end
 # scrgiorgio 14Nov26: inserted for bpa and pointclouds (point cloud in dim and box)
 function dim(self::Geometry)
 	!isempty(self.points) && return length(self.points[1])
-	!isempty(self.cloud)  && return size(self.cloud, 1)
+	size(self.cloud, 1) > 0 && return size(self.cloud, 1) # also for an empty 3x0 cloud (empty octree leaf)
 	return 0
 end
 

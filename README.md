@@ -31,15 +31,34 @@ julia --project=. -e "using Plasm; VIEW(CUBE(1))"
 
 ### Point cloud:
 
-Read a LAZ file and render it as a point cloud.
+Read a LAZ file and render it as a point cloud, optionally stored in an octree.
 
 Options: 
 - `--max-points=N` subsamples big files (default 2000000);
 - `--color-by-height` colors the points by elevation (blue=low, red=high)
+- `--octree-depth=d` stores the points in an octree with 8^d leaves, each leaf with its own color (default 0, no octree)
+- `--octree-box=xmin,xmax,ymin,ymax,zmin,zmax` octree root box, min and max for each axis, in the file coordinates
+  (default: the point cloud bounding box, printed by the tutorial in the same format); points outside are dropped
+
+`POINTCLOUD(V, octree_depth=d, octree_box=(min, max))` stores the points in an octree:
+- the root box is `octree_box`, a 3D box given by its min and max corners, e.g. `octree_box=([0.0,0,0], [100.0,50,20])`,
+  or a `Box3d`/`BoxNd`; if not given, the point cloud bounding box (points outside `octree_box` are dropped with a warning)
+- every node is an `Hpc` with 8 children, X varies fastest: child `k = ix + 2*iy + 4*iz + 1`
+- leaves (at depth `d`) hold the points, each point in exactly one leaf; empty leaves are kept
+- every node has properties `"octree_box" => (min, max)` (its 3D box corners) and `"octree_depth" => level` (root = 0)
 
 ```bash
+# no octree
 julia --project=. tutorials/point-cloud.jl ./tutorials/autzen_trim.laz
+
 julia --project=. tutorials/point-cloud.jl ./Roma_LIDAR.laz --max-points=500000 --color-by-height
+
+# octree enabled
+julia --project=. tutorials/point-cloud.jl ./tutorials/autzen_trim.laz --octree-depth=3
+
+julia --project=. tutorials/point-cloud.jl ./tutorials/autzen_trim.laz --octree-depth=2 --octree-box=636000,636600,848900,849500,400,530
+
+julia --project=. tutorials/point-cloud.jl ./Roma_LIDAR.laz --max-points=500000 --octree-depth=4
 ```
 
 ### Ball pivoting
@@ -64,7 +83,6 @@ In the viewer press `L` to show the triangle edges.
 julia --project=. tutorials/bpa-example.jl ./tutorials/autzen_trim.laz
 julia --project=. tutorials/bpa-example.jl ./Roma_LIDAR.laz --max-points=300000 --radii=2,4
 ```
-
 
 ## Run tests
 
