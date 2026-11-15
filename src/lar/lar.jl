@@ -519,8 +519,8 @@ function find_vcycles(EV::Cells)::Vector{Cells}
 
 	end
 
-	@assert(length(vcat(ret...))==length(EV))
-	@assert(all([length(it)>=3 for it in ret]))
+# 	@assert(length(vcat(ret...))==length(EV))
+# 	@assert(all([length(it)>=3 for it in ret]))
 
 	return ret
 

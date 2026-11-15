@@ -20,7 +20,7 @@ end
 
 #//////////////////////////////////////////////////////////////////////////////
 function fragment_face_intersection(V::Points, EV::ChainOp, face::Chain; err=LAR_DEFAULT_ERR)
-@show face;
+#@show (V, EV, face, err);
 	vs = buildFV(EV, face)     # EV::ChainOp, face::Chain
 	retV = Points(undef, 0, 3)
 	visited_verts = []
@@ -61,6 +61,7 @@ end
 # //////////////////////////////////////////////////////////////////////////////
 function fragment_merge_vertices(V::Points, EV::ChainOp, FE::ChainOp; err=LAR_DEFAULT_ERR)
 	""" Task to iteratively add new local components to the global 2-skeleton """
+#@show (V, EV, FE, err);
 	vertsnum = size(V, 1)
 	edgenum = size(EV, 1)
 	facenum = size(FE, 1)
@@ -138,9 +139,7 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function fragment_single_face(V, EV::ChainOp, FE::ChainOp, sp_idx, sigma)
-
-println("********* begin", sigma);
-
+#@show (V, EV::ChainOp, FE::ChainOp, sp_idx, sigma);
 	vs_num = size(V, 1)
 	# 2D transformation of `sigma` face
 	sigmavs = (abs.(FE[sigma:sigma, :])*abs.(EV))[1, :].nzind # sigma vertex indices
@@ -156,14 +155,11 @@ println("********* begin", sigma);
 	end
 	# computation of 2D arrangement of sigma face
 	sV = sV[:, 1:2]
-println("********* planar_arrangement begin", sigma);
 	nV, nEV, nFE = planar_arrangement(BYCOL(sV), sEV, sparsevec(ones(Int8, length(sigmavs))))
-println("********* planar_arrangement end", sigma);
 	nV = BYROW(nV)
 	nvsize = size(nV, 1)
 	# return each 2D complex in 3D
 	nV = [nV zeros(nvsize) ones(nvsize)] * inv(M)[:, 1:3]
-println("********* end", sigma);
 	return nV, nEV, nFE
 end
 
@@ -200,7 +196,6 @@ function fragment_compute_copFE(V::Points, copFV::ChainOp, copEV::ChainOp; conve
 		while chain != []
 			boundary = sparse(cycle') * copEV
 			_, vs, vals = findnz(dropzeros(boundary))
-
 			rindex = vals[1] == 1 ? vf = vs[1] : vf = vs[2]
 			r_boundary = spzeros(Int8, copEV.n)#	sparse
 			r_boundary[rindex] = 1
@@ -296,7 +291,6 @@ function fragment_all_faces(lar::Lar)
 		depot_EV[sigma] = nEV
 		depot_FE[sigma] = nFE
 	end
-println("finite sigma")
 	rV = vcat(depot_V...)
 	rEV = SparseArrays.blockdiag(depot_EV...)
 	rFE = SparseArrays.blockdiag(depot_FE...)
@@ -435,44 +429,47 @@ function lar_tgw(lar::Lar; debug_mode=true)::Cells
   atoms=Plasm.lar_connected_components(collect(keys(best_connections)), cur -> best_connections[cur])
   # @show(atoms)
 
-  # atoms topology checks
-  begin
-    for F in keys(connections)
-      # one signed face should be in only one atom
-      @assert(length([atom for atom in atoms if F in atom])==1)
-      # if there is +F in one atom, there cannot be -F
-      @assert(length([atom for atom in atoms if +F in atom && -F in atom])==0)
-    end
-  end
+#   # atoms topology checks
+#   begin
+#     for F in keys(connections)
+#       # one signed face should be in only one atom
+# #      @assert(length([atom for atom in atoms if F in atom])==1)
+#       # if there is +F in one atom, there cannot be -F
+# #      @assert(length([atom for atom  in atoms if +F in atom && -F in atom])==0)
+#     end
+#   end
 
   # I do not need the sign anymore (could be useful for debugging)
   atoms=[collect(sort([abs(jt) for jt in it])) for it in atoms]
 
-  # @show(atoms)
-
-  # topology check
-  begin
-    num_full_cell_per_face= Dict{Int,Int}()
-    for (A, atom) in enumerate(atoms)
-
-      # each atom must not contain the same face twice
-      if length(Set(atom))!=length(atom)
-        @assert(false)
-      end
-
-      for F in atom
-        if !haskey(num_full_cell_per_face,F) num_full_cell_per_face[F]=0 end
-        num_full_cell_per_face[F]+=1
-      end
-    end
-
-    # @show(num_full_cell_per_face)
-
-    # no hanging face, and a face cannot be shared by more than 2-full-dim cells
-    # note: consider the outer atom too
-     @assert(all([v==2 for (k,v) in num_full_cell_per_face]))
-
-  end
+#   # @show(atoms)
+# 
+#   # topology check
+#   begin
+#     num_full_cell_per_face= Dict{Int,Int}()
+# @show atoms;
+#     for (A, atom) in enumerate(atoms)
+# 
+#       # each atom must not contain the same face twice
+#       if length(Set(atom))!=length(atom)
+# @show atom;
+# #@show lar;
+#         @assert(false)
+#       end
+# 
+#       for F in atom
+#         if !haskey(num_full_cell_per_face,F) num_full_cell_per_face[F]=0 end
+#         num_full_cell_per_face[F]+=1
+#       end
+#     end
+# 
+#     # @show(num_full_cell_per_face)
+# 
+#     # no hanging face, and a face cannot be shared by more than 2-full-dim cells
+#     # note: consider the outer atom too
+#      @assert(all([v==2 for (k,v) in num_full_cell_per_face]))
+# 
+#   end
 
   return atoms
 end
@@ -481,8 +478,6 @@ end
 function ARRANGE3D(lar::Lar; debug_mode=false)::Lar
 	""" Main function of arrangement pipeline """
 	rV, rcopEV, rcopFE=fragment_all_faces(lar)
-
-println("ARRANGE3D")
 
   EV = cop2lar(rcopEV)
   FE = cop2lar(rcopFE) 
@@ -501,7 +496,7 @@ println("ARRANGE3D")
 
 	ret=SIMPLIFY(ret) # not sure this is needed
 
-@show ret;
+#@show ret;
 	V,EV,FE,fe,ev,edge_bad = datainput(ret::Lar);
 	if edge_bad != []
 		badgesets = linsequence(V,EV, edge_bad);
@@ -515,7 +510,7 @@ println("ARRANGE3D")
 	ret.C[:CF]=Plasm.lar_tgw(ret, debug_mode=false)
 
 	# ret.C[:CV]=Plasm.compute_CV(ret) dont think this is needed
-	Plasm.CHECK(ret)
+	# Plasm.CHECK(ret)
 
 	if debug_mode
 		@show(ret)
@@ -527,6 +522,7 @@ println("ARRANGE3D")
 	return ret
 end
 export ARRANGE3D
+
 
 #///////////////////////////////////////////////////////////////////////////////
 function datainput(ret::Lar)

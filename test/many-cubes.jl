@@ -1,5 +1,6 @@
 using Plasm,Random
 
+
 function randcubes(n)
 	randomcubes = []
 	for _ = 1:n
@@ -11,9 +12,16 @@ function randcubes(n)
 		rcube = STRUCT(T(i1)(f[1]), R(1,2)(f[2]),  R(2,3)(f[3]),  R(1,3)(f[4]), CUBE(f[5]))
 		push!(randomcubes, rcube)
 	end
-	return STRUCT(randomcubes)
+	return BOOL(UNION(randomcubes))
 end
 
-VIEWCOMPLEX(LAR(randcubes(5)))
+obj = randcubes(20)
+
+VIEWCOMPLEX(obj, explode=[2,2,2])
+VIEWCOMPLEX(BOUNDARY(obj), explode=[2,2,2])
+VIEWCOMPLEX(BOUNDARY(obj))
 
 
+
+global TEST_DIR = mk_output_dir()
+cd(TEST_DIR)

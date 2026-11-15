@@ -650,7 +650,8 @@ end
 
 # //////////////////////////////////////////////////////////////////////////////
 function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8, 0))
-
+if sigma == 25
+end
 	V_row = BYROW(V)
 
 	# planar_arrangement_1
@@ -752,6 +753,7 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 
 	#Planar_arrangement_2
 	return planar_arrangement_2(V_row, copEV, bicon_comps, edge_map, sigma)
+
 end
 
 

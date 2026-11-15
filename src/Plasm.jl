@@ -9,6 +9,7 @@ using NearestNeighbors
 using Random
 using Statistics
 
+
 TO_GEOMETRY_DEFAULT_PRECISION_DIGITS = 14
 export TO_GEOMETRY_DEFAULT_PRECISION_DIGITS
 
@@ -26,6 +27,7 @@ include("./defaults.jl")
 include("./viewer.jl")
 include("./viewer.ply.jl")
 include("./hpc.jl")
+include("../test/serialization.jl")
 
 MAP_GLUE=0.0
 include("./fenvs.jl")
@@ -46,6 +48,7 @@ LAR_VERTEX_COLOR     = BLACK
 LAR_EDGE_COLOR       = BLUE
 LAR_FACE_COLOR       = MAGENTA
 
+# include("../test/serialization.jl")
 
 include("./lar/lar.jl")
 include("./lar/simplexn.jl")
@@ -58,7 +61,6 @@ include("./lar/boolean.jl")
 include("./get_oriented_triangles.jl")
 
 include("./svg.jl")
-
 
 function __init__()
 	# Initialize Python hull code with automatic scipy installation
