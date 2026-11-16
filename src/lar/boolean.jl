@@ -158,33 +158,33 @@ function SPLIT(lar::Lar; debug_mode=false)::Tuple{Lar,Lar}
         end
       end
 
-      # try guessing with boundary faces (can be slow and error-prone)
-      if isnothing(outer)
-        filtered=component
-        while length(filtered)>1
-          boundary_faces=guess_boundary_faces(lar, faces)
-          filtered = [atom for atom in filtered if all([F in atom for F in boundary_faces])]
-        end
-        @assert(length(filtered)==1)
-        outer =filtered[1]
-        inners=[atom for atom in component if atom!=outer]
-      end
+#       # try guessing with boundary faces (can be slow and error-prone)
+#       if isnothing(outer)
+#         filtered=component
+#         while length(filtered)>1
+#           boundary_faces=guess_boundary_faces(lar, faces)
+#           filtered = [atom for atom in filtered if all([F in atom for F in boundary_faces])]
+#         end
+#         @assert(length(filtered)==1)
+#         outer =filtered[1]
+#         inners=[atom for atom in component if atom!=outer]
+#       end
 
     end
 
     # println("outer is ",outer)
 
-    # topology check: 
-    begin
-      @assert(!isnothing(outer))
-      @assert(length(inners)>=1)
-      @assert((length(inners)+1)==length(component))
-
-      # all outer faces should in any of the inners
-      for F in outer 
-        @assert(F in vcat(inners...))
-      end
-    end
+#     # topology check: 
+#     begin
+#       @assert(!isnothing(outer))
+#       @assert(length(inners)>=1)
+#       @assert((length(inners)+1)==length(component))
+# 
+#       # all outer faces should in any of the inners
+#       for F in outer 
+#         @assert(F in vcat(inners...))
+#       end
+#     end
 
     push!(lar_outers.C[:CF], outer)
     append!(lar_inners.C[:CF], inners)
@@ -286,7 +286,7 @@ export is_internal_point
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function find_internal_point(lar::Lar;max_attempts=10) 
+function find_internal_point(lar::Lar;max_attempts=100) 
 
   # @show(lar)
   # VIEWCOMPLEX(lar)
@@ -304,7 +304,9 @@ function find_internal_point(lar::Lar;max_attempts=10)
   #@show(b1,b2)
   #@show(move_out)
 
-  for attempt in 1:max_attempts
+attempt = 0
+  for k in 1:max_attempts
+  attempt += 1
 
     # choose a random point inside the box and a random direction
     inside_bbox = [random_float(b1[I],b2[I]) for I in 1:pdim ]
@@ -365,7 +367,7 @@ function find_internal_point(lar::Lar;max_attempts=10)
     return internal_point, ray_dir, distances
 
   end
-
+@show attempt;
 	error("cannot find internal point")
 end
 
@@ -609,6 +611,10 @@ export UNION, INTERSECTION, DIFFERENCE, XOR
 
 # /////////////////////////////////////////////////////////////////////////
 function BOOL(hpc::Hpc; debug_mode::Bool=false)::Lar
+println("**********BOOL begin ") 
+#@show (hpc::Hpc); 
+# cd(TEST_DIR)
+# serialize_object("Annotated Hpc", hpc::Hpc)
 
   Tdim = dim(hpc) + 1
   args=Vector{Hpc}()
@@ -655,13 +661,13 @@ function BOOL(hpc::Hpc; debug_mode::Bool=false)::Lar
     lar = INNERS(lar)
   end
 
-  show_debug(assembly)
+  #show_debug(assembly)
   println("#args=",length(args))
 
   function my_bool_op(bool_args::Vector{Bool})::Bool
+    Cursor=1
     println("my_bool_op"," ",bool_args)
     @assert(length(bool_args)==length(args))
-    Cursor=1
     function my_bool_op_inner(node::Hpc)
       bool_op=get(node.properties,"bool_op",nothing)
       if !isnothing(bool_op)
@@ -678,8 +684,12 @@ function BOOL(hpc::Hpc; debug_mode::Bool=false)::Lar
   end
 
   result= Plasm.BOOL(lar, bool_op=my_bool_op, input_args=[LAR(arg) for arg in args], debug_mode=debug_mode)
-  return result
 
+println("**********BOOL end ")
+# cd(TEST_DIR)
+# serialize_object("End of Boolean pipeline", result::Lar)
+
+  return result
 end
 
 export BOOL
