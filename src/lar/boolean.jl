@@ -286,7 +286,7 @@ export is_internal_point
 
 
 # //////////////////////////////////////////////////////////////////////////////
-function find_internal_point(lar::Lar;max_attempts=10) 
+function find_internal_point(lar::Lar;max_attempts=100) 
 
   # @show(lar)
   # VIEWCOMPLEX(lar)
@@ -367,6 +367,74 @@ function find_internal_point(lar::Lar;max_attempts=10)
   end
 
 	error("cannot find internal point")
+end
+
+# //////////////////////////////////////////////////////////////////////////////
+# same as find_internal_point, but each ray is aimed at a point lying ON the boundary
+# of the atom (random convex combination of a random face/edge vertices) instead
+# of a random point in the bounding box. This way the ray (almost) always hits the
+# atom, and small/thin atoms (e.g. tiny tetrahedra) do not make it fail.
+function find_internal_point_v2(lar::Lar;max_attempts=100)
+
+  pdim=size(lar.V, 1)
+  @assert(pdim==2 || pdim==3)
+
+  cells=lar.C[ pdim==2 ? :EV : :FV]
+  b1,b2=lar_bounding_box(lar; only_used_vertices=true)
+  move_out = 3.0 * LinearAlgebra.norm(b2 - b1)
+
+  for attempt in 1:max_attempts
+
+    # random point on a random face (2d: on a random edge)
+    cell=cells[rand(1:length(cells))]
+    weights=rand(length(cell)) .+ 0.1  # strictly positive weights => away from the face boundary (if convex)
+    weights=weights ./ sum(weights)
+    target=lar.V[:,cell] * weights
+
+    external_point = target + move_out * random_dir(pdim)
+    ray_dir        = normalized(target-external_point)
+
+    distances=PointNd()
+    for I in 1:length(cells)
+      hit,distance=ray_face_intersection(external_point, ray_dir, lar, I)
+      if !isnothing(hit)
+        push!(distances,distance)
+      end
+    end
+
+    # I should be outside after I've hit all faces (starting from the outside)
+    num_hits=length(distances)
+    if (num_hits < 2) || (num_hits % 2) != 0
+      continue
+    end
+
+    # find the biggest IN range
+    distances=sort(distances)
+    best_delta,internal_point=nothing,nothing
+    for I in 1:length(distances)-1
+      delta=distances[I+1]-distances[I]
+      if ((I % 2) ==1) && delta>LAR_DEFAULT_ERR
+        if isnothing(best_delta) || delta>best_delta
+          internal_point=external_point+ray_dir*(distances[I]+delta/2)
+          best_delta=delta
+        end
+      end
+    end
+
+    if isnothing(internal_point)
+      continue
+    end
+
+    # how to go from internal_point to outside
+    ray_dir=-ray_dir
+    internal_external_distance=LinearAlgebra.norm(external_point-internal_point)
+    distances=[(internal_external_distance-distance) for distance in distances]
+    @assert(is_internal_point(lar, internal_point, ray_dir))
+    return internal_point, ray_dir, distances
+
+  end
+
+  error("cannot find internal point")
 end
 
 # /////////////////////////////////////////////////////////////////////
@@ -509,7 +577,7 @@ function BOOL(arrangement::Lar; input_args=[], bool_op=BoolUnion, debug_mode=fal
   # if you want to see atoms set debug_mode=true
   atoms=ATOMS(arrangement)
 
-  internal_points=[find_internal_point(atom) for atom in atoms] 
+  internal_points=[find_internal_point_v2(atom) for atom in atoms]
   
   bool_matrix=zeros(Bool,length(atoms),length(input_args))
   
