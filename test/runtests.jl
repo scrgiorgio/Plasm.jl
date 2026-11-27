@@ -13,5 +13,6 @@ using Plasm
     #include("arrange2d.jl")
     #include("arrange3d.jl")
     #include("boolean.jl")
+    #include("many-cubes.jl")
     #include("svg_parser.jl")
 end

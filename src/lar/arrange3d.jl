@@ -509,6 +509,106 @@ end
 export ARRANGE3D
 
 
+#///////////////////////////////////////////////////////////////////////////////
+# "bad edges" fixing (edges incident to only one face), from PR #45
+#///////////////////////////////////////////////////////////////////////////////
+
+#///////////////////////////////////////////////////////////////////////////////
+function datainput(ret::Lar)
+	V = ret.V
+	EV = ret.C[:EV]
+	FE = ret.C[:FE]
+	fe = lar2cop(ret.C[:FE])
+	ev = lar2cop(ret.C[:EV])
+	fe_nums = sum(fe, dims=1)
+	edge_bad = [k for (k,val) in enumerate(fe_nums) if val==1]
+	return (V,EV,FE,fe,ev,edge_bad)
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function iscollinear(V, EV, badge1, badge2)
+	c1,c2,c3 = union(EV[badge1],EV[badge2])
+	p1 = V[:,c1]; p2 = V[:,c2]; p3 = V[:,c3]
+	v12 = p2 - p1; v13 = p3 - p1
+	ϵ = LinearAlgebra.norm(LinearAlgebra.cross(v12, v13))
+	return isapprox(ϵ, 0.0; atol=1e-8, rtol=0)
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function linsequence(V, EV, edge_bad)
+	badgesets = []
+	for (k, edge) in enumerate(edge_bad)
+		subset = [edge]
+		for i=k+1:length(edge_bad)
+			if iscollinear(V,EV, subset[end], edge_bad[i])
+				push!(subset, edge_bad[i])
+			end
+		end
+		if k==1 badgesets = [subset] end
+		if length(subset) >= 3 && !issubset(subset, badgesets[end])
+			push!(badgesets, subset)
+		end
+	end
+	return badgesets
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function ord(V, ev, badgeset)
+	vmodules = []
+	for badge in badgeset
+		v1,v2 = findnz(ev[badge, :])[1]
+		v = V[:,v1] - V[:,v2]
+		push!(vmodules, LinearAlgebra.norm(v))
+	end
+	return vmodules
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function outbadgesets(V, ev, badgesets)
+	orderedbadgesets = []
+	for badgeset in badgesets
+		ordering = ord(V,ev,badgeset)
+		max_idx = argmax(ordering)
+		badgeset[1], badgeset[max_idx] = badgeset[max_idx], badgeset[1]
+		push!(orderedbadgesets, badgeset)
+	end
+	return orderedbadgesets
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+function fixbadgesets(ev, fe, orderedbadgesets)
+	size(ev,1) == size(fe,2) ? n = size(ev,1) : error("ev not compatible to fe")
+	todelete = [] # first elements of orderedbadgesets
+	for orderedbadgeset in orderedbadgesets  # normally a triple
+		toshare = orderedbadgeset[1]
+		tofix   = orderedbadgeset[2:end]
+		for badge in tofix
+			commonface = findnz(fe[:,toshare])[1][1]
+			fe[commonface, badge] = 1
+		end
+		push!(todelete, toshare)
+	end
+	tohold = setdiff(1:n, todelete)
+	newev = copy(ev[tohold, :])
+	newfe = copy(fe[:, tohold])
+	return newev,newfe
+end
+
+#///////////////////////////////////////////////////////////////////////////////
+# in-place fix of ret.C[:EV] and ret.C[:FE] (the code PR #45 inlined in ARRANGE3D)
+function fix_bad_edges!(ret::Lar)::Lar
+	V,EV,FE,fe,ev,edge_bad = datainput(ret)
+	if edge_bad != []
+		badgesets = linsequence(V,EV, edge_bad)
+		orderedbadgesets = outbadgesets(V,ev,badgesets)
+		ev,fe = fixbadgesets(ev, fe, orderedbadgesets)
+		ret.C[:EV] = cop2lar(ev)
+		ret.C[:FE] = cop2lar(fe)
+	end
+	return ret
+end
+
+
 
 
 
