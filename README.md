@@ -106,6 +106,9 @@ julia --project=.  test/boolean.jl
 julia --project=.  test/building.jl
 julia --project=.  test/svg.jl
 
+# === robustness === 
+julia --project=.  test/many-cubes.jl
+
 ```
 
 

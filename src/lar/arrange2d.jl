@@ -626,6 +626,72 @@ function cell_merging(n, containment_graph, V_row, EVs, boundaries, shells, shel
 end
 
 # //////////////////////////////////////////////////////////////////////////////
+# same as cell_merging, but a child component is assigned to a father face only if
+# the face REALLY contains it (point_in_face), not just its bounding box.
+# With the bbox-only test a child (e.g. the small triangle left by a cube corner
+# piercing a face) could be attached as a hole to a non-convex face that does not
+# contain it, which later makes lar_tgw build atoms containing both +F and -F.
+function cell_merging_v2(n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes)
+
+	function bboxes(V_row::Points, indexes::ChainOp)
+		boxes = Array{Tuple{Any,Any}}(undef, indexes.n)
+		for i in 1:indexes.n
+			v_inds = indexes[:, i].nzind
+			boxes[i] = lar_bbox_create(V_row[v_inds, :],dims=1)
+		end
+		boxes
+	end
+	# initialization
+	sums = Array{Tuple{Int,Int,Int}}(undef, 0)
+	# assembling child components with father components
+	for father in 1:n
+		if sum(containment_graph[:, father]) > 0
+			father_bboxes = bboxes(V_row, abs.(EVs[father]') * abs.(boundaries[father]'))
+			for child in 1:n
+				if containment_graph[child, father] > 0
+					child_bbox = shell_bboxes[child]
+					# one vertex of the child (child and father do not share vertices)
+					origin = V_row[EVs[child][shells[child].nzind[1], :].nzind[1], :]
+					for b in 1:length(father_bboxes)
+						# bbox is only a fast pre-filter, the face must really contain the child
+						if lar_bbox_contains(father_bboxes[b], child_bbox) &&
+						   point_in_face(origin, V_row, EVs[father][boundaries[father][b, :].nzind, :])
+							push!(sums, (father, b, child))
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+	# offset assembly initialization
+	EV = vcat(EVs...)
+	edgenum = size(EV, 1)
+	facenum = sum(map(x -> size(x, 1), boundaries))
+	FE = spzeros(Int8, facenum, edgenum)
+	shells2 = spzeros(Int8, length(shells), edgenum)
+	r_offsets = [1]
+	c_offset = 1
+	# submatrices construction
+	for i in 1:n
+		min_row = r_offsets[end]
+		max_row = r_offsets[end] + size(boundaries[i], 1) - 1
+		min_col = c_offset
+		max_col = c_offset + size(boundaries[i], 2) - 1
+		FE[min_row:max_row, min_col:max_col] = boundaries[i]
+		shells2[i, min_col:max_col] = shells[i]
+		push!(r_offsets, max_row + 1)
+		c_offset = max_col + 1
+	end
+	# offsetting assembly of component submatrices
+	for (f, r, c) in sums
+		FE[r_offsets[f]+r-1, :] += shells2[c, :]
+	end
+
+	return EV, FE
+end
+
+# //////////////////////////////////////////////////////////////////////////////
 """
 skel_merge(V1::Points, EV1::ChainOp, V2_row::Points, EV2::ChainOp)
 
@@ -744,7 +810,7 @@ function planar_arrangement(V::Points, copEV::ChainOp, sigma::Chain=spzeros(Int8
 
 		n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes = componentgraph(V_row, copEV, bicon_comps)
 
-		copEV, FE = cell_merging(n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes)
+		copEV, FE = cell_merging_v2(n, containment_graph, V_row, EVs, boundaries, shells, shell_bboxes)
 
 		return BYCOL(V_row), copEV, FE
 	end
